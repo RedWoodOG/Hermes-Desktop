@@ -45,6 +45,25 @@ public sealed class Agent : IAgent
     /// </summary>
     public async Task<string> ChatAsync(string message, Session session, CancellationToken ct)
     {
+        #region agent log
+        try
+        {
+            var dbg = JsonSerializer.Serialize(new
+            {
+                sessionId = "e58a67",
+                hypothesisId = "H1",
+                location = "agent.cs:ChatAsync",
+                message = "agent_chat_enter",
+                data = new { session.Id, toolCount = _tools.Count },
+                timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
+            File.AppendAllText(@"C:\Hermes_Desktop_FE\debug-e58a67.log", dbg + Environment.NewLine);
+        }
+        catch
+        {
+            /* debug ingest only */
+        }
+        #endregion
         session.AddMessage(new Message { Role = "user", Content = message });
         _logger.LogInformation("Processing message for session {SessionId}", session.Id);
 

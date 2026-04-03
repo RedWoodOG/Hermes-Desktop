@@ -9,6 +9,7 @@ using Hermes.Agent.Skills;
 using Hermes.Agent.Permissions;
 using Hermes.Agent.Tasks;
 using Hermes.Agent.Buddy;
+using HermesDesktop.Diagnostics;
 using HermesDesktop.Services;
 using System;
 using System.IO;
@@ -94,6 +95,19 @@ public partial class App : Application
         // Chat service (pure C# — no sidecar)
         services.AddSingleton<HermesChatService>();
 
-        return services.BuildServiceProvider();
+        var provider = services.BuildServiceProvider();
+        #region agent log
+        try
+        {
+            var agent = provider.GetRequiredService<Agent>();
+            DesktopDebugLog.Write("H3", "App.xaml.cs:ConfigureServices", "startup_agent_tool_count",
+                new { toolCount = agent.Tools.Count });
+        }
+        catch
+        {
+            /* debug ingest only */
+        }
+        #endregion
+        return provider;
     }
 }

@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using HermesDesktop.Diagnostics;
 using HermesDesktop.Models;
 using HermesDesktop.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -99,6 +100,10 @@ public sealed partial class ChatPage : Page
     {
         if (PermissionModeSelector.SelectedItem is ComboBoxItem item && item.Tag is string modeTag)
         {
+            #region agent log
+            DesktopDebugLog.Write("H2", "ChatPage.xaml.cs:PermissionModeSelector_SelectionChanged", "combo_changed",
+                new { modeTag, invokedSetPermissionModeOnService = false });
+            #endregion
             _permissionMode = modeTag;
             Bindings.Update();
         }
@@ -128,6 +133,10 @@ public sealed partial class ChatPage : Page
         string prompt = PromptTextBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(prompt)) return;
 
+        #region agent log
+        DesktopDebugLog.Write("H1", "ChatPage.xaml.cs:SendPromptAsync", "ui_send_uses_stream_path",
+            new { promptLength = prompt.Length });
+        #endregion
         PromptTextBox.Text = string.Empty;
         AppendUserMessage(prompt);
         SetBusyState(true, ResourceLoader.GetString("ChatComposerWaiting"));

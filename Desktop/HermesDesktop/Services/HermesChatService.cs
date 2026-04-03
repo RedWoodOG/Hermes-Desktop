@@ -7,6 +7,7 @@ using Hermes.Agent.Core;
 using Hermes.Agent.LLM;
 using Hermes.Agent.Permissions;
 using Hermes.Agent.Transcript;
+using HermesDesktop.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 namespace HermesDesktop.Services;
@@ -67,6 +68,10 @@ internal sealed class HermesChatService : IDisposable
 
     public async Task<HermesChatReply> SendAsync(string message, CancellationToken ct)
     {
+        #region agent log
+        DesktopDebugLog.Write("H1", "HermesChatService.cs:SendAsync", "send_async_enter",
+            new { agentToolCount = _agent.Tools.Count });
+        #endregion
         EnsureSession();
 
         // Save user message to transcript before sending
@@ -90,6 +95,12 @@ internal sealed class HermesChatService : IDisposable
         string message,
         [EnumeratorCancellation] CancellationToken ct)
     {
+        #region agent log
+        DesktopDebugLog.Write("H1", "HermesChatService.cs:StreamAsync", "stream_path_enter",
+            new { agentToolCount = _agent.Tools.Count, path = "IChatClient.StreamAsync" });
+        DesktopDebugLog.Write("H4", "HermesChatService.cs:StreamAsync", "bypass_agent_stream",
+            new { agentToolCount = _agent.Tools.Count });
+        #endregion
         EnsureSession();
         _streamCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
@@ -157,6 +168,10 @@ internal sealed class HermesChatService : IDisposable
 
     public void SetPermissionMode(PermissionMode mode)
     {
+        #region agent log
+        DesktopDebugLog.Write("H2", "HermesChatService.cs:SetPermissionMode", "permission_mode_set",
+            new { mode = mode.ToString() });
+        #endregion
         CurrentPermissionMode = mode;
     }
 
