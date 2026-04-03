@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/Desktop/">
+    <Project Path="Desktop/HermesDesktop/HermesDesktop.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Hermes.Core.csproj" />
+  </Folder>
+</Solution>
