@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:HermesDesktop.Models"
+    xmlns:panels="using:HermesDesktop.Views.Panels"
     Background="Transparent"
     Loaded="OnPageLoaded"
     mc:Ignorable="d">
@@ -105,51 +106,43 @@
             </Grid>
         </Border>
 
-        <!-- Right Panel -->
-        <ScrollViewer Grid.Column="1" Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="1">
-                <Border Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="Buddy" FontWeight="SemiBold" FontSize="16" Foreground="{StaticResource AppAccentTextBrush}" />
-                        <TextBlock Text="Buddy system - coming soon" Style="{StaticResource BodySecondaryTextStyle}" />
-                    </StackPanel>
+        <!-- Right Panel - Tabbed Panels -->
+        <Border Grid.Column="1" Grid.Row="1" Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="0">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <!-- Tab selector -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="2" Padding="8,8,8,0">
+                    <Button x:Name="TabSessions" Content="Sessions" Click="PanelTab_Click" Tag="sessions"
+                            Background="Transparent" Foreground="{StaticResource AppAccentTextBrush}" FontSize="11" Padding="8,4" CornerRadius="6"/>
+                    <Button x:Name="TabFiles" Content="Files" Click="PanelTab_Click" Tag="files"
+                            Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6"/>
+                    <Button x:Name="TabSkills" Content="Skills" Click="PanelTab_Click" Tag="skills"
+                            Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6"/>
+                    <Button x:Name="TabMemory" Content="Memory" Click="PanelTab_Click" Tag="memory"
+                            Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6"/>
+                    <Button x:Name="TabTasks" Content="Tasks" Click="PanelTab_Click" Tag="tasks"
+                            Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6"/>
+                    <Button x:Name="TabBuddy" Content="Buddy" Click="PanelTab_Click" Tag="buddy"
+                            Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6"/>
+                </StackPanel>
+
+                <!-- Panel content area -->
+                <Border Grid.Row="1" Padding="12,8">
+                    <Grid>
+                        <panels:SessionPanel x:Name="SessionPanelView" Visibility="Visible"/>
+                        <panels:FileBrowserPanel x:Name="FileBrowserPanelView" Visibility="Collapsed"/>
+                        <panels:SkillsPanel x:Name="SkillsPanelView" Visibility="Collapsed"/>
+                        <panels:MemoryPanel x:Name="MemoryPanelView" Visibility="Collapsed"/>
+                        <panels:TaskPanel x:Name="TaskPanelView" Visibility="Collapsed"/>
+                        <panels:BuddyPanel x:Name="BuddyPanelView" Visibility="Collapsed"/>
+                    </Grid>
                 </Border>
 
-                <Border Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="Skills" FontWeight="SemiBold" FontSize="16" Foreground="{StaticResource AppAccentTextBrush}" />
-                        <TextBlock Text="Skills system - coming soon" Style="{StaticResource BodySecondaryTextStyle}" />
-                    </StackPanel>
+                <!-- Session info footer -->
+                <Border Grid.Row="2" Padding="12,6" BorderBrush="{StaticResource AppStrokeBrush}" BorderThickness="0,1,0,0">
+                    <TextBlock Text="{x:Bind SessionIdText, Mode=OneWay}" FontSize="11"
+                               Foreground="{StaticResource AppTextSecondaryBrush}"/>
                 </Border>
-
-                <Border Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="Tasks" FontWeight="SemiBold" FontSize="16" Foreground="{StaticResource AppAccentTextBrush}" />
-                        <TextBlock Text="Task management - coming soon" Style="{StaticResource BodySecondaryTextStyle}" />
-                    </StackPanel>
-                </Border>
-
-                <Border Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="Team" FontWeight="SemiBold" FontSize="16" Foreground="{StaticResource AppAccentTextBrush}" />
-                        <TextBlock Text="Multi-agent teams - coming soon" Style="{StaticResource BodySecondaryTextStyle}" />
-                    </StackPanel>
-                </Border>
-
-                <Border Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="Dream" FontWeight="SemiBold" FontSize="16" Foreground="{StaticResource AppAccentTextBrush}" />
-                        <TextBlock Text="Auto-consolidation - coming soon" Style="{StaticResource BodySecondaryTextStyle}" />
-                    </StackPanel>
-                </Border>
-
-                <Border Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="Session" FontWeight="SemiBold" FontSize="14" />
-                        <TextBlock Text="{x:Bind SessionIdText, Mode=OneWay}" FontSize="11" />
-                    </StackPanel>
-                </Border>
-            </StackPanel>
-        </ScrollViewer>
+            </Grid>
+        </Border>
     </Grid>
 </Page>

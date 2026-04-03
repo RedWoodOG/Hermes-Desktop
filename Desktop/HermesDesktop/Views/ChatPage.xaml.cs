@@ -268,6 +268,65 @@ public sealed partial class ChatPage : Page
         return item;
     }
 
+    // ── Panel Tab Switching ──
+
+    private string _activeTab = "sessions";
+
+    private void PanelTab_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is Button btn && btn.Tag is string tag)
+        {
+            _activeTab = tag;
+
+            // Hide all panels
+            SessionPanelView.Visibility = Visibility.Collapsed;
+            FileBrowserPanelView.Visibility = Visibility.Collapsed;
+            SkillsPanelView.Visibility = Visibility.Collapsed;
+            MemoryPanelView.Visibility = Visibility.Collapsed;
+            TaskPanelView.Visibility = Visibility.Collapsed;
+            BuddyPanelView.Visibility = Visibility.Collapsed;
+
+            // Show selected panel
+            var accentBrush = GetBrush("AppAccentTextBrush");
+            var mutedBrush = GetBrush("AppTextSecondaryBrush");
+
+            TabSessions.Foreground = mutedBrush;
+            TabFiles.Foreground = mutedBrush;
+            TabSkills.Foreground = mutedBrush;
+            TabMemory.Foreground = mutedBrush;
+            TabTasks.Foreground = mutedBrush;
+            TabBuddy.Foreground = mutedBrush;
+
+            switch (tag)
+            {
+                case "sessions":
+                    SessionPanelView.Visibility = Visibility.Visible;
+                    TabSessions.Foreground = accentBrush;
+                    break;
+                case "files":
+                    FileBrowserPanelView.Visibility = Visibility.Visible;
+                    TabFiles.Foreground = accentBrush;
+                    break;
+                case "skills":
+                    SkillsPanelView.Visibility = Visibility.Visible;
+                    TabSkills.Foreground = accentBrush;
+                    break;
+                case "memory":
+                    MemoryPanelView.Visibility = Visibility.Visible;
+                    TabMemory.Foreground = accentBrush;
+                    break;
+                case "tasks":
+                    TaskPanelView.Visibility = Visibility.Visible;
+                    TabTasks.Foreground = accentBrush;
+                    break;
+                case "buddy":
+                    BuddyPanelView.Visibility = Visibility.Visible;
+                    TabBuddy.Foreground = accentBrush;
+                    break;
+            }
+        }
+    }
+
     private static Brush GetBrush(string resourceKey)
     {
         return (Brush)Application.Current.Resources[resourceKey];
