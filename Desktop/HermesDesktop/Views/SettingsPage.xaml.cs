@@ -68,6 +68,12 @@ public sealed partial class SettingsPage : Page
     {
         var providerTag = (ProviderCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "local";
         PopulateModelCombo(providerTag);
+
+        // Auto-fill base URL for known providers
+        if (ModelCatalog.ProviderBaseUrls.TryGetValue(providerTag, out var defaultUrl))
+        {
+            BaseUrlBox.Text = defaultUrl;
+        }
     }
 
     private void PopulateModelCombo(string provider)

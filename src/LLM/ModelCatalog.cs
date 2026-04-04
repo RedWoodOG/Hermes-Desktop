@@ -63,6 +63,29 @@ public static class ModelCatalog
                 new("claude-haiku-4-5-20251001",    "Claude Haiku 4.5 (Oct 2025)",   200_000),
             },
 
+            ["qwen"] = new ModelEntry[]
+            {
+                new("qwen-max",                "Qwen Max",                32_768),
+                new("qwen-max-latest",         "Qwen Max (Latest)",       32_768),
+                new("qwen-plus",               "Qwen Plus",               131_072),
+                new("qwen-plus-latest",        "Qwen Plus (Latest)",      131_072),
+                new("qwen-turbo",              "Qwen Turbo",              131_072),
+                new("qwen-turbo-latest",       "Qwen Turbo (Latest)",     131_072),
+                new("qwen-long",               "Qwen Long",               10_000_000),
+                new("qwen3-235b-a22b",         "Qwen3 235B",              131_072),
+                new("qwen3-30b-a3b",           "Qwen3 30B",               131_072),
+                new("qwen3-32b",               "Qwen3 32B",               131_072),
+                new("qwen3-14b",               "Qwen3 14B",               131_072),
+                new("qwen3-8b",                "Qwen3 8B",                131_072),
+                new("qwen3-4b",                "Qwen3 4B",                131_072),
+                new("qwen3-1.7b",              "Qwen3 1.7B",              131_072),
+                new("qwen3-0.6b",              "Qwen3 0.6B",              131_072),
+                new("qwen2.5-coder-32b-instruct", "Qwen2.5 Coder 32B",   131_072),
+                new("qwen2.5-72b-instruct",    "Qwen2.5 72B",            131_072),
+                new("qwq-32b",                 "QwQ 32B (Reasoning)",     131_072),
+                new("qwq-plus",                "QwQ Plus (Reasoning)",    131_072),
+            },
+
             ["deepseek"] = new ModelEntry[]
             {
                 new("deepseek-chat",      "DeepSeek Chat",       128_000),
@@ -101,8 +124,22 @@ public static class ModelCatalog
     /// <summary>All known provider names.</summary>
     public static IReadOnlyList<string> Providers { get; } = new[]
     {
-        "nous", "openai", "anthropic", "deepseek", "minimax", "openrouter", "local"
+        "nous", "openai", "anthropic", "qwen", "deepseek", "minimax", "openrouter", "local"
     };
+
+    /// <summary>Default base URLs for known providers.</summary>
+    public static IReadOnlyDictionary<string, string> ProviderBaseUrls { get; } =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["openai"]     = "https://api.openai.com/v1",
+            ["anthropic"]  = "https://api.anthropic.com",
+            ["qwen"]       = "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            ["deepseek"]   = "https://api.deepseek.com/v1",
+            ["minimax"]    = "https://api.minimax.chat/v1",
+            ["openrouter"] = "https://openrouter.ai/api/v1",
+            ["nous"]       = "https://openrouter.ai/api/v1",
+            ["local"]      = "http://127.0.0.1:11434/v1",
+        };
 
     /// <summary>Get models for a provider, returning an empty list if unknown.</summary>
     public static IReadOnlyList<ModelEntry> GetModels(string provider)

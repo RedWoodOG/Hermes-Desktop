@@ -50,6 +50,7 @@
                                     <ComboBoxItem Content="Nous (OpenRouter)" Tag="nous"/>
                                     <ComboBoxItem Content="OpenAI" Tag="openai"/>
                                     <ComboBoxItem Content="Anthropic" Tag="anthropic"/>
+                                    <ComboBoxItem Content="Qwen (Alibaba)" Tag="qwen"/>
                                     <ComboBoxItem Content="DeepSeek" Tag="deepseek"/>
                                     <ComboBoxItem Content="MiniMax" Tag="minimax"/>
                                     <ComboBoxItem Content="OpenRouter" Tag="openrouter"/>
