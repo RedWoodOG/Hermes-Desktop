@@ -20,8 +20,12 @@ public sealed class PromptBuilder
 
     private readonly string _systemPrompt;
 
+    /// <summary>The stable system prompt used as the cache anchor.</summary>
     public string SystemPrompt => _systemPrompt;
 
+    /// <summary>
+    /// Creates a prompt builder with a fixed system prompt that serves as the cache anchor.
+    /// </summary>
     public PromptBuilder(string systemPrompt)
     {
         _systemPrompt = systemPrompt;
@@ -121,19 +125,37 @@ public sealed class PromptBuilder
     }
 }
 
+/// <summary>Input parameters for building a prompt packet.</summary>
 public sealed class BuildRequest
 {
+    /// <summary>Current session state to serialize into the prompt.</summary>
     public required SessionState State { get; init; }
+
+    /// <summary>The user's message for the current turn.</summary>
     public required string CurrentUserMessage { get; init; }
+
+    /// <summary>Recent conversation turns from the sliding window.</summary>
     public List<Message> RecentTurns { get; init; } = new();
+
+    /// <summary>Optional context chunks retrieved on demand (e.g. from memory or search).</summary>
     public List<string>? RetrievedContext { get; init; }
 }
 
+/// <summary>Assembled prompt ready for conversion to provider message format.</summary>
 public sealed class PromptPacket
 {
+    /// <summary>Stable system instructions (cache anchor layer).</summary>
     public required string SystemPrompt { get; init; }
+
+    /// <summary>Serialized session state JSON (slow-changing second cache layer).</summary>
     public string SessionStateJson { get; init; } = "{}";
+
+    /// <summary>Optional retrieved context chunks.</summary>
     public List<string>? RetrievedContext { get; init; }
+
+    /// <summary>Recent conversation turns from the sliding window.</summary>
     public List<Message> RecentTurns { get; init; } = new();
+
+    /// <summary>The user's message for the current turn.</summary>
     public required string CurrentUserMessage { get; init; }
 }

@@ -6,16 +6,22 @@ namespace Hermes.Agent.Context;
 /// </summary>
 public sealed class SessionState
 {
+    /// <summary>The current task or objective the conversation is working toward.</summary>
     public string ActiveGoal { get; set; } = string.Empty;
 
+    /// <summary>Rules, boundaries, or requirements that constrain how the goal is pursued.</summary>
     public List<string> Constraints { get; set; } = new();
 
+    /// <summary>Key decisions made during the conversation, with rationale.</summary>
     public List<Decision> Decisions { get; set; } = new();
 
+    /// <summary>Unresolved items that still need answers or investigation.</summary>
     public List<string> OpenQuestions { get; set; } = new();
 
+    /// <summary>Key names, file paths, or domain terms referenced in the conversation.</summary>
     public List<string> ImportantEntities { get; set; } = new();
 
+    /// <summary>Compressed summary of older turns evicted from the recent window.</summary>
     public SessionSummary Summary { get; set; } = new();
 
     /// <summary>
@@ -74,13 +80,20 @@ public sealed class SessionState
     }
 }
 
+/// <summary>A recorded decision with rationale, anchored to a specific turn.</summary>
 public sealed class Decision
 {
+    /// <summary>What was decided.</summary>
     public required string What { get; init; }
+
+    /// <summary>Why this choice was made.</summary>
     public required string Why { get; init; }
+
+    /// <summary>The turn number when this decision was recorded.</summary>
     public int TurnNumber { get; init; }
 }
 
+/// <summary>Rolling summary of conversation turns that have been evicted from the recent window.</summary>
 public sealed class SessionSummary
 {
     /// <summary>

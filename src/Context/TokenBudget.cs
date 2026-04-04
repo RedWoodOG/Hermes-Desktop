@@ -9,12 +9,22 @@ namespace Hermes.Agent.Context;
 public sealed class TokenBudget
 {
     private readonly int _maxTokens;
+    private readonly int _recentTurnWindow;
 
-    public TokenBudget(int maxTokens = 8000)
+    /// <summary>
+    /// Creates a token budget with the given ceiling. Thresholds scale proportionally.
+    /// </summary>
+    /// <param name="maxTokens">Hard token ceiling (must be greater than zero).</param>
+    /// <param name="recentTurnWindow">Number of recent turns to keep (must be non-negative).</param>
+    public TokenBudget(int maxTokens = 8000, int recentTurnWindow = 6)
     {
+        ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(maxTokens, 0);
+        ArgumentOutOfRangeException.ThrowIfNegative(recentTurnWindow);
         _maxTokens = maxTokens;
+        _recentTurnWindow = recentTurnWindow;
     }
 
+    /// <summary>Hard ceiling on total tokens sent per turn.</summary>
     public int MaxTokens => _maxTokens;
 
     /// <summary>75% of max — crossing this triggers summarization of older turns.</summary>
@@ -24,7 +34,7 @@ public sealed class TokenBudget
     public int CriticalThreshold => (int)(_maxTokens * 0.94);
 
     /// <summary>Number of most recent turns to keep in the context window.</summary>
-    public int RecentTurnWindow { get; init; } = 6;
+    public int RecentTurnWindow => _recentTurnWindow;
 
     /// <summary>
     /// Estimates the token count for a sequence of messages.

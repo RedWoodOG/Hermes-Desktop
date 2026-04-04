@@ -22,7 +22,11 @@ public sealed class ContextManager
     private readonly ILogger<ContextManager> _logger;
 
     private readonly ConcurrentDictionary<string, SessionState> _sessionStates = new();
+    private readonly ConcurrentDictionary<string, SemaphoreSlim> _sessionLocks = new();
 
+    /// <summary>
+    /// Creates a new ContextManager wired to the given transcript store, LLM client, and budget.
+    /// </summary>
     public ContextManager(
         TranscriptStore transcripts,
         IChatClient chatClient,
@@ -55,63 +59,72 @@ public sealed class ContextManager
         CancellationToken ct)
     {
         var state = GetOrCreateState(sessionId);
+        var sessionLock = _sessionLocks.GetOrAdd(sessionId, _ => new SemaphoreSlim(1, 1));
 
-        // Load transcript from archive — empty list for brand-new sessions
-        List<Message> allMessages;
-        if (_transcripts.SessionExists(sessionId))
-            allMessages = await _transcripts.LoadSessionAsync(sessionId, ct);
-        else
-            allMessages = new List<Message>();
-
-        // Split into recent window and evicted older messages
-        var recentTurns = _budget.TrimToRecentWindow(allMessages);
-        var evictedMessages = _budget.GetEvictedMessages(allMessages);
-
-        // Estimate current token usage (all layers that will be sent)
-        var systemTokens = _budget.EstimateTokens(_promptBuilder.SystemPrompt);
-        var stateTokens = state.EstimateTokens();
-        var recentTokens = _budget.EstimateTokens(recentTurns);
-        var retrievedTokens = EstimateRetrievedContextTokens(retrievedContext);
-        var userTokens = _budget.EstimateTokens(userMessage);
-        var totalTokens = systemTokens + stateTokens + recentTokens + retrievedTokens + userTokens;
-
-        var pressure = _budget.GetPressure(totalTokens);
-
-        _logger.LogDebug(
-            "Context budget: {Total}/{Max} tokens ({Pressure}), {Recent} recent, {Evicted} evicted",
-            totalTokens, _budget.MaxTokens, pressure, recentTurns.Count, evictedMessages.Count);
-
-        // Summarize evicted messages if we have any and need to
-        if (evictedMessages.Count > 0 && pressure >= BudgetPressure.High)
+        await sessionLock.WaitAsync(ct);
+        try
         {
-            await SummarizeEvictedAsync(state, evictedMessages, ct);
+            // Load transcript from archive — empty list for brand-new sessions
+            List<Message> allMessages;
+            if (_transcripts.SessionExists(sessionId))
+                allMessages = await _transcripts.LoadSessionAsync(sessionId, ct);
+            else
+                allMessages = new List<Message>();
+
+            // Split into recent window and evicted older messages
+            var recentTurns = _budget.TrimToRecentWindow(allMessages);
+            var evictedMessages = _budget.GetEvictedMessages(allMessages);
+
+            // Estimate current token usage (all layers that will be sent)
+            var systemTokens = _budget.EstimateTokens(_promptBuilder.SystemPrompt);
+            var stateTokens = state.EstimateTokens();
+            var recentTokens = _budget.EstimateTokens(recentTurns);
+            var retrievedTokens = EstimateRetrievedContextTokens(retrievedContext);
+            var userTokens = _budget.EstimateTokens(userMessage);
+            var totalTokens = systemTokens + stateTokens + recentTokens + retrievedTokens + userTokens;
+
+            var pressure = _budget.GetPressure(totalTokens);
+
+            _logger.LogDebug(
+                "Context budget: {Total}/{Max} tokens ({Pressure}), {Recent} recent, {Evicted} evicted",
+                totalTokens, _budget.MaxTokens, pressure, recentTurns.Count, evictedMessages.Count);
+
+            // Summarize evicted messages if we have any and need to
+            if (evictedMessages.Count > 0 && pressure >= BudgetPressure.High)
+            {
+                await SummarizeEvictedAsync(state, evictedMessages, ct);
+            }
+            else if (evictedMessages.Count > 0 && string.IsNullOrEmpty(state.Summary.Content))
+            {
+                // First time we evict messages — create initial summary
+                await SummarizeEvictedAsync(state, evictedMessages, ct);
+            }
+
+            // Under critical pressure, compact the state itself
+            if (pressure == BudgetPressure.Critical)
+            {
+                state.Compact(maxDecisions: 5, maxQuestions: 3, maxEntities: 10);
+                _logger.LogWarning("Critical budget pressure — compacted session state");
+            }
+
+            // Increment turn count only after all async work succeeds
+            state.TurnCount++;
+
+            // Build the prompt
+            var packet = _promptBuilder.Build(new BuildRequest
+            {
+                State = state,
+                CurrentUserMessage = userMessage,
+                RecentTurns = recentTurns,
+                RetrievedContext = retrievedContext
+            });
+
+            return _promptBuilder.ToOpenAiMessages(packet);
         }
-        else if (evictedMessages.Count > 0 && string.IsNullOrEmpty(state.Summary.Content))
+        finally
         {
-            // First time we evict messages — create initial summary
-            await SummarizeEvictedAsync(state, evictedMessages, ct);
+            sessionLock.Release();
         }
-
-        // Under critical pressure, compact the state itself
-        if (pressure == BudgetPressure.Critical)
-        {
-            state.Compact(maxDecisions: 5, maxQuestions: 3, maxEntities: 10);
-            _logger.LogWarning("Critical budget pressure — compacted session state");
-        }
-
-        // Increment turn count only after all async work succeeds
-        state.TurnCount++;
-
-        // Build the prompt
-        var packet = _promptBuilder.Build(new BuildRequest
-        {
-            State = state,
-            CurrentUserMessage = userMessage,
-            RecentTurns = recentTurns,
-            RetrievedContext = retrievedContext
-        });
-
-        return _promptBuilder.ToOpenAiMessages(packet);
     }
 
     /// <summary>
@@ -165,6 +178,9 @@ public sealed class ContextManager
         _sessionStates.TryRemove(sessionId, out _);
     }
 
+    /// <summary>
+    /// Estimates token cost for retrieved context chunks (~4 chars per token).
+    /// </summary>
     private int EstimateRetrievedContextTokens(List<string>? retrievedContext)
     {
         if (retrievedContext is null or { Count: 0 }) return 0;
