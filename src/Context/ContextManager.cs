@@ -214,6 +214,8 @@ public sealed class ContextManager
     public void EvictState(string sessionId)
     {
         _sessionStates.TryRemove(sessionId, out _);
+        if (_sessionLocks.TryRemove(sessionId, out var semaphore))
+            semaphore.Dispose();
     }
 
     /// <summary>
@@ -279,7 +281,7 @@ public sealed class ContextManager
         {
             var summary = await _chatClient.CompleteAsync(summarizePrompt, ct);
             state.Summary.Content = summary.Trim();
-            state.Summary.CoveredThroughTurn = Math.Max(0, state.TurnCount - 1);
+            state.Summary.CoveredThroughTurn = state.TurnCount;
 
             _logger.LogInformation(
                 "Summarized {Count} evicted messages into {Tokens} est. tokens",
