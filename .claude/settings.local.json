@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Hermes_Desktop_FE/workspace/Hermes.CS/**)",
+      "Bash(\"/c/Program Files/dotnet/dotnet.exe\" build src/Hermes.Core.csproj)",
+      "Bash(\"/c/Program Files/dotnet/dotnet.exe\" build -c Debug -p:Platform=x64)",
+      "Read(//c/Program Files/GitHub CLI/**)",
+      "Read(//c/Program Files \\(x86\\)/GitHub CLI/**)",
+      "Read(//c/Users/jwhit/AppData/**)",
+      "Bash(powershell.exe -Command \"Get-Command gh -ErrorAction SilentlyContinue | Select-Object Source\")",
+      "Bash(where.exe gh:*)",
+      "Bash(winget list:*)",
+      "Bash(winget install:*)",
+      "Bash(export PATH=\"$PATH:/c/Program Files/GitHub CLI\")",
+      "Bash(gh --version)",
+      "Bash(gh auth:*)",
+      "Bash(gh pr:*)",
+      "Bash(rm -f \"C:/Hermes_Desktop_FE/workspace/Hermes.CS/Desktop/HermesDesktop/sidecar/hermes_sidecar.py\")",
+      "Bash(rm -f \"C:/Hermes_Desktop_FE/workspace/Hermes.CS/Desktop/HermesDesktop/Services/HermesSidecarHost.cs\")",
+      "Bash(powershell.exe -Command \"Get-Process HermesDesktop -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, MainWindowTitle, WorkingSet64 | Format-Table -AutoSize\")",
+      "Bash(powershell.exe -Command \":*)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File \"./run-dev.ps1\")",
+      "Bash(powershell.exe -Command \"Get-Process HermesDesktop -ErrorAction SilentlyContinue | Stop-Process -Force\")",
+      "Bash(curl -s http://localhost:11434/v1/chat/completions -H \"Content-Type: application/json\" -d '{\"\"\"\"model\"\"\"\":\"\"\"\"minimax-m2.7:cloud\"\"\"\",\"\"\"\"messages\"\"\"\":[{\"\"\"\"role\"\"\"\":\"\"\"\"user\"\"\"\",\"\"\"\"content\"\"\"\":\"\"\"\"Hello\"\"\"\"}],\"\"\"\"temperature\"\"\"\":0.7}')",
+      "Bash(rm -f C:/Hermes_Desktop_FE/chat-debug.log)",
+      "Bash(powershell.exe -ExecutionPolicy Bypass -File ./run-dev.ps1)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(\"/c/Program Files/dotnet/dotnet.exe\" build Desktop/HermesDesktop/HermesDesktop.csproj -c Debug -p:Platform=x64)",
+      "Bash(taskkill //F //PID 18712)",
+      "mcp__github__create_pull_request",
+      "mcp__github__get_pull_request_comments",
+      "mcp__github__get_pull_request_reviews",
+      "mcp__github__get_pull_request",
+      "Bash(wc -c \"C:/Users/jwhit/.claude/projects/C--Users-jwhit--openclaw-workspace-han-Hermes-CS/3f9de419-d5d6-499d-a72c-634814183e24/tool-results/mcp-github-get_pull_request_comments-1775327121888.txt\")",
+      "mcp__github__list_pull_requests"
+    ]
+  }
+}

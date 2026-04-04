@@ -1,49 +1,57 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Hermes.Agent.Core;
 using Hermes.Agent.LLM;
 using Hermes.Agent.Permissions;
+using Hermes.Agent.Transcript;
+using Microsoft.Extensions.Logging;
 
 namespace HermesDesktop.Services;
 
+/// <summary>
+/// Pure C# chat service — bridges the WinUI frontend to the Hermes Agent core.
+/// No Python sidecar. Direct in-process agent execution.
+/// </summary>
 internal sealed class HermesChatService : IDisposable
 {
-    private readonly OpenAiClient _chatClient;
-    private string? _sessionId;
+    private readonly Agent _agent;
+    private readonly IChatClient _chatClient;
+    private readonly TranscriptStore _transcriptStore;
+    private readonly ILogger<HermesChatService> _logger;
+
+    private Session? _currentSession;
+    private CancellationTokenSource? _streamCts;
     private bool _disposed;
 
-    public HermesChatService()
+    public HermesChatService(
+        Agent agent,
+        IChatClient chatClient,
+        TranscriptStore transcriptStore,
+        ILogger<HermesChatService> logger)
     {
-        var configPath = Environment.GetEnvironmentVariable("HERMES_CONFIG") 
-            ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "hermes", "config.yaml");
-        
-        var config = new LlmConfig
-        {
-            Provider = "openai",
-            Model = "qwen3.5",
-            BaseUrl = "http://localhost:11434/v1",
-            ApiKey = ""
-        };
-        
-        _chatClient = new OpenAiClient(config, new HttpClient());
+        _agent = agent;
+        _chatClient = chatClient;
+        _transcriptStore = transcriptStore;
+        _logger = logger;
     }
 
-    public string? CurrentSessionId => _sessionId;
+    public string? CurrentSessionId => _currentSession?.Id;
+    public Session? CurrentSession => _currentSession;
     public PermissionMode CurrentPermissionMode { get; private set; } = PermissionMode.Default;
 
-    public async Task<(bool IsHealthy, string Detail)> CheckHealthAsync(CancellationToken cancellationToken)
+    // ── Health Check ──
+
+    public async Task<(bool IsHealthy, string Detail)> CheckHealthAsync(CancellationToken ct)
     {
         try
         {
             var messages = new[] { new Message { Role = "user", Content = "Respond with only: OK" } };
-            var response = await _chatClient.CompleteAsync(messages, cancellationToken);
-            
+            var response = await _chatClient.CompleteAsync(messages, ct);
             return !string.IsNullOrEmpty(response)
-                ? (true, $"OpenAiClient · Connected")
+                ? (true, "Connected to LLM")
                 : (false, "Empty response from LLM");
         }
         catch (Exception ex)
@@ -52,62 +60,127 @@ internal sealed class HermesChatService : IDisposable
         }
     }
 
-    public async Task<HermesChatReply> SendAsync(string message, CancellationToken cancellationToken)
+    // ── Send (blocking, full response) ──
+
+    public async Task<HermesChatReply> SendAsync(string message, CancellationToken ct)
     {
-        if (string.IsNullOrEmpty(_sessionId))
+        EnsureSession();
+        var messageCountBefore = _currentSession!.Messages.Count;
+
+        try
         {
-            _sessionId = Guid.NewGuid().ToString("N")[..8];
+            var response = await _agent.ChatAsync(message, _currentSession, ct);
+
+            // Persist all new messages (user + tool calls + assistant)
+            await PersistNewMessagesAsync(messageCountBefore);
+
+            _logger.LogInformation("Chat reply for session {SessionId}: {Length} chars", _currentSession.Id, response.Length);
+            return new HermesChatReply(response, _currentSession.Id);
         }
-
-        var userMessage = new Message { Role = "user", Content = message };
-        var messages = new[] { userMessage };
-
-        var response = await _chatClient.CompleteAsync(messages, cancellationToken);
-        
-        if (!string.IsNullOrEmpty(response))
+        catch
         {
-            return new HermesChatReply(response, _sessionId);
+            // Persist whatever was added before the failure (at minimum the user message)
+            await PersistNewMessagesAsync(messageCountBefore);
+            throw;
         }
-
-        throw new InvalidOperationException("No response from LLM");
     }
+
+    private async Task PersistNewMessagesAsync(int fromIndex)
+    {
+        for (var i = fromIndex; i < _currentSession!.Messages.Count; i++)
+        {
+            await _transcriptStore.SaveMessageAsync(_currentSession.Id, _currentSession.Messages[i], CancellationToken.None);
+        }
+    }
+
+    // ── Stream (token-by-token) ──
+
+    public async IAsyncEnumerable<string> StreamAsync(
+        string message,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        EnsureSession();
+        _streamCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+        // Save user message
+        var userMsg = new Message { Role = "user", Content = message };
+        _currentSession!.AddMessage(userMsg);
+        await _transcriptStore.SaveMessageAsync(_currentSession.Id, userMsg, _streamCts.Token);
+
+        // Stream tokens
+        var fullResponse = new System.Text.StringBuilder();
+        await foreach (var token in _chatClient.StreamAsync(_currentSession.Messages, _streamCts.Token))
+        {
+            fullResponse.Append(token);
+            yield return token;
+        }
+
+        // Save complete assistant response
+        var assistantMsg = new Message { Role = "assistant", Content = fullResponse.ToString() };
+        _currentSession.AddMessage(assistantMsg);
+        await _transcriptStore.SaveMessageAsync(_currentSession.Id, assistantMsg, CancellationToken.None);
+    }
+
+    // ── Cancel ──
+
+    public void CancelStream()
+    {
+        _streamCts?.Cancel();
+        _logger.LogInformation("Stream cancelled for session {SessionId}", _currentSession?.Id);
+    }
+
+    // ── Session Management ──
+
+    public void EnsureSession()
+    {
+        if (_currentSession is not null) return;
+        _currentSession = new Session
+        {
+            Id = Guid.NewGuid().ToString("N")[..8],
+            Platform = "desktop"
+        };
+        _logger.LogInformation("Created new session {SessionId}", _currentSession.Id);
+    }
+
+    public async Task LoadSessionAsync(string sessionId, CancellationToken ct)
+    {
+        var messages = await _transcriptStore.LoadSessionAsync(sessionId, ct);
+        _currentSession = new Session
+        {
+            Id = sessionId,
+            Platform = "desktop"
+        };
+        foreach (var msg in messages)
+            _currentSession.AddMessage(msg);
+
+        _logger.LogInformation("Loaded session {SessionId} with {Count} messages", sessionId, messages.Count);
+    }
+
+    public void ResetConversation()
+    {
+        _currentSession = null;
+        _streamCts = null;
+    }
+
+    // ── Permission Mode ──
 
     public void SetPermissionMode(PermissionMode mode)
     {
         CurrentPermissionMode = mode;
     }
 
-    public void ResetConversation()
-    {
-        _sessionId = null;
-    }
+    // ── Tool Registration ──
+
+    public void RegisterTool(ITool tool) => _agent.RegisterTool(tool);
+
+    // ── Dispose ──
 
     public void Dispose()
     {
         if (_disposed) return;
+        _streamCts?.Dispose();
         _disposed = true;
     }
 
     internal sealed record HermesChatReply(string Response, string SessionId);
-}
-
-public sealed class DreamStatusViewModel
-{
-    public DreamStatusViewModel()
-    {
-        IsConsolidating = false;
-        Status = "Idle";
-        LastConsolidation = "Never";
-    }
-
-    public DreamStatusViewModel(DateTimeOffset? lastRun, bool isRunning)
-    {
-        IsConsolidating = isRunning;
-        Status = isRunning ? "Consolidating..." : "Ready";
-        LastConsolidation = lastRun?.ToLocalTime().ToString("g") ?? "Never";
-    }
-
-    public bool IsConsolidating { get; }
-    public string Status { get; }
-    public string LastConsolidation { get; }
 }

@@ -1,13 +1,59 @@
 using System;
-using System.Collections.ObjectModel;
-using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 
 namespace HermesDesktop.Models;
 
-public sealed class ChatMessageItem
+// ── Message types ──
+
+public enum ChatMessageType
 {
+    Text,
+    ToolCall,
+    System
+}
+
+// ── Tool call info ──
+
+public sealed class ToolCallInfo : INotifyPropertyChanged
+{
+    private string _status = "pending";
+    private string? _result;
+
+    public string Name { get; set; } = "";
+    public string Arguments { get; set; } = "";
+    public string? CallId { get; set; }
+
+    public string Status
+    {
+        get => _status;
+        set { _status = value; OnPropertyChanged(); }
+    }
+
+    public string? Result
+    {
+        get => _result;
+        set { _result = value; OnPropertyChanged(); }
+    }
+
+    public TimeSpan? Duration { get; set; }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+}
+
+// ── Chat message item (bindable, supports streaming) ──
+
+public sealed class ChatMessageItem : INotifyPropertyChanged
+{
+    private string _content;
+    private bool _isStreaming;
+    private ChatMessageType _messageType;
+
     public ChatMessageItem(
         string authorLabel,
         string content,
@@ -15,27 +61,58 @@ public sealed class ChatMessageItem
         Brush bubbleBackground,
         Brush bubbleBorderBrush,
         Brush labelBrush,
-        string? toolName = null,
-        string? freshnessWarning = null)
+        ChatMessageType messageType = ChatMessageType.Text,
+        List<ToolCallInfo>? toolCalls = null)
     {
         AuthorLabel = authorLabel;
-        Content = content;
+        _content = content;
+        _messageType = messageType;
         BubbleAlignment = bubbleAlignment;
         BubbleBackground = bubbleBackground;
         BubbleBorderBrush = bubbleBorderBrush;
         LabelBrush = labelBrush;
-        ToolName = toolName;
-        FreshnessWarning = freshnessWarning;
+        ToolCalls = toolCalls;
     }
 
     public string AuthorLabel { get; }
-    public string Content { get; }
     public HorizontalAlignment BubbleAlignment { get; }
     public Brush BubbleBackground { get; }
     public Brush BubbleBorderBrush { get; }
     public Brush LabelBrush { get; }
-    public string? ToolName { get; }
-    public string? FreshnessWarning { get; }
+
+    public string Content
+    {
+        get => _content;
+        set { _content = value; OnPropertyChanged(); }
+    }
+
+    public bool IsStreaming
+    {
+        get => _isStreaming;
+        set { _isStreaming = value; OnPropertyChanged(); }
+    }
+
+    public ChatMessageType MessageType
+    {
+        get => _messageType;
+        set { _messageType = value; OnPropertyChanged(); }
+    }
+
+    public List<ToolCallInfo>? ToolCalls { get; }
+
+    // ── Streaming helpers ──
+
+    public void AppendToken(string token)
+    {
+        _content += token;
+        OnPropertyChanged(nameof(Content));
+    }
+
+    // ── INotifyPropertyChanged ──
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+    private void OnPropertyChanged([CallerMemberName] string? name = null) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 }
 
 public sealed class DreamStatusViewModel
