@@ -100,6 +100,11 @@ public sealed class ContextManager
                 // First time we evict messages — create initial summary
                 await SummarizeEvictedAsync(state, evictedMessages, ct);
             }
+            else if (evictedMessages.Count > 0 && IsSummaryStaleBeyond(state, turnsStalenessThreshold: 10))
+            {
+                // Summary is stale — re-summarize to capture recent evictions
+                await SummarizeEvictedAsync(state, evictedMessages, ct);
+            }
 
             // Under critical pressure, compact the state itself
             if (pressure == BudgetPressure.Critical)
@@ -132,35 +137,62 @@ public sealed class ContextManager
     /// Updates session state after receiving an LLM response.
     /// Call this after each successful LLM completion to keep state current.
     /// </summary>
-    public void UpdateAfterResponse(string sessionId, string? responseId = null)
+    public async Task UpdateAfterResponseAsync(string sessionId, string? responseId = null, CancellationToken ct = default)
     {
-        if (_sessionStates.TryGetValue(sessionId, out var state))
+        var sessionLock = _sessionLocks.GetOrAdd(sessionId, _ => new SemaphoreSlim(1, 1));
+        await sessionLock.WaitAsync(ct);
+        try
         {
-            state.PreviousResponseId = responseId;
+            if (_sessionStates.TryGetValue(sessionId, out var state))
+            {
+                state.PreviousResponseId = responseId;
+            }
+        }
+        finally
+        {
+            sessionLock.Release();
         }
     }
 
     /// <summary>
     /// Records a decision made during the conversation.
     /// </summary>
-    public void RecordDecision(string sessionId, string what, string why)
+    public async Task RecordDecisionAsync(string sessionId, string what, string why, CancellationToken ct = default)
     {
         var state = GetOrCreateState(sessionId);
-        state.Decisions.Add(new Decision
+        var sessionLock = _sessionLocks.GetOrAdd(sessionId, _ => new SemaphoreSlim(1, 1));
+        await sessionLock.WaitAsync(ct);
+        try
         {
-            What = what,
-            Why = why,
-            TurnNumber = state.TurnCount
-        });
+            state.Decisions.Add(new Decision
+            {
+                What = what,
+                Why = why,
+                TurnNumber = state.TurnCount
+            });
+        }
+        finally
+        {
+            sessionLock.Release();
+        }
     }
 
     /// <summary>
     /// Updates the active goal for a session.
     /// </summary>
-    public void SetActiveGoal(string sessionId, string goal)
+    public async Task SetActiveGoalAsync(string sessionId, string goal, CancellationToken ct = default)
     {
         var state = GetOrCreateState(sessionId);
-        state.ActiveGoal = goal;
+        var sessionLock = _sessionLocks.GetOrAdd(sessionId, _ => new SemaphoreSlim(1, 1));
+        await sessionLock.WaitAsync(ct);
+        try
+        {
+            state.ActiveGoal = goal;
+        }
+        finally
+        {
+            sessionLock.Release();
+        }
     }
 
     /// <summary>
@@ -177,6 +209,19 @@ public sealed class ContextManager
     public void EvictState(string sessionId)
     {
         _sessionStates.TryRemove(sessionId, out _);
+    }
+
+    /// <summary>
+    /// Returns true if the summary is stale — i.e. more than the given number of turns
+    /// have elapsed since the summary was last updated. Uses CoveredThroughTurn for gap detection.
+    /// </summary>
+    private static bool IsSummaryStaleBeyond(SessionState state, int turnsStalenessThreshold)
+    {
+        if (string.IsNullOrEmpty(state.Summary.Content))
+            return false;
+
+        var turnsSinceLastSummary = state.TurnCount - state.Summary.CoveredThroughTurn;
+        return turnsSinceLastSummary > turnsStalenessThreshold;
     }
 
     /// <summary>
