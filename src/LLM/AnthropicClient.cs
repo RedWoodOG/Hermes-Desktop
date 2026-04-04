@@ -53,10 +53,35 @@ public sealed class AnthropicClient : IChatClient
         return content.ToString();
     }
     
-    public IAsyncEnumerable<StreamEvent> StreamAsync(IEnumerable<Message> messages, CancellationToken ct = default)
-        => StreamAsync(null, messages, null, ct);
+    public async Task<ChatResponse> CompleteWithToolsAsync(
+        IEnumerable<Message> messages,
+        IEnumerable<ToolDefinition> tools,
+        CancellationToken ct)
+    {
+        // TODO: Implement Anthropic tool calling
+        var result = await CompleteAsync(messages, ct);
+        return new ChatResponse { Content = result, FinishReason = "stop" };
+    }
+
+    public async IAsyncEnumerable<string> StreamAsync(
+        IEnumerable<Message> messages,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        await foreach (var evt in StreamEventsAsync(null, messages, null, ct))
+        {
+            if (evt is StreamEvent.TokenDelta delta)
+                yield return delta.Text;
+        }
+    }
+
+    public IAsyncEnumerable<StreamEvent> StreamAsync(
+        string? systemPrompt,
+        IEnumerable<Message> messages,
+        IEnumerable<ToolDefinition>? tools = null,
+        CancellationToken ct = default)
+        => StreamEventsAsync(systemPrompt, messages, tools, ct);
     
-    public async IAsyncEnumerable<StreamEvent> StreamAsync(
+    private async IAsyncEnumerable<StreamEvent> StreamEventsAsync(
         string? systemPrompt,
         IEnumerable<Message> messages,
         IEnumerable<ToolDefinition>? tools,
@@ -275,7 +300,7 @@ public sealed class AnthropicClient : IChatClient
             {
                 name = t.Name,
                 description = t.Description,
-                input_schema = t.InputSchema
+                input_schema = t.Parameters
             }).ToList();
         }
         

@@ -134,11 +134,12 @@ public sealed class AgentTool : ITool
             if (tool is not null)
             {
                 // Create tool definition from registered tool
-                tools.Add(new ToolDefinition(
-                    tool.Name,
-                    tool.Description,
-                    GetToolSchema(tool)
-                ));
+                tools.Add(new ToolDefinition
+                {
+                    Name = tool.Name,
+                    Description = tool.Description,
+                    Parameters = GetToolSchema(tool)
+                });
             }
         }
         

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Linq;
 using Hermes.Agent.Tasks;
+using TaskStatus = Hermes.Agent.Tasks.TaskStatus;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI;
 using Microsoft.UI.Xaml;

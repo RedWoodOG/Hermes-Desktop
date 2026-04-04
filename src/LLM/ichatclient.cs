@@ -15,10 +15,10 @@ public interface IChatClient
         IEnumerable<ToolDefinition> tools,
         CancellationToken ct);
 
-    /// <summary>Streaming completion with structured events.</summary>
-    IAsyncEnumerable<StreamEvent> StreamAsync(IEnumerable<Message> messages, CancellationToken ct = default);
+    /// <summary>Streaming completion — yields tokens as they arrive.</summary>
+    IAsyncEnumerable<string> StreamAsync(IEnumerable<Message> messages, CancellationToken ct);
 
-    /// <summary>Streaming with system prompt and tools.</summary>
+    /// <summary>Streaming with system prompt, tools, and structured events.</summary>
     IAsyncEnumerable<StreamEvent> StreamAsync(
         string? systemPrompt,
         IEnumerable<Message> messages,
@@ -36,10 +36,4 @@ public sealed class LlmConfig
     public int MaxTokens { get; init; } = 4096;
 }
 
-/// <summary>
-/// Tool definition for LLM function calling.
-/// </summary>
-public sealed record ToolDefinition(
-    string Name,
-    string Description,
-    JsonElement InputSchema);
+// ToolDefinition is defined in Hermes.Agent.Core.ToolDefinition
