@@ -131,7 +131,8 @@ public sealed class Agent : IAgent
 
         foreach (var prop in props)
         {
-            var jsonType = prop.PropertyType switch
+            var propType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+            var jsonType = propType switch
             {
                 Type t when t == typeof(string) => "string",
                 Type t when t == typeof(int) || t == typeof(long) => "integer",
@@ -151,8 +152,8 @@ public sealed class Agent : IAgent
 
             properties[ToCamelCase(prop.Name)] = propSchema;
 
-            // Non-nullable value types and required strings are required
-            if (prop.PropertyType.IsValueType && Nullable.GetUnderlyingType(prop.PropertyType) is null)
+            // Non-nullable value types are required; nullable properties are not
+            if (propType.IsValueType && Nullable.GetUnderlyingType(prop.PropertyType) is null)
                 required.Add(ToCamelCase(prop.Name));
         }
 

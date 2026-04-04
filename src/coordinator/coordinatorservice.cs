@@ -329,25 +329,43 @@ Provide a unified, coherent summary of everything that was accomplished. Highlig
 
     private static List<Subtask> ParseSubtasks(string response)
     {
-        // Find the outermost balanced JSON array
-        var start = response.IndexOf('[');
-        if (start < 0) return [];
-
-        var depth = 0;
-        var end = -1;
-        for (var i = start; i < response.Length; i++)
+        for (var start = response.IndexOf('['); start >= 0; start = response.IndexOf('[', start + 1))
         {
-            if (response[i] == '[') depth++;
-            else if (response[i] == ']') { depth--; if (depth == 0) { end = i; break; } }
-        }
-        if (end < 0) return [];
+            var depth = 0;
+            var inString = false;
+            var escaped = false;
 
-        try
-        {
-            return JsonSerializer.Deserialize<List<Subtask>>(response[start..(end + 1)],
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? [];
+            for (var i = start; i < response.Length; i++)
+            {
+                var ch = response[i];
+
+                if (inString)
+                {
+                    if (escaped) { escaped = false; continue; }
+                    if (ch == '\\') { escaped = true; continue; }
+                    if (ch == '"') inString = false;
+                    continue;
+                }
+
+                if (ch == '"') { inString = true; continue; }
+                if (ch == '[') depth++;
+                else if (ch == ']' && --depth == 0)
+                {
+                    var candidate = response[start..(i + 1)];
+                    try
+                    {
+                        return JsonSerializer.Deserialize<List<Subtask>>(candidate,
+                            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? [];
+                    }
+                    catch (JsonException)
+                    {
+                        break; // try next '[' candidate
+                    }
+                }
+            }
         }
-        catch { return []; }
+
+        return [];
     }
 }
 

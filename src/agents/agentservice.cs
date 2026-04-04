@@ -163,8 +163,8 @@ public sealed class AgentService
             {
                 // Git clone is more efficient for git repos
                 var repoUrl = await GetGitRemoteUrlAsync(ct);
-                if (repoUrl is not null && !Regex.IsMatch(repoUrl, @"[;&|$`""'\\]"))
-                    await RunSshAsync(remote, $"cd {remoteDir} && git clone {repoUrl} .", ct);
+                if (repoUrl is not null && IsValidGitUrl(repoUrl))
+                    await RunSshAsync(remote, $"cd {ShellQuote(remoteDir)} && git clone -- {ShellQuote(repoUrl)} .", ct);
                 else
                     await RunScpAsync(remote, localWorkspace, remoteDir, ct);
             }
@@ -258,6 +258,19 @@ public sealed class AgentService
         await process.WaitForExitAsync(ct);
 
         return new ProcessResult(process.ExitCode, stdout, stderr);
+    }
+
+    private static bool IsValidGitUrl(string url)
+    {
+        // Allowlist: only known-safe Git URL schemes
+        return Regex.IsMatch(url, @"^(https?://|git://|ssh://|[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+:).+$")
+            && !url.Contains('\n') && !url.Contains('\r');
+    }
+
+    private static string ShellQuote(string value)
+    {
+        // Single-quote escaping for POSIX shell
+        return "'" + value.Replace("'", "'\\''") + "'";
     }
 
     private string GenerateAgentId() => $"agent_{Guid.NewGuid():N}"[..20];
@@ -455,9 +468,13 @@ public sealed class TeamManager
         foreach (var m in team.Members.Where(m => m.WorktreePath is not null && Directory.Exists(m.WorktreePath)))
         {
             var fullPath = Path.GetFullPath(m.WorktreePath!);
-            if (!fullPath.Contains(".claude") && !fullPath.Contains("worktrees"))
+            var segments = fullPath.Split(
+                [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+                StringSplitOptions.RemoveEmptyEntries);
+            if (!segments.Contains(".claude", StringComparer.OrdinalIgnoreCase) ||
+                !segments.Contains("worktrees", StringComparer.OrdinalIgnoreCase))
             {
-                _logger.LogWarning("Refusing to delete suspicious worktree path: {Path}", m.WorktreePath);
+                _logger.LogWarning("Refusing to delete path outside .claude/worktrees: {Path}", m.WorktreePath);
                 continue;
             }
             try { Directory.Delete(fullPath, true); }
@@ -553,7 +570,9 @@ public sealed class MailboxService
 
     private string GetMailboxPath(string name)
     {
-        var safe = Path.GetFileName(name); // strips directory separators
+        var safe = Path.GetFileName(name);
+        if (string.IsNullOrWhiteSpace(safe) || !string.Equals(safe, name, StringComparison.Ordinal))
+            throw new ArgumentException("Mailbox name must be a single path segment.", nameof(name));
         return Path.Combine(_mailboxDir, $"{safe}.json");
     }
 

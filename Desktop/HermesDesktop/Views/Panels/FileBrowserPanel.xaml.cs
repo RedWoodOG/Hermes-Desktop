@@ -27,6 +27,7 @@ public sealed partial class FileBrowserPanel : UserControl
         _rootPath = HermesEnvironment.AgentWorkingDirectory;
         FileTree.Expanding += FileTree_Expanding;
         Loaded += (_, _) => LoadDirectory(_rootPath);
+        Unloaded += (_, _) => FileTree.Expanding -= FileTree_Expanding;
     }
 
     public void LoadDirectory(string path)

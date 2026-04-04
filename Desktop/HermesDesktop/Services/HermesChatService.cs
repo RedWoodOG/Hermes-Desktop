@@ -67,17 +67,30 @@ internal sealed class HermesChatService : IDisposable
         EnsureSession();
         var messageCountBefore = _currentSession!.Messages.Count;
 
-        // Agent.ChatAsync adds user msg + tool calls + assistant response to session
-        var response = await _agent.ChatAsync(message, _currentSession, ct);
-
-        // Persist all new messages added during this turn (user + tool calls + assistant)
-        for (var i = messageCountBefore; i < _currentSession.Messages.Count; i++)
+        try
         {
-            await _transcriptStore.SaveMessageAsync(_currentSession.Id, _currentSession.Messages[i], ct);
-        }
+            var response = await _agent.ChatAsync(message, _currentSession, ct);
 
-        _logger.LogInformation("Chat reply for session {SessionId}: {Length} chars", _currentSession.Id, response.Length);
-        return new HermesChatReply(response, _currentSession.Id);
+            // Persist all new messages (user + tool calls + assistant)
+            await PersistNewMessagesAsync(messageCountBefore);
+
+            _logger.LogInformation("Chat reply for session {SessionId}: {Length} chars", _currentSession.Id, response.Length);
+            return new HermesChatReply(response, _currentSession.Id);
+        }
+        catch
+        {
+            // Persist whatever was added before the failure (at minimum the user message)
+            await PersistNewMessagesAsync(messageCountBefore);
+            throw;
+        }
+    }
+
+    private async Task PersistNewMessagesAsync(int fromIndex)
+    {
+        for (var i = fromIndex; i < _currentSession!.Messages.Count; i++)
+        {
+            await _transcriptStore.SaveMessageAsync(_currentSession.Id, _currentSession.Messages[i], CancellationToken.None);
+        }
     }
 
     // ── Stream (token-by-token) ──
