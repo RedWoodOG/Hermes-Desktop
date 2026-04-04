@@ -90,11 +90,6 @@ public sealed class TokenBudget
     }
 
     /// <summary>
-    /// Returns the number of tokens remaining before hitting the hard ceiling.
-    /// </summary>
-    public int RemainingTokens(int currentTokens) => Math.Max(0, MaxTokens - currentTokens);
-
-    /// <summary>
     /// Trims a message list to fit within the recent turn window.
     /// Scans from the end counting user messages as turn starts, so tool/system
     /// messages within a turn are kept together rather than split mid-turn.
