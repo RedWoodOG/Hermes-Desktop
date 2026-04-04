@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Hermes.Agent.Core;
 using Hermes.Agent.LLM;
 using Hermes.Agent.Transcript;
@@ -20,7 +21,7 @@ public sealed class ContextManager
     private readonly PromptBuilder _promptBuilder;
     private readonly ILogger<ContextManager> _logger;
 
-    private readonly Dictionary<string, SessionState> _sessionStates = new();
+    private readonly ConcurrentDictionary<string, SessionState> _sessionStates = new();
 
     public ContextManager(
         TranscriptStore transcripts,
@@ -54,10 +55,13 @@ public sealed class ContextManager
         CancellationToken ct)
     {
         var state = GetOrCreateState(sessionId);
-        state.TurnCount++;
 
-        // Load full transcript from archive
-        var allMessages = await _transcripts.LoadSessionAsync(sessionId, ct);
+        // Load transcript from archive — empty list for brand-new sessions
+        List<Message> allMessages;
+        if (_transcripts.SessionExists(sessionId))
+            allMessages = await _transcripts.LoadSessionAsync(sessionId, ct);
+        else
+            allMessages = new List<Message>();
 
         // Split into recent window and evicted older messages
         var recentTurns = _budget.TrimToRecentWindow(allMessages);
@@ -67,8 +71,9 @@ public sealed class ContextManager
         var systemTokens = _budget.EstimateTokens(_promptBuilder.SystemPrompt);
         var stateTokens = state.EstimateTokens();
         var recentTokens = _budget.EstimateTokens(recentTurns);
+        var retrievedTokens = EstimateRetrievedContextTokens(retrievedContext);
         var userTokens = _budget.EstimateTokens(userMessage);
-        var totalTokens = systemTokens + stateTokens + recentTokens + userTokens;
+        var totalTokens = systemTokens + stateTokens + recentTokens + retrievedTokens + userTokens;
 
         var pressure = _budget.GetPressure(totalTokens);
 
@@ -93,6 +98,9 @@ public sealed class ContextManager
             state.Compact(maxDecisions: 5, maxQuestions: 3, maxEntities: 10);
             _logger.LogWarning("Critical budget pressure — compacted session state");
         }
+
+        // Increment turn count only after all async work succeeds
+        state.TurnCount++;
 
         // Build the prompt
         var packet = _promptBuilder.Build(new BuildRequest
@@ -146,12 +154,7 @@ public sealed class ContextManager
     /// </summary>
     public SessionState GetOrCreateState(string sessionId)
     {
-        if (!_sessionStates.TryGetValue(sessionId, out var state))
-        {
-            state = new SessionState();
-            _sessionStates[sessionId] = state;
-        }
-        return state;
+        return _sessionStates.GetOrAdd(sessionId, _ => new SessionState());
     }
 
     /// <summary>
@@ -159,7 +162,16 @@ public sealed class ContextManager
     /// </summary>
     public void EvictState(string sessionId)
     {
-        _sessionStates.Remove(sessionId);
+        _sessionStates.TryRemove(sessionId, out _);
+    }
+
+    private int EstimateRetrievedContextTokens(List<string>? retrievedContext)
+    {
+        if (retrievedContext is null or { Count: 0 }) return 0;
+        var totalChars = 0;
+        foreach (var chunk in retrievedContext)
+            totalChars += chunk.Length;
+        return totalChars / 4;
     }
 
     /// <summary>
@@ -173,9 +185,10 @@ public sealed class ContextManager
     {
         var transcript = string.Join("\n", evictedMessages.Select(m => $"{m.Role}: {m.Content}"));
 
-        // Truncate if the evicted block is huge — we don't want the summary call itself to be expensive
+        // Truncate if the evicted block is huge — keep the NEWEST messages (tail)
+        // since they're closest to the current context and most relevant to summarize
         if (transcript.Length > 4000)
-            transcript = transcript[..4000] + "\n[...truncated]";
+            transcript = "[...truncated]\n" + transcript[^4000..];
 
         var existingSummary = string.IsNullOrEmpty(state.Summary.Content)
             ? ""
@@ -205,6 +218,10 @@ public sealed class ContextManager
                 "Summarized {Count} evicted messages into {Tokens} est. tokens",
                 evictedMessages.Count,
                 _budget.EstimateTokens(summary));
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
         }
         catch (Exception ex)
         {
