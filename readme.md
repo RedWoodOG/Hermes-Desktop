@@ -1,5 +1,7 @@
 # Hermes Desktop
 
+![Hermes Agent Banner](docs/screenshots/banner.png)
+
 A native Windows desktop AI agent built with WinUI 3 and .NET 10.
 
 ## Screenshots
