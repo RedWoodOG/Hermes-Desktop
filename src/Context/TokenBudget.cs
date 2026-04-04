@@ -38,7 +38,7 @@ public sealed class TokenBudget
 
     /// <summary>
     /// Estimates the token count for a sequence of messages.
-    /// Uses ~4 chars/token heuristic with overhead for role tags and JSON framing.
+    /// Includes role framing, content, and optional tool metadata.
     /// </summary>
     public int EstimateTokens(IEnumerable<Message> messages)
     {
@@ -49,11 +49,13 @@ public sealed class TokenBudget
         {
             totalChars += msg.Content.Length;
             totalChars += msg.Role.Length;
+            totalChars += msg.ToolCallId?.Length ?? 0;
+            totalChars += msg.ToolName?.Length ?? 0;
             messageCount++;
         }
 
-        // ~4 chars per token for content, plus ~4 tokens per message for framing
-        return (totalChars / 4) + (messageCount * 4);
+        // ~4 chars per token for content, plus ~4 tokens per message for role/framing
+        return (int)Math.Ceiling(totalChars / 4.0) + (messageCount * 4);
     }
 
     /// <summary>
@@ -63,6 +65,18 @@ public sealed class TokenBudget
     {
         if (string.IsNullOrEmpty(text)) return 0;
         return text.Length / 4;
+    }
+
+    /// <summary>
+    /// Estimates the token count for a standalone text layer that will be wrapped
+    /// in a Message object (e.g. system prompt, user message). Accounts for role
+    /// framing overhead that the raw string overload misses.
+    /// </summary>
+    public int EstimateMessageTokens(string role, string text)
+    {
+        if (string.IsNullOrEmpty(text)) return 0;
+        var totalChars = role.Length + text.Length;
+        return (int)Math.Ceiling(totalChars / 4.0) + 4;
     }
 
     /// <summary>
@@ -82,16 +96,15 @@ public sealed class TokenBudget
 
     /// <summary>
     /// Trims a message list to fit within the recent turn window.
-    /// Returns the most recent N turns (a turn = one user + one assistant message).
+    /// Scans from the end counting user messages as turn starts, so tool/system
+    /// messages within a turn are kept together rather than split mid-turn.
     /// </summary>
     public List<Message> TrimToRecentWindow(List<Message> messages)
     {
-        if (messages.Count <= RecentTurnWindow * 2)
-            return messages;
-
-        // Keep last N*2 messages (each turn is user+assistant)
-        var startIndex = messages.Count - (RecentTurnWindow * 2);
-        return messages.GetRange(startIndex, messages.Count - startIndex);
+        var startIndex = FindRecentWindowStart(messages);
+        return startIndex == 0
+            ? new List<Message>(messages)
+            : messages.GetRange(startIndex, messages.Count - startIndex);
     }
 
     /// <summary>
@@ -100,11 +113,36 @@ public sealed class TokenBudget
     /// </summary>
     public List<Message> GetEvictedMessages(List<Message> messages)
     {
-        if (messages.Count <= RecentTurnWindow * 2)
-            return new List<Message>();
+        var startIndex = FindRecentWindowStart(messages);
+        return startIndex == 0
+            ? new List<Message>()
+            : messages.GetRange(0, startIndex);
+    }
 
-        var evictCount = messages.Count - (RecentTurnWindow * 2);
-        return messages.GetRange(0, evictCount);
+    /// <summary>
+    /// Finds the index where the recent turn window starts by scanning backwards
+    /// and counting "user" messages as turn boundaries.
+    /// </summary>
+    private int FindRecentWindowStart(IReadOnlyList<Message> messages)
+    {
+        if (messages.Count == 0)
+            return 0;
+        if (RecentTurnWindow == 0)
+            return messages.Count;
+
+        var userTurnsSeen = 0;
+        for (var i = messages.Count - 1; i >= 0; i--)
+        {
+            if (string.Equals(messages[i].Role, "user", StringComparison.Ordinal))
+            {
+                userTurnsSeen++;
+                if (userTurnsSeen == RecentTurnWindow)
+                    return i;
+            }
+        }
+
+        // Fewer turns than the window — keep everything
+        return 0;
     }
 }
 
