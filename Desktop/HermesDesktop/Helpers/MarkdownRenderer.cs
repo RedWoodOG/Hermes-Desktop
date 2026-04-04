@@ -29,7 +29,7 @@ public static class MarkdownRenderer
         var blocks = new List<Block>();
         if (string.IsNullOrEmpty(markdown)) return blocks;
 
-        var lines = markdown.Split('\n');
+        var lines = markdown.Replace("\r\n", "\n").Split('\n');
         var i = 0;
 
         while (i < lines.Length)
@@ -101,7 +101,8 @@ public static class MarkdownRenderer
             var paraLines = new List<string>();
             while (i < lines.Length && !string.IsNullOrWhiteSpace(lines[i]) &&
                    !lines[i].StartsWith('#') && !lines[i].TrimStart().StartsWith("```") &&
-                   !lines[i].TrimStart().StartsWith("- ") && !lines[i].TrimStart().StartsWith("* "))
+                   !lines[i].TrimStart().StartsWith("- ") && !lines[i].TrimStart().StartsWith("* ") &&
+                   !Regex.IsMatch(lines[i].TrimStart(), @"^\d+\.\s"))
             {
                 paraLines.Add(lines[i]);
                 i++;
@@ -239,13 +240,24 @@ public static class MarkdownRenderer
             }
             else if (match.Groups[7].Success) // [text](url)
             {
-                var hyperlink = new Hyperlink { NavigateUri = new Uri(match.Groups[9].Value, UriKind.RelativeOrAbsolute) };
-                hyperlink.Inlines.Add(new Run
+                if (Uri.TryCreate(match.Groups[9].Value, UriKind.RelativeOrAbsolute, out var uri))
                 {
-                    Text = match.Groups[8].Value,
-                    Foreground = LinkForeground
-                });
-                inlines.Add(hyperlink);
+                    var hyperlink = new Hyperlink { NavigateUri = uri };
+                    hyperlink.Inlines.Add(new Run
+                    {
+                        Text = match.Groups[8].Value,
+                        Foreground = LinkForeground
+                    });
+                    inlines.Add(hyperlink);
+                }
+                else
+                {
+                    inlines.Add(new Run
+                    {
+                        Text = match.Groups[8].Value,
+                        Foreground = TextForeground
+                    });
+                }
             }
 
             lastIndex = match.Index + match.Length;

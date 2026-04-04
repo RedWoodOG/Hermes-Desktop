@@ -6,7 +6,7 @@ using Hermes.Agent.LLM;
 using Hermes.Agent.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using System.Text.RegularExpressions;
+
 
 /// <summary>
 /// Coordinator Mode - Multi-worker orchestration engine.
@@ -156,7 +156,7 @@ public sealed class CoordinatorService
         {
             _logger.LogError(ex, "Coordination {Id} failed", coordinationId);
             state.Error = ex.Message;
-            await SaveStateAsync(state, ct);
+            await SaveStateAsync(state, CancellationToken.None); // Don't use ct — it may be cancelled
 
             return new CoordinationResult
             {
@@ -329,19 +329,25 @@ Provide a unified, coherent summary of everything that was accomplished. Highlig
 
     private static List<Subtask> ParseSubtasks(string response)
     {
-        // Extract JSON array from response (may be wrapped in markdown code block)
-        var jsonMatch = Regex.Match(response, @"\[[\s\S]*?\]");
-        if (!jsonMatch.Success) return [];
+        // Find the outermost balanced JSON array
+        var start = response.IndexOf('[');
+        if (start < 0) return [];
+
+        var depth = 0;
+        var end = -1;
+        for (var i = start; i < response.Length; i++)
+        {
+            if (response[i] == '[') depth++;
+            else if (response[i] == ']') { depth--; if (depth == 0) { end = i; break; } }
+        }
+        if (end < 0) return [];
 
         try
         {
-            return JsonSerializer.Deserialize<List<Subtask>>(jsonMatch.Value,
+            return JsonSerializer.Deserialize<List<Subtask>>(response[start..(end + 1)],
                 new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? [];
         }
-        catch
-        {
-            return [];
-        }
+        catch { return []; }
     }
 }
 

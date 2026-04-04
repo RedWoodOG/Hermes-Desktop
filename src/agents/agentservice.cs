@@ -2,6 +2,7 @@ namespace Hermes.Agent.Agents;
 
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Hermes.Agent.Core;
 using Hermes.Agent.LLM;
 using Microsoft.Extensions.Logging;
@@ -86,6 +87,7 @@ public sealed class AgentService
                 return new AgentResult { AgentId = agentId, Status = "spawned", BackgroundTaskId = agentId };
             }
 
+            var previousAgentId = AgentTracker.CurrentAgentId;
             AgentTracker.CurrentAgentId = agentId;
             try
             {
@@ -95,6 +97,7 @@ public sealed class AgentService
             }
             finally
             {
+                AgentTracker.CurrentAgentId = previousAgentId;
                 if (isolation.Cleanup is not null) await isolation.Cleanup();
             }
         }
@@ -160,7 +163,7 @@ public sealed class AgentService
             {
                 // Git clone is more efficient for git repos
                 var repoUrl = await GetGitRemoteUrlAsync(ct);
-                if (repoUrl is not null)
+                if (repoUrl is not null && !Regex.IsMatch(repoUrl, @"[;&|$`""'\\]"))
                     await RunSshAsync(remote, $"cd {remoteDir} && git clone {repoUrl} .", ct);
                 else
                     await RunScpAsync(remote, localWorkspace, remoteDir, ct);
@@ -451,7 +454,13 @@ public sealed class TeamManager
     {
         foreach (var m in team.Members.Where(m => m.WorktreePath is not null && Directory.Exists(m.WorktreePath)))
         {
-            try { Directory.Delete(m.WorktreePath!, true); }
+            var fullPath = Path.GetFullPath(m.WorktreePath!);
+            if (!fullPath.Contains(".claude") && !fullPath.Contains("worktrees"))
+            {
+                _logger.LogWarning("Refusing to delete suspicious worktree path: {Path}", m.WorktreePath);
+                continue;
+            }
+            try { Directory.Delete(fullPath, true); }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to remove worktree {Path}", m.WorktreePath); }
         }
     }
@@ -542,7 +551,11 @@ public sealed class MailboxService
         }
     }
 
-    private string GetMailboxPath(string name) => Path.Combine(_mailboxDir, $"{name}.json");
+    private string GetMailboxPath(string name)
+    {
+        var safe = Path.GetFileName(name); // strips directory separators
+        return Path.Combine(_mailboxDir, $"{safe}.json");
+    }
 
     private async Task<Mailbox> LoadMailboxAsync(string path, CancellationToken ct)
     {

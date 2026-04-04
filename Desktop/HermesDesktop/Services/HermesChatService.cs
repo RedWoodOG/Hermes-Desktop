@@ -7,7 +7,6 @@ using Hermes.Agent.Core;
 using Hermes.Agent.LLM;
 using Hermes.Agent.Permissions;
 using Hermes.Agent.Transcript;
-using HermesDesktop.Diagnostics;
 using Microsoft.Extensions.Logging;
 
 namespace HermesDesktop.Services;
@@ -21,7 +20,6 @@ internal sealed class HermesChatService : IDisposable
     private readonly Agent _agent;
     private readonly IChatClient _chatClient;
     private readonly TranscriptStore _transcriptStore;
-    private readonly PermissionManager _permissionManager;
     private readonly ILogger<HermesChatService> _logger;
 
     private Session? _currentSession;
@@ -32,13 +30,11 @@ internal sealed class HermesChatService : IDisposable
         Agent agent,
         IChatClient chatClient,
         TranscriptStore transcriptStore,
-        PermissionManager permissionManager,
         ILogger<HermesChatService> logger)
     {
         _agent = agent;
         _chatClient = chatClient;
         _transcriptStore = transcriptStore;
-        _permissionManager = permissionManager;
         _logger = logger;
     }
 
@@ -68,22 +64,17 @@ internal sealed class HermesChatService : IDisposable
 
     public async Task<HermesChatReply> SendAsync(string message, CancellationToken ct)
     {
-        #region agent log
-        DesktopDebugLog.Write("H1", "HermesChatService.cs:SendAsync", "send_async_enter",
-            new { agentToolCount = _agent.Tools.Count });
-        #endregion
         EnsureSession();
+        var messageCountBefore = _currentSession!.Messages.Count;
 
-        // Save user message to transcript (Agent.ChatAsync will add it to session)
-        await _transcriptStore.SaveMessageAsync(_currentSession!.Id,
-            new Message { Role = "user", Content = message }, ct);
-
-        // Agent.ChatAsync: adds user msg to session, calls LLM (with tool loop), adds assistant msg
+        // Agent.ChatAsync adds user msg + tool calls + assistant response to session
         var response = await _agent.ChatAsync(message, _currentSession, ct);
 
-        // Save assistant response to transcript
-        await _transcriptStore.SaveMessageAsync(_currentSession.Id,
-            new Message { Role = "assistant", Content = response }, ct);
+        // Persist all new messages added during this turn (user + tool calls + assistant)
+        for (var i = messageCountBefore; i < _currentSession.Messages.Count; i++)
+        {
+            await _transcriptStore.SaveMessageAsync(_currentSession.Id, _currentSession.Messages[i], ct);
+        }
 
         _logger.LogInformation("Chat reply for session {SessionId}: {Length} chars", _currentSession.Id, response.Length);
         return new HermesChatReply(response, _currentSession.Id);
@@ -95,12 +86,6 @@ internal sealed class HermesChatService : IDisposable
         string message,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        #region agent log
-        DesktopDebugLog.Write("H1", "HermesChatService.cs:StreamAsync", "stream_path_enter",
-            new { agentToolCount = _agent.Tools.Count, path = "IChatClient.StreamAsync" });
-        DesktopDebugLog.Write("H4", "HermesChatService.cs:StreamAsync", "bypass_agent_stream",
-            new { agentToolCount = _agent.Tools.Count });
-        #endregion
         EnsureSession();
         _streamCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
@@ -168,10 +153,6 @@ internal sealed class HermesChatService : IDisposable
 
     public void SetPermissionMode(PermissionMode mode)
     {
-        #region agent log
-        DesktopDebugLog.Write("H2", "HermesChatService.cs:SetPermissionMode", "permission_mode_set",
-            new { mode = mode.ToString() });
-        #endregion
         CurrentPermissionMode = mode;
     }
 
