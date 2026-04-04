@@ -8,28 +8,44 @@ namespace HermesDesktop.Views.Controls;
 public sealed partial class ToolCallCard : UserControl
 {
     private bool _isExpanded;
+    private ToolCallInfo? _boundInfo;
 
     public ToolCallCard()
     {
         InitializeComponent();
         Tapped += OnTapped;
+        Unloaded += OnUnloaded;
     }
 
     public void Bind(ToolCallInfo info)
     {
+        if (_boundInfo is not null) _boundInfo.PropertyChanged -= OnInfoChanged;
+        _boundInfo = info;
+        _boundInfo.PropertyChanged += OnInfoChanged;
         ToolNameText.Text = info.Name;
         ArgsText.Text = info.Arguments;
         ResultText.Text = info.Result ?? "(pending)";
         UpdateStatus(info.Status);
+    }
 
-        info.PropertyChanged += (_, e) =>
+    private void OnInfoChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        var info = _boundInfo;
+        if (info is null) return;
+        DispatcherQueue.TryEnqueue(() => {
+            if (info != _boundInfo) return; // stale event
+            if (e.PropertyName == nameof(ToolCallInfo.Status)) UpdateStatus(info.Status);
+            if (e.PropertyName == nameof(ToolCallInfo.Result)) ResultText.Text = info.Result ?? "";
+        });
+    }
+
+    private void OnUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (_boundInfo is not null)
         {
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                if (e.PropertyName == nameof(info.Status)) UpdateStatus(info.Status);
-                if (e.PropertyName == nameof(info.Result)) ResultText.Text = info.Result ?? "";
-            });
-        };
+            _boundInfo.PropertyChanged -= OnInfoChanged;
+            _boundInfo = null;
+        }
     }
 
     private void UpdateStatus(string status)

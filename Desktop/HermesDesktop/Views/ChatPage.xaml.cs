@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
-using HermesDesktop.Diagnostics;
 using HermesDesktop.Models;
 using HermesDesktop.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -144,6 +143,7 @@ public sealed partial class ChatPage : Page
 
         PromptTextBox.Text = "";
         AppendUserMessage(prompt);
+        SetBusy(true);
         ShowThinking(true);
 
         try

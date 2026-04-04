@@ -2,6 +2,7 @@ namespace Hermes.Agent.Agents;
 
 using System.Diagnostics;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Hermes.Agent.Core;
 using Hermes.Agent.LLM;
 using Microsoft.Extensions.Logging;
@@ -86,6 +87,7 @@ public sealed class AgentService
                 return new AgentResult { AgentId = agentId, Status = "spawned", BackgroundTaskId = agentId };
             }
 
+            var previousAgentId = AgentTracker.CurrentAgentId;
             AgentTracker.CurrentAgentId = agentId;
             try
             {
@@ -95,6 +97,7 @@ public sealed class AgentService
             }
             finally
             {
+                AgentTracker.CurrentAgentId = previousAgentId;
                 if (isolation.Cleanup is not null) await isolation.Cleanup();
             }
         }
@@ -160,8 +163,8 @@ public sealed class AgentService
             {
                 // Git clone is more efficient for git repos
                 var repoUrl = await GetGitRemoteUrlAsync(ct);
-                if (repoUrl is not null)
-                    await RunSshAsync(remote, $"cd {remoteDir} && git clone {repoUrl} .", ct);
+                if (repoUrl is not null && IsValidGitUrl(repoUrl))
+                    await RunSshAsync(remote, $"cd {ShellQuote(remoteDir)} && git clone -- {ShellQuote(repoUrl)} .", ct);
                 else
                     await RunScpAsync(remote, localWorkspace, remoteDir, ct);
             }
@@ -255,6 +258,19 @@ public sealed class AgentService
         await process.WaitForExitAsync(ct);
 
         return new ProcessResult(process.ExitCode, stdout, stderr);
+    }
+
+    private static bool IsValidGitUrl(string url)
+    {
+        // Allowlist: only known-safe Git URL schemes
+        return Regex.IsMatch(url, @"^(https?://|git://|ssh://|[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+:).+$")
+            && !url.Contains('\n') && !url.Contains('\r');
+    }
+
+    private static string ShellQuote(string value)
+    {
+        // Single-quote escaping for POSIX shell
+        return "'" + value.Replace("'", "'\\''") + "'";
     }
 
     private string GenerateAgentId() => $"agent_{Guid.NewGuid():N}"[..20];
@@ -451,7 +467,17 @@ public sealed class TeamManager
     {
         foreach (var m in team.Members.Where(m => m.WorktreePath is not null && Directory.Exists(m.WorktreePath)))
         {
-            try { Directory.Delete(m.WorktreePath!, true); }
+            var fullPath = Path.GetFullPath(m.WorktreePath!);
+            var segments = fullPath.Split(
+                [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+                StringSplitOptions.RemoveEmptyEntries);
+            if (!segments.Contains(".claude", StringComparer.OrdinalIgnoreCase) ||
+                !segments.Contains("worktrees", StringComparer.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("Refusing to delete path outside .claude/worktrees: {Path}", m.WorktreePath);
+                continue;
+            }
+            try { Directory.Delete(fullPath, true); }
             catch (Exception ex) { _logger.LogWarning(ex, "Failed to remove worktree {Path}", m.WorktreePath); }
         }
     }
@@ -542,7 +568,13 @@ public sealed class MailboxService
         }
     }
 
-    private string GetMailboxPath(string name) => Path.Combine(_mailboxDir, $"{name}.json");
+    private string GetMailboxPath(string name)
+    {
+        var safe = Path.GetFileName(name);
+        if (string.IsNullOrWhiteSpace(safe) || !string.Equals(safe, name, StringComparison.Ordinal))
+            throw new ArgumentException("Mailbox name must be a single path segment.", nameof(name));
+        return Path.Combine(_mailboxDir, $"{safe}.json");
+    }
 
     private async Task<Mailbox> LoadMailboxAsync(string path, CancellationToken ct)
     {

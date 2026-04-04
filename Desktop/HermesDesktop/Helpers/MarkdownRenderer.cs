@@ -16,6 +16,7 @@ namespace HermesDesktop.Helpers;
 /// </summary>
 public static class MarkdownRenderer
 {
+    private static readonly Regex NumberedListRegex = new(@"^\d+\.\s", RegexOptions.Compiled);
     private static readonly SolidColorBrush CodeBackground = new(ColorHelper.FromArgb(255, 17, 22, 28));
     private static readonly SolidColorBrush CodeForeground = new(ColorHelper.FromArgb(255, 226, 139, 82));
     private static readonly SolidColorBrush LinkForeground = new(ColorHelper.FromArgb(255, 100, 180, 255));
@@ -29,7 +30,7 @@ public static class MarkdownRenderer
         var blocks = new List<Block>();
         if (string.IsNullOrEmpty(markdown)) return blocks;
 
-        var lines = markdown.Split('\n');
+        var lines = markdown.Replace("\r\n", "\n").Split('\n');
         var i = 0;
 
         while (i < lines.Length)
@@ -78,12 +79,12 @@ public static class MarkdownRenderer
             }
 
             // Numbered list (1. 2. etc.)
-            if (Regex.IsMatch(line.TrimStart(), @"^\d+\.\s"))
+            if (NumberedListRegex.IsMatch(line.TrimStart()))
             {
                 var listItems = new List<string>();
-                while (i < lines.Length && Regex.IsMatch(lines[i].TrimStart(), @"^\d+\.\s"))
+                while (i < lines.Length && NumberedListRegex.IsMatch(lines[i].TrimStart()))
                 {
-                    listItems.Add(Regex.Replace(lines[i].TrimStart(), @"^\d+\.\s*", ""));
+                    listItems.Add(NumberedListRegex.Replace(lines[i].TrimStart(), ""));
                     i++;
                 }
                 blocks.Add(CreateNumberedList(listItems));
@@ -101,7 +102,8 @@ public static class MarkdownRenderer
             var paraLines = new List<string>();
             while (i < lines.Length && !string.IsNullOrWhiteSpace(lines[i]) &&
                    !lines[i].StartsWith('#') && !lines[i].TrimStart().StartsWith("```") &&
-                   !lines[i].TrimStart().StartsWith("- ") && !lines[i].TrimStart().StartsWith("* "))
+                   !lines[i].TrimStart().StartsWith("- ") && !lines[i].TrimStart().StartsWith("* ") &&
+                   !NumberedListRegex.IsMatch(lines[i].TrimStart()))
             {
                 paraLines.Add(lines[i]);
                 i++;
@@ -239,13 +241,24 @@ public static class MarkdownRenderer
             }
             else if (match.Groups[7].Success) // [text](url)
             {
-                var hyperlink = new Hyperlink { NavigateUri = new Uri(match.Groups[9].Value, UriKind.RelativeOrAbsolute) };
-                hyperlink.Inlines.Add(new Run
+                if (Uri.TryCreate(match.Groups[9].Value, UriKind.RelativeOrAbsolute, out var uri))
                 {
-                    Text = match.Groups[8].Value,
-                    Foreground = LinkForeground
-                });
-                inlines.Add(hyperlink);
+                    var hyperlink = new Hyperlink { NavigateUri = uri };
+                    hyperlink.Inlines.Add(new Run
+                    {
+                        Text = match.Groups[8].Value,
+                        Foreground = LinkForeground
+                    });
+                    inlines.Add(hyperlink);
+                }
+                else
+                {
+                    inlines.Add(new Run
+                    {
+                        Text = match.Groups[8].Value,
+                        Foreground = TextForeground
+                    });
+                }
             }
 
             lastIndex = match.Index + match.Length;

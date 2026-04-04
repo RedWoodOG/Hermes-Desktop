@@ -45,25 +45,6 @@ public sealed class Agent : IAgent
     /// </summary>
     public async Task<string> ChatAsync(string message, Session session, CancellationToken ct)
     {
-        #region agent log
-        try
-        {
-            var dbg = JsonSerializer.Serialize(new
-            {
-                sessionId = "e58a67",
-                hypothesisId = "H1",
-                location = "agent.cs:ChatAsync",
-                message = "agent_chat_enter",
-                data = new { session.Id, toolCount = _tools.Count },
-                timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-            });
-            File.AppendAllText(@"C:\Hermes_Desktop_FE\debug-e58a67.log", dbg + Environment.NewLine);
-        }
-        catch
-        {
-            /* debug ingest only */
-        }
-        #endregion
         session.AddMessage(new Message { Role = "user", Content = message });
         _logger.LogInformation("Processing message for session {SessionId}", session.Id);
 
@@ -150,10 +131,12 @@ public sealed class Agent : IAgent
 
         foreach (var prop in props)
         {
-            var jsonType = prop.PropertyType switch
+            var propType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
+            var jsonType = propType switch
             {
                 Type t when t == typeof(string) => "string",
-                Type t when t == typeof(int) || t == typeof(long) || t == typeof(double) || t == typeof(float) => "number",
+                Type t when t == typeof(int) || t == typeof(long) => "integer",
+                Type t when t == typeof(double) || t == typeof(float) => "number",
                 Type t when t == typeof(bool) => "boolean",
                 Type t when t.IsArray || (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(List<>)) => "array",
                 _ => "string"
@@ -169,8 +152,8 @@ public sealed class Agent : IAgent
 
             properties[ToCamelCase(prop.Name)] = propSchema;
 
-            // Non-nullable value types and required strings are required
-            if (prop.PropertyType.IsValueType && Nullable.GetUnderlyingType(prop.PropertyType) is null)
+            // Non-nullable value types are required; nullable properties are not
+            if (propType.IsValueType && Nullable.GetUnderlyingType(prop.PropertyType) is null)
                 required.Add(ToCamelCase(prop.Name));
         }
 

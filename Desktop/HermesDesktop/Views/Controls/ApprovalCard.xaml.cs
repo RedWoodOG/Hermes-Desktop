@@ -17,7 +17,9 @@ public sealed partial class ApprovalCard : UserControl
 
     public Task<ApprovalDecision> ShowApprovalAsync(string command)
     {
+        _tcs?.TrySetCanceled();
         CommandText.Text = command;
+        Visibility = Visibility.Visible;
         _tcs = new TaskCompletionSource<ApprovalDecision>();
         return _tcs.Task;
     }

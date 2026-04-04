@@ -6,7 +6,7 @@ using Hermes.Agent.LLM;
 using Hermes.Agent.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using System.Text.RegularExpressions;
+
 
 /// <summary>
 /// Coordinator Mode - Multi-worker orchestration engine.
@@ -156,7 +156,7 @@ public sealed class CoordinatorService
         {
             _logger.LogError(ex, "Coordination {Id} failed", coordinationId);
             state.Error = ex.Message;
-            await SaveStateAsync(state, ct);
+            await SaveStateAsync(state, CancellationToken.None); // Don't use ct — it may be cancelled
 
             return new CoordinationResult
             {
@@ -329,19 +329,43 @@ Provide a unified, coherent summary of everything that was accomplished. Highlig
 
     private static List<Subtask> ParseSubtasks(string response)
     {
-        // Extract JSON array from response (may be wrapped in markdown code block)
-        var jsonMatch = Regex.Match(response, @"\[[\s\S]*?\]");
-        if (!jsonMatch.Success) return [];
+        for (var start = response.IndexOf('['); start >= 0; start = response.IndexOf('[', start + 1))
+        {
+            var depth = 0;
+            var inString = false;
+            var escaped = false;
 
-        try
-        {
-            return JsonSerializer.Deserialize<List<Subtask>>(jsonMatch.Value,
-                new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? [];
+            for (var i = start; i < response.Length; i++)
+            {
+                var ch = response[i];
+
+                if (inString)
+                {
+                    if (escaped) { escaped = false; continue; }
+                    if (ch == '\\') { escaped = true; continue; }
+                    if (ch == '"') inString = false;
+                    continue;
+                }
+
+                if (ch == '"') { inString = true; continue; }
+                if (ch == '[') depth++;
+                else if (ch == ']' && --depth == 0)
+                {
+                    var candidate = response[start..(i + 1)];
+                    try
+                    {
+                        return JsonSerializer.Deserialize<List<Subtask>>(candidate,
+                            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? [];
+                    }
+                    catch (JsonException)
+                    {
+                        break; // try next '[' candidate
+                    }
+                }
+            }
         }
-        catch
-        {
-            return [];
-        }
+
+        return [];
     }
 }
 
