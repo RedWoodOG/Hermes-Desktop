@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HermesDesktop.Controls.ToolUseView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+    
+    <Border Background="{StaticResource AppPanelBrush}"
+        BorderBrush="{StaticResource AppStrokeBrush}"
+        BorderThickness="1"
+        CornerRadius="8"
+        Padding="12,8">
+        <Grid RowSpacing="6">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            
+            <!-- Tool Header -->
+            <Grid ColumnSpacing="8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                
+                <FontIcon Grid.Column="0" Glyph="&#xE768;" FontSize="14"
+                    Foreground="{StaticResource AppAccentTextBrush}" />
+                
+                <TextBlock Grid.Column="1" x:Name="ToolNameBlock"
+                    FontWeight="SemiBold"
+                    Foreground="{StaticResource AppAccentTextBrush}" />
+                
+                <Border Grid.Column="2" x:Name="StatusBadge"
+                    CornerRadius="4"
+                    Padding="6,2"
+                    Background="{StaticResource AppInsetBrush}">
+                    <TextBlock x:Name="StatusBlock" FontSize="11" />
+                </Border>
+            </Grid>
+            
+            <!-- Tool Input (collapsible) -->
+            <Expander Grid.Row="1" x:Name="InputExpander"
+                Header="Input"
+                Background="Transparent"
+                Visibility="Collapsed">
+                <Border Background="{StaticResource AppInsetBrush}"
+                    CornerRadius="4"
+                    Padding="8">
+                    <TextBlock x:Name="InputBlock"
+                        FontFamily="Consolas"
+                        FontSize="12"
+                        TextWrapping="Wrap" />
+                </Border>
+            </Expander>
+            
+            <!-- Tool Output -->
+            <Border Grid.Row="2" x:Name="OutputBorder"
+                Background="{StaticResource AppInsetBrush}"
+                CornerRadius="4"
+                Padding="8"
+                Visibility="Collapsed">
+                <TextBlock x:Name="OutputBlock"
+                    FontFamily="Consolas"
+                    FontSize="12"
+                    TextWrapping="Wrap" />
+            </Border>
+        </Grid>
+    </Border>
+</UserControl>

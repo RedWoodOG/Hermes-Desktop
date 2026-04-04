@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HermesDesktop.Views.Panels.SessionPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid RowDefinitions="Auto,Auto,*">
+        <TextBlock Text="Sessions" Style="{StaticResource SectionTitleTextStyle}" Margin="0,0,0,8"/>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="0,0,0,8">
+            <TextBox x:Name="SearchBox" PlaceholderText="Search sessions..." Width="160" FontSize="12"/>
+            <Button x:Name="NewSessionBtn" Content="+" Click="NewSession_Click" CornerRadius="6" Padding="8,4"
+                    Background="{StaticResource AppAccentBrush}" Foreground="White" ToolTipService.ToolTip="New session"/>
+        </StackPanel>
+
+        <ListView Grid.Row="2" x:Name="SessionList" SelectionChanged="SessionList_SelectionChanged"
+                  Background="Transparent">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="0,4">
+                        <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{StaticResource AppAccentTextBrush}" TextTrimming="CharacterEllipsis"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding TimeAgo}" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock Text="{Binding MessageCount}" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</UserControl>

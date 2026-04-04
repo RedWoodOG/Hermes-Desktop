@@ -29,9 +29,16 @@ internal static class HermesEnvironment
 
     internal static string HermesCommandPath => Path.Combine(HermesHomePath, "bin", "hermes.cmd");
 
-    internal static string HermesPythonPath => Path.Combine(HermesWorkspacePath, "venv", "Scripts", "python.exe");
-
     internal static bool HermesInstalled => File.Exists(HermesCommandPath);
+
+    /// <summary>Create LlmConfig from config.yaml for DI.</summary>
+    internal static Hermes.Agent.LLM.LlmConfig CreateLlmConfig() => new()
+    {
+        Provider = ModelProvider,
+        Model = DefaultModel,
+        BaseUrl = ModelBaseUrl,
+        ApiKey = ModelApiKey ?? ""
+    };
 
     internal static bool TelegramConfigured => HasEnvironmentVariable("TELEGRAM_BOT_TOKEN");
 

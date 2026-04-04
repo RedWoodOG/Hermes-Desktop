@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HermesDesktop.Controls.StreamingTextView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+    
+    <Grid>
+        <RichTextBlock x:Name="ContentBlock" TextWrapping="WrapWholeWords" />
+        
+        <!-- Streaming cursor indicator -->
+        <Border x:Name="CursorIndicator"
+            Width="8" Height="16"
+            Background="{StaticResource AppAccentBrush}"
+            CornerRadius="2"
+            Visibility="Collapsed"
+            Margin="0,0,0,0">
+            <Border.OpacityTransition>
+                <ScalarTransition />
+            </Border.OpacityTransition>
+        </Border>
+    </Grid>
+</UserControl>

@@ -6,17 +6,18 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:HermesDesktop.Models"
+    xmlns:panels="using:HermesDesktop.Views.Panels"
     Background="Transparent"
     Loaded="OnPageLoaded"
+    NavigationCacheMode="Required"
     mc:Ignorable="d">
-    <Page.KeyboardAccelerators>
-        <KeyboardAccelerator Key="Enter" Modifiers="Control" Invoked="SendKeyboardAccelerator_Invoked" />
-    </Page.KeyboardAccelerators>
+    <!-- Enter sends, Shift+Enter for newline (handled in KeyDown) -->
 
-    <Grid Padding="20,12,24,20" ColumnSpacing="14" RowSpacing="14">
+    <Grid x:Name="MainGrid" Padding="20,12,24,20" ColumnSpacing="14" RowSpacing="14">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="292" />
+            <ColumnDefinition Width="*" MinWidth="400"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="340" MinWidth="260" MaxWidth="500"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -24,7 +25,7 @@
         </Grid.RowDefinitions>
 
         <!-- Header -->
-        <Grid Grid.Row="0" Grid.ColumnSpan="2" ColumnSpacing="16">
+        <Grid Grid.Row="0" Grid.ColumnSpan="3" ColumnSpacing="16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
@@ -32,7 +33,7 @@
 
             <StackPanel Spacing="4">
                 <TextBlock Text="Hermes.C# - Your AI Teammate" FontSize="22" FontWeight="SemiBold" />
-                <TextBlock Style="{StaticResource BodySecondaryTextStyle}" Text="{x:Bind ConnectionState, Mode=OneWay}" />
+                <TextBlock x:Name="ConnectionStateText" Style="{StaticResource BodySecondaryTextStyle}" />
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
@@ -61,13 +62,25 @@
                                     BorderThickness="1" CornerRadius="12" Padding="16,12">
                                     <StackPanel Spacing="8">
                                         <TextBlock Foreground="{x:Bind LabelBrush}" Style="{StaticResource LabelTextStyle}" Text="{x:Bind AuthorLabel}" />
-                                        <TextBlock Text="{x:Bind Content}" TextWrapping="WrapWholeWords" />
+                                        <TextBlock Text="{x:Bind Content, Mode=OneWay}" TextWrapping="WrapWholeWords" />
                                     </StackPanel>
                                 </Border>
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
                 </ListView>
+
+                <!-- Thinking indicator (shown while waiting for LLM) -->
+                <Border Grid.Row="2" x:Name="ThinkingIndicator" Visibility="Collapsed"
+                        Padding="18,8" Background="Transparent">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <ProgressRing IsActive="True" Width="16" Height="16"
+                                      Foreground="{StaticResource AppAccentBrush}"/>
+                        <TextBlock x:Name="ThinkingText" Text="Hermes is thinking..."
+                                   FontSize="13" Foreground="{StaticResource AppTextSecondaryBrush}"
+                                   FontStyle="Italic"/>
+                    </StackPanel>
+                </Border>
 
                 <!-- Input Area -->
                 <Grid Grid.Row="3" Padding="18,14,18,18" RowSpacing="12">
@@ -93,7 +106,9 @@
                             <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
 
-                        <TextBox x:Name="PromptTextBox" Grid.Row="1" Grid.Column="0" MinHeight="88" AcceptsReturn="True"
+                        <TextBox x:Name="PromptTextBox" Grid.Row="1" Grid.Column="0" MinHeight="88"
+                            AcceptsReturn="False" KeyDown="PromptTextBox_KeyDown"
+                            PlaceholderText="Type a message... (Enter to send, Shift+Enter for newline)"
                             Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"
                             Foreground="White" TextWrapping="Wrap" />
 
@@ -105,51 +120,51 @@
             </Grid>
         </Border>
 
-        <!-- Right Panel -->
-        <ScrollViewer Grid.Column="1" Grid.Row="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="1">
-                <Border Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="Buddy" FontWeight="SemiBold" FontSize="16" Foreground="{StaticResource AppAccentTextBrush}" />
-                        <TextBlock Text="Buddy system - coming soon" Style="{StaticResource BodySecondaryTextStyle}" />
+        <!-- Splitter -->
+        <Border Grid.Column="1" Grid.Row="1" Width="6" Background="Transparent"
+                PointerPressed="Splitter_PointerPressed" PointerMoved="Splitter_PointerMoved" PointerReleased="Splitter_PointerReleased">
+            <Border Width="2" Background="{StaticResource AppStrokeBrush}" HorizontalAlignment="Center" CornerRadius="1"/>
+        </Border>
+
+        <!-- Right Panel - Tabbed Panels -->
+        <Border Grid.Column="2" Grid.Row="1" Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="0">
+            <Grid RowDefinitions="Auto,*,Auto">
+                <!-- Tab selector -->
+                <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Padding="8,8,8,0">
+                    <StackPanel Orientation="Horizontal" Spacing="2">
+                        <Button x:Name="TabSessions" Content="Sessions" Click="PanelTab_Click" Tag="sessions"
+                                Background="Transparent" Foreground="{StaticResource AppAccentTextBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
+                        <Button x:Name="TabFiles" Content="Files" Click="PanelTab_Click" Tag="files"
+                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
+                        <Button x:Name="TabSkills" Content="Skills" Click="PanelTab_Click" Tag="skills"
+                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
+                        <Button x:Name="TabMemory" Content="Memory" Click="PanelTab_Click" Tag="memory"
+                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
+                        <Button x:Name="TabTasks" Content="Tasks" Click="PanelTab_Click" Tag="tasks"
+                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
+                        <Button x:Name="TabBuddy" Content="Buddy" Click="PanelTab_Click" Tag="buddy"
+                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
                     </StackPanel>
+                </ScrollViewer>
+
+                <!-- Panel content area -->
+                <Border Grid.Row="1" Padding="12,8">
+                    <Grid>
+                        <panels:SessionPanel x:Name="SessionPanelView" Visibility="Visible"/>
+                        <panels:FileBrowserPanel x:Name="FileBrowserPanelView" Visibility="Collapsed"/>
+                        <panels:SkillsPanel x:Name="SkillsPanelView" Visibility="Collapsed"/>
+                        <panels:MemoryPanel x:Name="MemoryPanelView" Visibility="Collapsed"/>
+                        <panels:TaskPanel x:Name="TaskPanelView" Visibility="Collapsed"/>
+                        <panels:BuddyPanel x:Name="BuddyPanelView" Visibility="Collapsed"/>
+                    </Grid>
                 </Border>
 
-                <Border Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="Skills" FontWeight="SemiBold" FontSize="16" Foreground="{StaticResource AppAccentTextBrush}" />
-                        <TextBlock Text="Skills system - coming soon" Style="{StaticResource BodySecondaryTextStyle}" />
-                    </StackPanel>
+                <!-- Session info footer -->
+                <Border Grid.Row="2" Padding="12,6" BorderBrush="{StaticResource AppStrokeBrush}" BorderThickness="0,1,0,0">
+                    <TextBlock x:Name="SessionIdLabel" FontSize="11"
+                               Foreground="{StaticResource AppTextSecondaryBrush}"/>
                 </Border>
-
-                <Border Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="Tasks" FontWeight="SemiBold" FontSize="16" Foreground="{StaticResource AppAccentTextBrush}" />
-                        <TextBlock Text="Task management - coming soon" Style="{StaticResource BodySecondaryTextStyle}" />
-                    </StackPanel>
-                </Border>
-
-                <Border Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="Team" FontWeight="SemiBold" FontSize="16" Foreground="{StaticResource AppAccentTextBrush}" />
-                        <TextBlock Text="Multi-agent teams - coming soon" Style="{StaticResource BodySecondaryTextStyle}" />
-                    </StackPanel>
-                </Border>
-
-                <Border Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="Dream" FontWeight="SemiBold" FontSize="16" Foreground="{StaticResource AppAccentTextBrush}" />
-                        <TextBlock Text="Auto-consolidation - coming soon" Style="{StaticResource BodySecondaryTextStyle}" />
-                    </StackPanel>
-                </Border>
-
-                <Border Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="16">
-                    <StackPanel>
-                        <TextBlock Text="Session" FontWeight="SemiBold" FontSize="14" />
-                        <TextBlock Text="{x:Bind SessionIdText, Mode=OneWay}" FontSize="11" />
-                    </StackPanel>
-                </Border>
-            </StackPanel>
-        </ScrollViewer>
+            </Grid>
+        </Border>
     </Grid>
 </Page>

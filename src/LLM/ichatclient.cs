@@ -6,19 +6,19 @@ using System.Text.Json;
 
 public interface IChatClient
 {
-    /// <summary>
-    /// Complete a conversation (non-streaming).
-    /// </summary>
+    /// <summary>Simple text completion (no tool calling).</summary>
     Task<string> CompleteAsync(IEnumerable<Message> messages, CancellationToken ct);
-    
-    /// <summary>
-    /// Complete a conversation with streaming.
-    /// </summary>
+
+    /// <summary>Completion with tool definitions — returns structured response that may contain tool calls.</summary>
+    Task<ChatResponse> CompleteWithToolsAsync(
+        IEnumerable<Message> messages,
+        IEnumerable<ToolDefinition> tools,
+        CancellationToken ct);
+
+    /// <summary>Streaming completion with structured events.</summary>
     IAsyncEnumerable<StreamEvent> StreamAsync(IEnumerable<Message> messages, CancellationToken ct = default);
-    
-    /// <summary>
-    /// Complete with system prompt and tools.
-    /// </summary>
+
+    /// <summary>Streaming with system prompt and tools.</summary>
     IAsyncEnumerable<StreamEvent> StreamAsync(
         string? systemPrompt,
         IEnumerable<Message> messages,

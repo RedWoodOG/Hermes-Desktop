@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HermesDesktop.Controls.PermissionDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+    
+    <Border Background="{StaticResource AppPanelBrush}"
+        BorderBrush="{StaticResource AppAccentBrush}"
+        BorderThickness="2"
+        CornerRadius="12"
+        Padding="20"
+        MaxWidth="500">
+        <Grid RowSpacing="16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            
+            <!-- Header -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Permission Required"
+                    FontSize="18"
+                    FontWeight="SemiBold"
+                    Foreground="{StaticResource AppAccentTextBrush}" />
+                
+                <TextBlock x:Name="DescriptionBlock"
+                    TextWrapping="WrapWholeWords"
+                    Foreground="{StaticResource AppTextSecondaryBrush}" />
+            </StackPanel>
+            
+            <!-- Tool/Action Info -->
+            <Border Grid.Row="1"
+                Background="{StaticResource AppInsetBrush}"
+                CornerRadius="8"
+                Padding="12">
+                <Grid RowSpacing="8">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    
+                    <TextBlock Grid.Row="0" x:Name="ToolBlock"
+                        FontWeight="SemiBold"
+                        Foreground="{StaticResource AppAccentTextBrush}" />
+                    
+                    <TextBlock Grid.Row="1" x:Name="DetailsBlock"
+                        FontFamily="Consolas"
+                        FontSize="12"
+                        TextWrapping="Wrap"
+                        Foreground="{StaticResource AppTextSecondaryBrush}" />
+                </Grid>
+            </Border>
+            
+            <!-- Options -->
+            <RadioButtons Grid.Row="2" x:Name="OptionsPanel"
+                SelectionChanged="OptionsPanel_SelectionChanged">
+                <RadioButton x:Name="AllowOnceButton" Content="Allow once" Tag="allow_once" />
+                <RadioButton x:Name="AllowAlwaysButton" Content="Always allow for this tool" Tag="allow_always" />
+                <RadioButton x:Name="DenyButton" Content="Deny" Tag="deny" />
+            </RadioButtons>
+            
+            <!-- Action Buttons -->
+            <Grid Grid.Row="3" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                
+                <Button Grid.Column="0" x:Name="CancelButton"
+                    Content="Cancel"
+                    HorizontalAlignment="Stretch"
+                    Background="{StaticResource AppInsetBrush}"
+                    BorderBrush="{StaticResource AppStrokeBrush}"
+                    Click="CancelButton_Click" />
+                
+                <Button Grid.Column="1" x:Name="ConfirmButton"
+                    Content="Confirm"
+                    HorizontalAlignment="Stretch"
+                    Background="{StaticResource AppAccentBrush}"
+                Foreground="#16110D"
+                    Click="ConfirmButton_Click" />
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

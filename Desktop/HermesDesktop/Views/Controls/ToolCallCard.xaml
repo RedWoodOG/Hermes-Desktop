@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HermesDesktop.Views.Controls.ToolCallCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Border Style="{StaticResource InsetCardStyle}" Padding="10" Margin="0,4">
+        <StackPanel>
+            <!-- Header: tool name + status -->
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <FontIcon Grid.Column="0" Glyph="&#xE756;" FontSize="14" Foreground="{StaticResource AppAccentTextBrush}" Margin="0,0,8,0"/>
+                <TextBlock Grid.Column="1" x:Name="ToolNameText" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource AppAccentTextBrush}"/>
+                <TextBlock Grid.Column="2" x:Name="StatusText" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+            </Grid>
+
+            <!-- Expandable detail -->
+            <StackPanel x:Name="DetailPanel" Visibility="Collapsed" Margin="0,8,0,0">
+                <TextBlock Text="Arguments" Style="{StaticResource LabelTextStyle}" Margin="0,0,0,4"/>
+                <ScrollViewer MaxHeight="120" HorizontalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="ArgsText" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                               Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap" IsTextSelectionEnabled="True"/>
+                </ScrollViewer>
+
+                <TextBlock Text="Result" Style="{StaticResource LabelTextStyle}" Margin="0,8,0,4"/>
+                <ScrollViewer MaxHeight="200" HorizontalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="ResultText" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                               Foreground="{StaticResource AppAccentTextBrush}" TextWrapping="Wrap" IsTextSelectionEnabled="True"/>
+                </ScrollViewer>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

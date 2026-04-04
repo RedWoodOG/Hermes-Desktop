@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HermesDesktop.Views.Panels.FileBrowserPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <TextBlock Text="Workspace" Style="{StaticResource SectionTitleTextStyle}" Margin="0,0,0,4"/>
+
+        <!-- Breadcrumb -->
+        <TextBlock Grid.Row="1" x:Name="BreadcrumbText" FontSize="11"
+                   Foreground="{StaticResource AppTextSecondaryBrush}" TextTrimming="CharacterEllipsis" Margin="0,0,0,6"/>
+
+        <!-- File tree -->
+        <TreeView Grid.Row="2" x:Name="FileTree" ItemInvoked="FileTree_ItemInvoked" Background="Transparent">
+            <TreeView.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="{Binding Icon}" FontSize="12" Foreground="{StaticResource AppAccentTextBrush}"/>
+                        <TextBlock Text="{Binding Name}" FontSize="12"/>
+                    </StackPanel>
+                </DataTemplate>
+            </TreeView.ItemTemplate>
+        </TreeView>
+
+        <!-- File preview -->
+        <Border Grid.Row="3" x:Name="PreviewBorder" Style="{StaticResource InsetCardStyle}" Visibility="Collapsed"
+                MaxHeight="200" Margin="0,6,0,0">
+            <ScrollViewer>
+                <TextBlock x:Name="PreviewText" FontFamily="Cascadia Mono, Consolas" FontSize="11"
+                           TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                           Foreground="{StaticResource AppTextSecondaryBrush}"/>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

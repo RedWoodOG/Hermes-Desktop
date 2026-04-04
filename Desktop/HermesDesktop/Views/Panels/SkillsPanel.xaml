@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HermesDesktop.Views.Panels.SkillsPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid RowDefinitions="Auto,Auto,*,Auto">
+        <TextBlock Text="Skills" Style="{StaticResource SectionTitleTextStyle}" Margin="0,0,0,8"/>
+        <TextBox Grid.Row="1" x:Name="SearchBox" PlaceholderText="Search skills..." FontSize="12" Margin="0,0,0,8"
+                 TextChanged="SearchBox_TextChanged"/>
+
+        <ListView Grid.Row="2" x:Name="SkillsList" SelectionChanged="SkillsList_SelectionChanged" Background="Transparent">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Margin="0,4">
+                        <TextBlock Text="{Binding Name}" FontSize="13" FontWeight="SemiBold"
+                                   Foreground="{StaticResource AppAccentTextBrush}"/>
+                        <TextBlock Text="{Binding Description}" FontSize="11"
+                                   Foreground="{StaticResource AppTextSecondaryBrush}" TextTrimming="CharacterEllipsis"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <!-- Preview -->
+        <Border Grid.Row="3" x:Name="PreviewBorder" Style="{StaticResource InsetCardStyle}"
+                Visibility="Collapsed" MaxHeight="200" Margin="0,6,0,0">
+            <ScrollViewer>
+                <TextBlock x:Name="PreviewText" FontSize="12" TextWrapping="Wrap" IsTextSelectionEnabled="True"
+                           Foreground="{StaticResource AppTextSecondaryBrush}"/>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>

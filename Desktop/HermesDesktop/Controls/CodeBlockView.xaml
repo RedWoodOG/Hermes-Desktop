@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HermesDesktop.Controls.CodeBlockView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+    
+    <Border Background="{StaticResource AppInsetBrush}"
+        BorderBrush="{StaticResource AppStrokeBrush}"
+        BorderThickness="1"
+        CornerRadius="8"
+        Padding="0">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            
+            <!-- Header with language and copy button -->
+            <Grid Grid.Row="0" Padding="10,6" ColumnSpacing="8"
+                Background="{StaticResource AppPanelBrush}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" x:Name="LanguageBlock"
+                    FontWeight="SemiBold"
+                    FontSize="12"
+                    Foreground="{StaticResource AppAccentTextBrush}" />
+                
+                <TextBlock Grid.Column="1" x:Name="FilePathBlock"
+                    FontSize="11"
+                    Foreground="{StaticResource AppTextSecondaryBrush}"
+                    Visibility="Collapsed" />
+                
+                <Button Grid.Column="2" x:Name="CopyButton"
+                    Content="Copy"
+                    FontSize="11"
+                    Padding="8,4"
+                    Background="Transparent"
+                    BorderBrush="{StaticResource AppStrokeBrush}"
+                    Click="CopyButton_Click" />
+            </Grid>
+            
+            <!-- Code content -->
+            <ScrollViewer Grid.Row="1" MaxHeight="400"
+                VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Auto">
+                <TextBlock x:Name="CodeBlock"
+                    FontFamily="Consolas"
+                    FontSize="13"
+                    Padding="12,8"
+                    TextWrapping="NoWrap" />
+            </ScrollViewer>
+        </Grid>
+    </Border>
+</UserControl>
