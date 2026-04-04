@@ -90,22 +90,21 @@ public sealed class ContextManager
                 "Context budget: {Total}/{Max} tokens ({Pressure}), {Recent} recent, {Evicted} evicted",
                 totalTokens, _budget.MaxTokens, pressure, recentTurns.Count, evictedMessages.Count);
 
-            // Summarize evicted messages only when the summary is behind the current turn
-            var needsSummary = evictedMessages.Count > 0
-                && state.Summary.CoveredThroughTurn < state.TurnCount;
+            // Summarize only when the evicted set has actually grown since the last summary
+            var newEvictions = evictedMessages.Count > state.Summary.SummarizedMessageCount;
 
-            if (needsSummary && pressure >= BudgetPressure.High)
+            if (newEvictions && pressure >= BudgetPressure.High)
             {
                 await SummarizeEvictedAsync(state, evictedMessages, ct);
             }
-            else if (needsSummary && string.IsNullOrEmpty(state.Summary.Content))
+            else if (newEvictions && string.IsNullOrEmpty(state.Summary.Content))
             {
                 // First time we evict messages — create initial summary
                 await SummarizeEvictedAsync(state, evictedMessages, ct);
             }
-            else if (needsSummary && IsSummaryStaleBeyond(state, turnsStalenessThreshold: 10))
+            else if (evictedMessages.Count > 0 && IsSummaryStaleBeyond(state, turnsStalenessThreshold: 10))
             {
-                // Summary is stale — re-summarize to capture recent evictions
+                // Summary is stale — re-summarize even if eviction count hasn't changed
                 await SummarizeEvictedAsync(state, evictedMessages, ct);
             }
 
@@ -283,6 +282,7 @@ public sealed class ContextManager
             var summary = await _chatClient.CompleteAsync(summarizePrompt, ct);
             state.Summary.Content = summary.Trim();
             state.Summary.CoveredThroughTurn = state.TurnCount;
+            state.Summary.SummarizedMessageCount = evictedMessages.Count;
 
             _logger.LogInformation(
                 "Summarized {Count} evicted messages into {Tokens} est. tokens",

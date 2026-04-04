@@ -106,4 +106,10 @@ public sealed class ContextSummary
     /// Turns after this number are still in the recent window.
     /// </summary>
     public int CoveredThroughTurn { get; set; }
+
+    /// <summary>
+    /// The number of evicted messages that were summarized.
+    /// Used to detect when new messages have been evicted and re-summarization is needed.
+    /// </summary>
+    public int SummarizedMessageCount { get; set; }
 }
