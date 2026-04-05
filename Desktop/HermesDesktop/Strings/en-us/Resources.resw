@@ -52,7 +52,7 @@
     <value>Send the current message</value>
   </data>
   <data name="ChatInitialAssistantMessage" xml:space="preserve">
-    <value>Hermes is ready. Ask me anything — I can read and write files, run commands, search the web, and more.</value>
+    <value>Ready. Type a message or /help for commands.</value>
   </data>
   <data name="ChatComposerHint" xml:space="preserve">
     <value>Desktop chat is ready.</value>

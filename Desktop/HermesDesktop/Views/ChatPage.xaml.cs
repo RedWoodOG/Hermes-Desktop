@@ -110,7 +110,7 @@ public sealed partial class ChatPage : Page
             }
         };
 
-        AppendSystemMessage(ResourceLoader.GetString("ChatInitialAssistantMessage"));
+        AppendWelcomeMessage();
 
         await RefreshConnectionStatusAsync();
     }
@@ -355,7 +355,7 @@ public sealed partial class ChatPage : Page
         Messages.Clear();
         SessionIdLabel.Text = "New Session";
 
-        AppendSystemMessage(ResourceLoader.GetString("ChatInitialAssistantMessage"));
+        AppendWelcomeMessage();
 
         await RefreshConnectionStatusAsync();
     }
@@ -403,6 +403,29 @@ public sealed partial class ChatPage : Page
     private void AppendSystemMessage(string text) =>
         AddMessage(ResourceLoader.GetString("ChatSystemLabel"), text, HorizontalAlignment.Left,
             _systemBackgroundBrush, _systemBorderBrush, _secondaryLabelBrush);
+
+    private void AppendWelcomeMessage()
+    {
+        var caduceus =
+            "            ⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀\n" +
+            "            ⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀\n" +
+            "       ⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀\n" +
+            "       ⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉\n" +
+            "            ⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦\n" +
+            "            ⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿\n" +
+            "            ⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁\n" +
+            "            ⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃\n" +
+            "            ⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄\n" +
+            "            ⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇\n" +
+            "            ⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄\n" +
+            "            ⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀\n" +
+            "            ⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿\n" +
+            "            ⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁\n\n" +
+            "         H E R M E S   A G E N T\n\n" +
+            "  Ready. Type a message or /help for commands.";
+
+        AppendSystemMessage(caduceus);
+    }
 
     private ChatMessageItem AddMessage(string author, string content, HorizontalAlignment align,
         Brush bg, Brush border, Brush label, ChatMessageType type = ChatMessageType.Text)
