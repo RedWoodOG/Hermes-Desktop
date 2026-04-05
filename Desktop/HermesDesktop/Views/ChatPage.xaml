@@ -39,7 +39,7 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <Button Content="New Chat" Click="NewChat_Click" Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppSubtleStrokeBrush}" Foreground="White" />
+                <Button Content="New Chat" Click="NewChat_Click" Style="{StaticResource SecondaryButtonStyle}" />
             </StackPanel>
         </Grid>
 
@@ -115,8 +115,7 @@
                             Foreground="White" TextWrapping="Wrap" />
 
                         <Button x:Name="SendButton" Grid.Column="1" Content="Send" Click="SendPrompt_Click"
-                            Background="{StaticResource AppAccentGradientBrush}" BorderBrush="{StaticResource AppAccentDarkBrush}"
-                            Foreground="#16110D" VerticalAlignment="Bottom" Padding="30,10" />
+                            VerticalAlignment="Bottom" Padding="30,10" />
                     </Grid>
                 </Grid>
             </Grid>
@@ -138,13 +137,13 @@
                 <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Padding="8,8,8,0">
                     <StackPanel Orientation="Horizontal" Spacing="2">
                         <Button x:Name="TabSessions" Content="Sessions" Click="PanelTab_Click" Tag="sessions"
-                                Background="Transparent" Foreground="{StaticResource AppAccentTextBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
+                                Style="{StaticResource GhostButtonStyle}" Foreground="{StaticResource AppAccentTextBrush}" FontSize="11"/>
                         <Button x:Name="TabFiles" Content="Files" Click="PanelTab_Click" Tag="files"
-                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
+                                Style="{StaticResource GhostButtonStyle}" FontSize="11"/>
                         <Button x:Name="TabTasks" Content="Tasks" Click="PanelTab_Click" Tag="tasks"
-                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
+                                Style="{StaticResource GhostButtonStyle}" FontSize="11"/>
                         <Button x:Name="TabReplay" Content="Replay" Click="PanelTab_Click" Tag="replay"
-                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
+                                Style="{StaticResource GhostButtonStyle}" FontSize="11"/>
                     </StackPanel>
                 </ScrollViewer>
 

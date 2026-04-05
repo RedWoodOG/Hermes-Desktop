@@ -74,8 +74,7 @@
                 <Button Grid.Column="0" x:Name="CancelButton"
                     Content="Cancel"
                     HorizontalAlignment="Stretch"
-                    Background="{StaticResource AppInsetBrush}"
-                    BorderBrush="{StaticResource AppStrokeBrush}"
+                    Style="{StaticResource SecondaryButtonStyle}"
                     Click="CancelButton_Click" />
                 
                 <Button Grid.Column="1" x:Name="ConfirmButton"

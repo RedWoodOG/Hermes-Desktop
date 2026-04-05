@@ -41,8 +41,6 @@
                     Content="Copy"
                     FontSize="11"
                     Padding="8,4"
-                    Background="Transparent"
-                    BorderBrush="{StaticResource AppStrokeBrush}"
                     Click="CopyButton_Click" />
             </Grid>
             

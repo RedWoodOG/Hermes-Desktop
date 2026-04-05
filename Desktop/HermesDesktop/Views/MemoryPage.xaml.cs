@@ -47,11 +47,15 @@ public sealed partial class MemoryPage : Page
         var inactiveBg = Application.Current.Resources["AppInsetBrush"] as Brush;
         var activeFg = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 22, 17, 13));
         var inactiveFg = Application.Current.Resources["AppTextSecondaryBrush"] as Brush;
+        var activeBorder = Application.Current.Resources["AppAccentDarkBrush"] as Brush;
+        var inactiveBorder = Application.Current.Resources["AppSubtleStrokeBrush"] as Brush;
 
-        TabMemories.Background = tag == "memories" ? activeBg : inactiveBg;
-        TabMemories.Foreground = tag == "memories" ? activeFg : inactiveFg;
-        TabProject.Background = tag == "project" ? activeBg : inactiveBg;
-        TabProject.Foreground = tag == "project" ? activeFg : inactiveFg;
+        foreach (var (tab, isActive) in new[] { (TabMemories, tag == "memories"), (TabProject, tag == "project") })
+        {
+            tab.Background = isActive ? activeBg : inactiveBg;
+            tab.Foreground = isActive ? activeFg : inactiveFg;
+            tab.BorderBrush = isActive ? activeBorder : inactiveBorder;
+        }
 
         MemoriesContent.Visibility = tag == "memories" ? Visibility.Visible : Visibility.Collapsed;
         ProjectContent.Visibility = tag == "project" ? Visibility.Visible : Visibility.Collapsed;

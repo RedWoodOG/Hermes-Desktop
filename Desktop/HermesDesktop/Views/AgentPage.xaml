@@ -30,13 +30,11 @@
         <!-- Tab bar -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="0,0,0,16">
             <Button x:Name="TabAgents" Content="Agents" Click="Tab_Click" Tag="agents"
-                    Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D" FontSize="13" Padding="16,8" CornerRadius="8"/>
+                    FontSize="13" Padding="16,8" CornerRadius="8"/>
             <Button x:Name="TabIdentity" Content="Identity" Click="Tab_Click" Tag="identity"
-                    Background="{StaticResource AppInsetBrush}" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13" Padding="16,8" CornerRadius="8"
-                    BorderBrush="{StaticResource AppStrokeBrush}"/>
+                    Style="{StaticResource SecondaryButtonStyle}" FontSize="13" Padding="16,8" CornerRadius="8"/>
             <Button x:Name="TabSouls" Content="Souls" Click="Tab_Click" Tag="souls"
-                    Background="{StaticResource AppInsetBrush}" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13" Padding="16,8" CornerRadius="8"
-                    BorderBrush="{StaticResource AppStrokeBrush}"/>
+                    Style="{StaticResource SecondaryButtonStyle}" FontSize="13" Padding="16,8" CornerRadius="8"/>
         </StackPanel>
 
         <!-- ═══════════════════════════════════════════════ -->
@@ -60,11 +58,9 @@
                                  MinHeight="300" MaxHeight="500" FontSize="12" FontFamily="Consolas"
                                  Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"/>
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Content="Save Soul" Click="SaveSoul_Click" FontSize="12" Padding="16,8"
-                                    Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D"/>
+                            <Button Content="Save Soul" Click="SaveSoul_Click" FontSize="12" Padding="16,8"/>
                             <Button Content="Reset to Default" Click="ResetSoul_Click" FontSize="12" Padding="16,8"
-                                    Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}"
-                                    BorderBrush="{StaticResource AppStrokeBrush}"/>
+                                    Style="{StaticResource SecondaryButtonStyle}"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -80,8 +76,7 @@
                             <TextBox x:Name="UserEditor" AcceptsReturn="True" TextWrapping="Wrap"
                                      MinHeight="180" MaxHeight="300" FontSize="12" FontFamily="Consolas"
                                      Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"/>
-                            <Button Content="Save Profile" Click="SaveUser_Click" FontSize="12" Padding="16,8"
-                                    Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D"/>
+                            <Button Content="Save Profile" Click="SaveUser_Click" FontSize="12" Padding="16,8"/>
                         </StackPanel>
                     </Border>
 
@@ -168,12 +163,10 @@
                     </ScrollViewer>
                     <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="12" Margin="0,12,0,0">
                         <Button x:Name="ApplySoulBtn" Content="Apply This Soul" Click="ApplySoul_Click"
-                                FontSize="13" Padding="20,10" IsEnabled="False"
-                                Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D"/>
+                                FontSize="13" Padding="20,10" IsEnabled="False"/>
                         <Button x:Name="CustomizeSoulBtn" Content="Copy to Editor" Click="CustomizeSoul_Click"
                                 FontSize="13" Padding="20,10" IsEnabled="False"
-                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}"
-                                BorderBrush="{StaticResource AppStrokeBrush}"/>
+                                Style="{StaticResource SecondaryButtonStyle}"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -195,7 +188,6 @@
                         <TextBlock Text="Saved Agents" FontSize="16" FontWeight="SemiBold"
                                    Foreground="{StaticResource AppAccentTextBrush}"/>
                         <Button Content="+ New Agent" Click="NewAgent_Click" FontSize="12" Padding="12,6"
-                                Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D"
                                 VerticalAlignment="Center"/>
                     </StackPanel>
 
@@ -217,12 +209,10 @@
                                     </StackPanel>
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                         <Button Content="Activate" Tag="{Binding Name}" Click="ActivateAgent_Click"
-                                                FontSize="11" Padding="10,4"
-                                                Background="Transparent" Foreground="{StaticResource AppAccentTextBrush}"
-                                                BorderBrush="{StaticResource AppStrokeBrush}"/>
+                                                FontSize="11" Padding="10,4"/>
                                         <Button Content="Delete" Tag="{Binding Name}" Click="DeleteAgent_Click"
                                                 FontSize="11" Padding="10,4"
-                                                Background="Transparent" Foreground="#FF6B6B" BorderBrush="Transparent"/>
+                                                Style="{StaticResource DangerButtonStyle}"/>
                                     </StackPanel>
                                 </Grid>
                             </DataTemplate>

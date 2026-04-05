@@ -27,10 +27,9 @@
         <!-- Tab bar -->
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="0,0,0,16">
             <Button x:Name="TabMemories" Content="Memories" Click="Tab_Click" Tag="memories"
-                    Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D" FontSize="13" Padding="16,8" CornerRadius="8"/>
+                    FontSize="13" Padding="16,8" CornerRadius="8"/>
             <Button x:Name="TabProject" Content="Project" Click="Tab_Click" Tag="project"
-                    Background="{StaticResource AppInsetBrush}" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13" Padding="16,8" CornerRadius="8"
-                    BorderBrush="{StaticResource AppStrokeBrush}"/>
+                    Style="{StaticResource SecondaryButtonStyle}" FontSize="13" Padding="16,8" CornerRadius="8"/>
         </StackPanel>
 
         <!-- ═══════════════════════════════════════════════ -->
@@ -117,8 +116,7 @@
                              MinHeight="300" MaxHeight="500" FontSize="12" FontFamily="Consolas"
                              Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"/>
                     <StackPanel Orientation="Horizontal" Spacing="8">
-                        <Button Content="Save Project Rules" Click="SaveAgents_Click" FontSize="12" Padding="16,8"
-                                Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D"/>
+                        <Button Content="Save Project Rules" Click="SaveAgents_Click" FontSize="12" Padding="16,8"/>
                         <TextBlock x:Name="SaveStatus" Text="" FontSize="12" VerticalAlignment="Center"
                                    Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.7"/>
                     </StackPanel>

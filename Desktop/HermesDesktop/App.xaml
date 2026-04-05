@@ -84,6 +84,45 @@
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
+
+            <!-- Default button style — gold gradient everywhere -->
+            <Style TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource AppAccentGradientBrush}" />
+                <Setter Property="Foreground" Value="#16110D" />
+                <Setter Property="BorderBrush" Value="{StaticResource AppAccentDarkBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+
+            <!-- Ghost / tab button — transparent bg, subtle text -->
+            <Style x:Key="GhostButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{StaticResource AppTextSecondaryBrush}" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="MinWidth" Value="0" />
+                <Setter Property="Padding" Value="8,4" />
+            </Style>
+
+            <!-- Secondary / outline button — dark bg, subtle border -->
+            <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource AppInsetBrush}" />
+                <Setter Property="Foreground" Value="White" />
+                <Setter Property="BorderBrush" Value="{StaticResource AppSubtleStrokeBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="6" />
+            </Style>
+
+            <!-- Danger / deny button — red tint -->
+            <Style x:Key="DangerButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="#3A1515" />
+                <Setter Property="Foreground" Value="#FF8A8A" />
+                <Setter Property="BorderBrush" Value="#5A2020" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="CornerRadius" Value="6" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

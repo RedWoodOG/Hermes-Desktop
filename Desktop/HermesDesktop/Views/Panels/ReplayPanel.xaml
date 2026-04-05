@@ -18,11 +18,9 @@
                 </StackPanel>
             </ToggleButton>
             <Button x:Name="PlayBtn" Content="&#x25B6; Play" Click="PlayBtn_Click"
-                    Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}"
-                    CornerRadius="6" Padding="8,4" MinWidth="0" FontSize="11"/>
+                    Style="{StaticResource GhostButtonStyle}" FontSize="11"/>
             <Button x:Name="ClearBtn" Content="Clear" Click="ClearBtn_Click"
-                    Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}"
-                    CornerRadius="6" Padding="8,4" MinWidth="0" FontSize="11"/>
+                    Style="{StaticResource GhostButtonStyle}" FontSize="11"/>
         </StackPanel>
 
         <!-- Empty state -->

@@ -117,7 +117,6 @@
                         </StackPanel>
 
                         <Button Content="Test Connection" Click="TestConnection_Click"
-                                Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D"
                                 Padding="16,8" FontSize="12"/>
                         <TextBlock x:Name="TestConnectionResult" FontSize="11" TextWrapping="Wrap"
                                    Foreground="{StaticResource AppTextSecondaryBrush}"/>
@@ -138,7 +137,7 @@
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <TextBlock Text="Recent Activity" FontSize="16" FontWeight="SemiBold"/>
                             <Button Content="Open Chat" Click="LaunchHermesChat_Click" FontSize="11" Padding="10,4"
-                                    Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D" VerticalAlignment="Center"/>
+                                    VerticalAlignment="Center"/>
                         </StackPanel>
                         <ListView x:Name="RecentSessionsList" Background="Transparent" SelectionMode="None" MaxHeight="250">
                             <ListView.ItemTemplate>
@@ -183,9 +182,9 @@
 
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <Button Content="Open Logs" Click="OpenLogs_Click" FontSize="11" Padding="10,4"
-                                    Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                                    Style="{StaticResource SecondaryButtonStyle}"/>
                             <Button Content="Open Config" Click="OpenConfig_Click" FontSize="11" Padding="10,4"
-                                    Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                                    Style="{StaticResource SecondaryButtonStyle}"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>

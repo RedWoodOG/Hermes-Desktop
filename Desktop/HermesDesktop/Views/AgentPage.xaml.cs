@@ -45,13 +45,15 @@ public sealed partial class AgentPage : Page
         var inactiveBg = Application.Current.Resources["AppInsetBrush"] as Brush;
         var activeFg = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 22, 17, 13));
         var inactiveFg = Application.Current.Resources["AppTextSecondaryBrush"] as Brush;
+        var inactiveBorder = Application.Current.Resources["AppSubtleStrokeBrush"] as Brush;
+        var activeBorder = Application.Current.Resources["AppAccentDarkBrush"] as Brush;
 
-        TabIdentity.Background = tag == "identity" ? activeBg : inactiveBg;
-        TabIdentity.Foreground = tag == "identity" ? activeFg : inactiveFg;
-        TabSouls.Background = tag == "souls" ? activeBg : inactiveBg;
-        TabSouls.Foreground = tag == "souls" ? activeFg : inactiveFg;
-        TabAgents.Background = tag == "agents" ? activeBg : inactiveBg;
-        TabAgents.Foreground = tag == "agents" ? activeFg : inactiveFg;
+        foreach (var (tab, isActive) in new[] { (TabIdentity, tag == "identity"), (TabSouls, tag == "souls"), (TabAgents, tag == "agents") })
+        {
+            tab.Background = isActive ? activeBg : inactiveBg;
+            tab.Foreground = isActive ? activeFg : inactiveFg;
+            tab.BorderBrush = isActive ? activeBorder : inactiveBorder;
+        }
 
         IdentityContent.Visibility = tag == "identity" ? Visibility.Visible : Visibility.Collapsed;
         SoulsContent.Visibility = tag == "souls" ? Visibility.Visible : Visibility.Collapsed;
