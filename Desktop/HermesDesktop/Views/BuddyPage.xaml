@@ -9,7 +9,7 @@
     NavigationCacheMode="Required"
     mc:Ignorable="d">
 
-    <Grid Padding="32,24,32,40">
+    <Grid Padding="32,24,32,32">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -18,136 +18,219 @@
         <!-- Header -->
         <StackPanel Spacing="4" Margin="0,0,0,16">
             <TextBlock Text="Buddy" Style="{StaticResource PageEyebrowTextStyle}"/>
-            <TextBlock Text="Your Companion" FontSize="22" FontWeight="SemiBold"/>
-            <TextBlock Text="Tamagotchi-style companion, deterministically generated from your identity"
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <TextBlock Text="Your Companion" FontSize="22" FontWeight="SemiBold"/>
+                <Border x:Name="LevelBadge" Background="#3A3A00" CornerRadius="8" Padding="10,4" VerticalAlignment="Center">
+                    <TextBlock x:Name="LevelText" Text="Level 1" FontSize="12"
+                               Foreground="{StaticResource AppAccentTextBrush}"/>
+                </Border>
+            </StackPanel>
+            <TextBlock x:Name="HeaderSubtitle" Text="Choose your companion and watch it grow"
                        FontSize="13" Foreground="{StaticResource AppTextSecondaryBrush}"/>
         </StackPanel>
 
-        <!-- Two-column layout -->
-        <Grid Grid.Row="1" ColumnSpacing="24">
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- SELECTION VIEW (first time)                     -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <Grid x:Name="SelectionView" Grid.Row="1" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Choose your buddy species" FontSize="18" FontWeight="SemiBold"
+                       Foreground="{StaticResource AppAccentTextBrush}" Margin="0,0,0,12"/>
+
+            <!-- Species grid -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <ItemsRepeater x:Name="SpeciesGrid">
+                    <ItemsRepeater.Layout>
+                        <UniformGridLayout MinItemWidth="160" MinItemHeight="200" MinColumnSpacing="12" MinRowSpacing="12"/>
+                    </ItemsRepeater.Layout>
+                    <ItemsRepeater.ItemTemplate>
+                        <DataTemplate>
+                            <Border x:Name="SpeciesCard" Background="{StaticResource AppInsetBrush}"
+                                    CornerRadius="10" Padding="12" BorderThickness="2"
+                                    BorderBrush="{StaticResource AppSubtleStrokeBrush}"
+                                    PointerPressed="SpeciesCard_Click" Tag="{Binding Name}">
+                                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding Preview}" FontFamily="Cascadia Mono, Consolas"
+                                               FontSize="11" TextAlignment="Center"
+                                               Foreground="{StaticResource AppAccentTextBrush}"/>
+                                    <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsRepeater.ItemTemplate>
+                </ItemsRepeater>
+            </ScrollViewer>
+
+            <!-- Name input + confirm -->
+            <Border Grid.Row="2" Style="{StaticResource SurfaceCardStyle}" Margin="0,16,0,0">
+                <Grid ColumnSpacing="16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock Text="Selected:" FontSize="14" VerticalAlignment="Center"
+                               Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                    <TextBlock x:Name="SelectedSpeciesText" Grid.Column="1" Text="None" FontSize="14"
+                               FontWeight="SemiBold" Foreground="{StaticResource AppAccentTextBrush}"
+                               VerticalAlignment="Center"/>
+                    <TextBox x:Name="NameInput" Grid.Column="2" PlaceholderText="Name your buddy..."
+                             Width="200" FontSize="13"
+                             Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"/>
+                    <Button x:Name="ConfirmBtn" Grid.Column="3" Content="Hatch!" Click="Confirm_Click"
+                            Padding="20,10" FontSize="14" IsEnabled="False"/>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- ═══════════════════════════════════════════════ -->
+        <!-- BUDDY VIEW (after selection)                    -->
+        <!-- ═══════════════════════════════════════════════ -->
+        <Grid x:Name="BuddyView" Grid.Row="1" Visibility="Collapsed" ColumnSpacing="24">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="360" MinWidth="300"/>
+                <ColumnDefinition Width="380"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Left: Buddy card -->
+            <!-- Left: Buddy visual + interactions -->
             <Border Style="{StaticResource SurfaceCardStyle}">
-                <StackPanel Spacing="16" HorizontalAlignment="Center" VerticalAlignment="Center" Padding="24">
+                <StackPanel Spacing="16" HorizontalAlignment="Center">
+                    <TextBlock x:Name="ShinyBadge" Text="✨ SHINY ✨" FontSize="14" FontWeight="Bold"
+                               Foreground="#FFD700" HorizontalAlignment="Center" Visibility="Collapsed"/>
 
-                    <!-- Shiny indicator -->
-                    <TextBlock x:Name="ShinyBadge" Text="" FontSize="16" HorizontalAlignment="Center"
-                               Foreground="{StaticResource AppAccentTextBrush}" Visibility="Collapsed"/>
-
-                    <!-- ASCII art -->
-                    <Border Background="{StaticResource AppInsetBrush}" CornerRadius="12" Padding="32,24"
-                            HorizontalAlignment="Center">
-                        <TextBlock x:Name="AsciiArt" FontSize="20" FontFamily="Consolas"
-                                   TextAlignment="Center" Foreground="{StaticResource AppAccentTextBrush}"
-                                   Text="Loading..." IsTextSelectionEnabled="True"/>
-                    </Border>
-
-                    <!-- Name -->
-                    <TextBlock x:Name="BuddyName" Text="..." FontSize="28" FontWeight="Bold"
-                               HorizontalAlignment="Center"
-                               Foreground="{StaticResource AppAccentTextBrush}"/>
-
-                    <!-- Species + Rarity -->
+                    <!-- Mood indicator -->
                     <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
-                        <TextBlock x:Name="BuddySpecies" Text="" FontSize="14"
-                                   Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                        <Border x:Name="RarityBadge" Background="#3A3A00" CornerRadius="6" Padding="10,4">
-                            <TextBlock x:Name="RarityText" Text="" FontSize="11"
-                                       Foreground="{StaticResource AppAccentTextBrush}"/>
-                        </Border>
+                        <TextBlock x:Name="MoodEmoji" Text="🙂" FontSize="20"/>
+                        <TextBlock x:Name="MoodText" Text="Content" FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{StaticResource AppAccentTextBrush}" VerticalAlignment="Center"/>
                     </StackPanel>
 
-                    <!-- Stats bars -->
-                    <Border Background="{StaticResource AppInsetBrush}" CornerRadius="8" Padding="20,16"
-                            HorizontalAlignment="Stretch" MaxWidth="400">
-                        <Grid RowDefinitions="Auto,Auto,Auto,Auto" ColumnDefinitions="50,*,40" RowSpacing="10">
-                            <!-- INT -->
-                            <TextBlock Text="INT" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
-                            <ProgressBar x:Name="StatInt" Grid.Column="1" Minimum="0" Maximum="100" Value="0"
-                                         Height="8" Margin="8,0" CornerRadius="4"
-                                         Foreground="#508CC8" Background="#2A2520"/>
-                            <TextBlock x:Name="StatIntVal" Grid.Column="2" Text="0" FontSize="12"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-
-                            <!-- ENR -->
-                            <TextBlock Grid.Row="1" Text="ENR" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
-                            <ProgressBar x:Name="StatEnr" Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100" Value="0"
-                                         Height="8" Margin="8,0" CornerRadius="4"
-                                         Foreground="#6BCB77" Background="#2A2520"/>
-                            <TextBlock x:Name="StatEnrVal" Grid.Row="1" Grid.Column="2" Text="0" FontSize="12"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-
-                            <!-- CRE -->
-                            <TextBlock Grid.Row="2" Text="CRE" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
-                            <ProgressBar x:Name="StatCre" Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Value="0"
-                                         Height="8" Margin="8,0" CornerRadius="4"
-                                         Foreground="#C88C50" Background="#2A2520"/>
-                            <TextBlock x:Name="StatCreVal" Grid.Row="2" Grid.Column="2" Text="0" FontSize="12"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-
-                            <!-- FRN -->
-                            <TextBlock Grid.Row="3" Text="FRN" FontSize="12" FontWeight="SemiBold"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
-                            <ProgressBar x:Name="StatFrn" Grid.Row="3" Grid.Column="1" Minimum="0" Maximum="100" Value="0"
-                                         Height="8" Margin="8,0" CornerRadius="4"
-                                         Foreground="#A064B4" Background="#2A2520"/>
-                            <TextBlock x:Name="StatFrnVal" Grid.Row="3" Grid.Column="2" Text="0" FontSize="12"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                        </Grid>
+                    <!-- Animated ASCII art -->
+                    <Border Background="{StaticResource AppInsetBrush}" CornerRadius="12" Padding="32,20"
+                            BorderBrush="{StaticResource AppSubtleStrokeBrush}" BorderThickness="1"
+                            HorizontalAlignment="Center" MinWidth="200">
+                        <TextBlock x:Name="AsciiArt" FontFamily="Cascadia Mono, Consolas" FontSize="18"
+                                   TextAlignment="Center" Foreground="{StaticResource AppAccentTextBrush}"
+                                   LineHeight="20"/>
                     </Border>
 
-                    <!-- Personality -->
-                    <TextBlock x:Name="BuddyPersonality" Text="" FontSize="13" TextWrapping="Wrap"
-                               TextAlignment="Center" FontStyle="Italic" MaxWidth="360"
+                    <!-- Name + species -->
+                    <StackPanel HorizontalAlignment="Center" Spacing="6">
+                        <TextBlock x:Name="BuddyName" Text="..." FontSize="28" FontWeight="Bold"
+                                   HorizontalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center">
+                            <TextBlock x:Name="SpeciesText" Text="..." FontSize="14"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <Border x:Name="RarityBadge" CornerRadius="6" Padding="8,2">
+                                <TextBlock x:Name="RarityText" Text="..." FontSize="11" FontWeight="SemiBold"/>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- Quote bubble -->
+                    <Border Background="{StaticResource AppInsetBrush}" CornerRadius="10" Padding="16,10"
+                            BorderBrush="{StaticResource AppSubtleStrokeBrush}" BorderThickness="1"
+                            HorizontalAlignment="Center" MaxWidth="400">
+                        <TextBlock x:Name="QuoteBubble" Text="..." FontSize="13" FontStyle="Italic"
+                                   TextAlignment="Center" TextWrapping="Wrap"
+                                   Foreground="{StaticResource AppAccentTextBrush}"/>
+                    </Border>
+
+                    <!-- Interaction buttons -->
+                    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+                        <Button Content="🍖 Feed" Click="Feed_Click" Padding="16,10" FontSize="13"/>
+                        <Button Content="🎮 Play" Click="Play_Click" Padding="16,10" FontSize="13"/>
+                        <Button Content="📚 Train" Click="Train_Click" Padding="16,10" FontSize="13"/>
+                        <Button Content="🤗 Pet" Click="Pet_Click" Padding="16,10" FontSize="13"/>
+                    </StackPanel>
+
+                    <TextBlock x:Name="PersonalityText" Text="" FontSize="13" FontStyle="Italic"
+                               TextWrapping="Wrap" TextAlignment="Center" MaxWidth="400"
                                Foreground="{StaticResource AppTextSecondaryBrush}"/>
                 </StackPanel>
             </Border>
 
-            <!-- Right: Info card -->
-            <Border Grid.Column="1" Style="{StaticResource SurfaceCardStyle}">
-                <StackPanel Spacing="16">
-                    <TextBlock Text="Buddy Lore" FontSize="16" FontWeight="SemiBold"
-                               Foreground="{StaticResource AppAccentTextBrush}"/>
-
-                    <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="{StaticResource AppTextSecondaryBrush}"
-                               Text="Every user gets a unique companion, deterministically generated from their identity. Your buddy is permanent and cannot be re-rolled."/>
-
-                    <Border Background="{StaticResource AppInsetBrush}" CornerRadius="8" Padding="16,12">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="Rarity Table" FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{StaticResource AppAccentTextBrush}"/>
-                            <TextBlock FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}" FontFamily="Consolas"
-                                       Text="Common      90.0%&#x0a;Uncommon      9.0%&#x0a;Rare          0.9%&#x0a;Legendary     0.1%&#x0a;Shiny         0.5% (any rarity)"/>
+            <!-- Right: Status panel -->
+            <StackPanel Grid.Column="1" Spacing="16">
+                <!-- Needs -->
+                <Border Style="{StaticResource SurfaceCardStyle}">
+                    <StackPanel Spacing="12">
+                        <TextBlock Text="Needs" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource AppAccentTextBrush}"/>
+                        <StackPanel Spacing="4">
+                            <Grid><TextBlock Text="🍖 Hunger" FontSize="12"/>
+                            <TextBlock x:Name="HungerValue" Text="80" FontSize="12" HorizontalAlignment="Right" Foreground="{StaticResource AppTextSecondaryBrush}"/></Grid>
+                            <ProgressBar x:Name="HungerBar" Value="80" Maximum="100" Height="8" Background="{StaticResource AppInsetBrush}" CornerRadius="4"/>
                         </StackPanel>
-                    </Border>
-
-                    <Border Background="{StaticResource AppInsetBrush}" CornerRadius="8" Padding="16,12">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="Stats" FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{StaticResource AppAccentTextBrush}"/>
-                            <TextBlock FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"
-                                       Text="INT (Intelligence), ENR (Energy), CRE (Creativity), FRN (Friendliness). Total stat points scale with rarity: Common ~120, Uncommon ~180, Rare ~240, Legendary ~300."/>
+                        <StackPanel Spacing="4">
+                            <Grid><TextBlock Text="😊 Happiness" FontSize="12"/>
+                            <TextBlock x:Name="HappinessValue" Text="80" FontSize="12" HorizontalAlignment="Right" Foreground="{StaticResource AppTextSecondaryBrush}"/></Grid>
+                            <ProgressBar x:Name="HappinessBar" Value="80" Maximum="100" Height="8" Background="{StaticResource AppInsetBrush}" CornerRadius="4"/>
                         </StackPanel>
-                    </Border>
-
-                    <Border Background="{StaticResource AppInsetBrush}" CornerRadius="8" Padding="16,12">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="Details" FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{StaticResource AppAccentTextBrush}"/>
-                            <TextBlock x:Name="BuddyDetails" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"
-                                       FontFamily="Consolas" TextWrapping="Wrap"
-                                       Text="Loading..."/>
+                        <StackPanel Spacing="4">
+                            <Grid><TextBlock Text="⚡ Energy" FontSize="12"/>
+                            <TextBlock x:Name="EnergyValue" Text="80" FontSize="12" HorizontalAlignment="Right" Foreground="{StaticResource AppTextSecondaryBrush}"/></Grid>
+                            <ProgressBar x:Name="EnergyBar" Value="80" Maximum="100" Height="8" Background="{StaticResource AppInsetBrush}" CornerRadius="4"/>
                         </StackPanel>
-                    </Border>
-                </StackPanel>
-            </Border>
+                    </StackPanel>
+                </Border>
+
+                <!-- Level / XP -->
+                <Border Style="{StaticResource SurfaceCardStyle}">
+                    <StackPanel Spacing="8">
+                        <Grid><TextBlock Text="Level &amp; Experience" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource AppAccentTextBrush}"/>
+                        <TextBlock x:Name="TotalXPText" Text="0 total XP" FontSize="11" HorizontalAlignment="Right" Foreground="{StaticResource AppTextSecondaryBrush}" VerticalAlignment="Center"/></Grid>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock x:Name="LevelDisplay" Text="Lv. 1" FontSize="20" FontWeight="Bold" Foreground="{StaticResource AppAccentTextBrush}"/>
+                            <TextBlock x:Name="XPDisplay" Text="0 / 100 XP" FontSize="14" Foreground="{StaticResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <ProgressBar x:Name="XPBar" Value="0" Maximum="100" Height="10" Background="{StaticResource AppInsetBrush}" CornerRadius="5" Foreground="{StaticResource AppAccentBrush}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Base stats -->
+                <Border Style="{StaticResource SurfaceCardStyle}">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Base Stats" FontSize="16" FontWeight="SemiBold" Foreground="{StaticResource AppAccentTextBrush}"/>
+                        <StackPanel Spacing="4">
+                            <Grid><TextBlock Text="INT" FontSize="11" FontWeight="SemiBold" Foreground="#508CC8"/>
+                            <TextBlock x:Name="IntValue" Text="0" FontSize="11" HorizontalAlignment="Right" Foreground="#508CC8"/></Grid>
+                            <ProgressBar x:Name="IntBar" Value="0" Maximum="100" Height="6" Foreground="#508CC8" Background="{StaticResource AppInsetBrush}" CornerRadius="3"/>
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <Grid><TextBlock Text="ENR" FontSize="11" FontWeight="SemiBold" Foreground="#6BCB77"/>
+                            <TextBlock x:Name="EnrValue" Text="0" FontSize="11" HorizontalAlignment="Right" Foreground="#6BCB77"/></Grid>
+                            <ProgressBar x:Name="EnrBar" Value="0" Maximum="100" Height="6" Foreground="#6BCB77" Background="{StaticResource AppInsetBrush}" CornerRadius="3"/>
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <Grid><TextBlock Text="CRE" FontSize="11" FontWeight="SemiBold" Foreground="#C88C50"/>
+                            <TextBlock x:Name="CreValue" Text="0" FontSize="11" HorizontalAlignment="Right" Foreground="#C88C50"/></Grid>
+                            <ProgressBar x:Name="CreBar" Value="0" Maximum="100" Height="6" Foreground="#C88C50" Background="{StaticResource AppInsetBrush}" CornerRadius="3"/>
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <Grid><TextBlock Text="FRN" FontSize="11" FontWeight="SemiBold" Foreground="#A064B4"/>
+                            <TextBlock x:Name="FrnValue" Text="0" FontSize="11" HorizontalAlignment="Right" Foreground="#A064B4"/></Grid>
+                            <ProgressBar x:Name="FrnBar" Value="0" Maximum="100" Height="6" Foreground="#A064B4" Background="{StaticResource AppInsetBrush}" CornerRadius="3"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource SurfaceCardStyle}">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="Details" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource AppAccentTextBrush}"/>
+                        <TextBlock x:Name="HatchedText" Text="" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        <TextBlock x:Name="EyesText" Text="" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        <TextBlock x:Name="HatText" Text="" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
         </Grid>
     </Grid>
 </Page>

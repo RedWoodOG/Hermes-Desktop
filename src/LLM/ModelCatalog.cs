@@ -1,5 +1,8 @@
 namespace Hermes.Agent.LLM;
 
+using System.Net.Http;
+using System.Text.Json;
+
 /// <summary>
 /// Static model catalog matching the official Hermes Agent Python models.py
 /// and model_metadata.py. Provides provider-to-model lists with context lengths.
@@ -115,16 +118,22 @@ public static class ModelCatalog
                 new("x-ai/grok-4.20-beta",             "Grok 4.20 Beta",                128_000),
             },
 
+            ["ollama"] = new ModelEntry[]
+            {
+                new("custom",  "Scanning for models...", 128_000),
+            },
+
+            // Legacy alias
             ["local"] = new ModelEntry[]
             {
-                new("custom",  "Custom / Local Model", 128_000),
+                new("custom",  "Scanning for models...", 128_000),
             },
         };
 
     /// <summary>All known provider names.</summary>
     public static IReadOnlyList<string> Providers { get; } = new[]
     {
-        "nous", "openai", "anthropic", "qwen", "deepseek", "minimax", "openrouter", "local"
+        "nous", "openai", "anthropic", "qwen", "deepseek", "minimax", "openrouter", "ollama"
     };
 
     /// <summary>Default base URLs for known providers.</summary>
@@ -138,6 +147,7 @@ public static class ModelCatalog
             ["minimax"]    = "https://api.minimax.chat/v1",
             ["openrouter"] = "https://openrouter.ai/api/v1",
             ["nous"]       = "https://openrouter.ai/api/v1",
+            ["ollama"]     = "http://127.0.0.1:11434/v1",
             ["local"]      = "http://127.0.0.1:11434/v1",
         };
 
@@ -171,5 +181,65 @@ public static class ModelCatalog
         if (contextLength >= 1_000)
             return $"{contextLength / 1_000}K tokens";
         return $"{contextLength} tokens";
+    }
+
+    /// <summary>Fetch installed models from a running Ollama instance.</summary>
+    public static async Task<List<ModelEntry>> FetchOllamaModelsAsync(string baseUrl = "http://127.0.0.1:11434", CancellationToken ct = default)
+    {
+        var results = new List<ModelEntry>();
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            var response = await http.GetAsync($"{baseUrl.TrimEnd('/')}/api/tags", ct);
+            if (!response.IsSuccessStatusCode) return results;
+
+            var json = await response.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(json);
+
+            if (!doc.RootElement.TryGetProperty("models", out var models)) return results;
+
+            foreach (var model in models.EnumerateArray())
+            {
+                var name = model.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "";
+                if (string.IsNullOrEmpty(name)) continue;
+
+                // Try to get context length from model details
+                var contextLength = 128_000; // fallback
+                if (model.TryGetProperty("details", out var details))
+                {
+                    // Ollama exposes parameter_size but not always context_length
+                    // Use num_ctx from modelfile if available
+                    if (details.TryGetProperty("parameter_size", out var ps))
+                    {
+                        var paramStr = ps.GetString() ?? "";
+                        // Heuristic: larger models tend to have larger context
+                        contextLength = paramStr switch
+                        {
+                            var s when s.Contains("405B") => 128_000,
+                            var s when s.Contains("70B") || s.Contains("72B") => 128_000,
+                            var s when s.Contains("32B") || s.Contains("27B") => 131_072,
+                            var s when s.Contains("14B") || s.Contains("8B") => 131_072,
+                            var s when s.Contains("7B") || s.Contains("3B") => 32_768,
+                            var s when s.Contains("1B") || s.Contains("0.5B") => 8_192,
+                            _ => 128_000
+                        };
+                    }
+                }
+
+                // Also check model-level num_ctx if Ollama provides it
+                if (model.TryGetProperty("model_info", out var info) &&
+                    info.TryGetProperty("num_ctx", out var numCtx))
+                {
+                    contextLength = numCtx.GetInt32();
+                }
+
+                var size = model.TryGetProperty("size", out var sz) ? sz.GetInt64() : 0;
+                var sizeStr = size > 0 ? $" ({size / 1_073_741_824.0:0.#}GB)" : "";
+
+                results.Add(new ModelEntry(name, $"{name}{sizeStr}", contextLength));
+            }
+        }
+        catch { /* Ollama not running or unreachable */ }
+        return results;
     }
 }

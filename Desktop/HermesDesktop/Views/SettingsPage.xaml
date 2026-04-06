@@ -54,7 +54,7 @@
                                     <ComboBoxItem Content="DeepSeek" Tag="deepseek"/>
                                     <ComboBoxItem Content="MiniMax" Tag="minimax"/>
                                     <ComboBoxItem Content="OpenRouter" Tag="openrouter"/>
-                                    <ComboBoxItem Content="Custom / Local" Tag="local"/>
+                                    <ComboBoxItem Content="Ollama (Local)" Tag="ollama"/>
                                 </ComboBox>
                             </StackPanel>
 
@@ -95,9 +95,7 @@
                             <!-- Save + Feedback -->
                             <StackPanel Orientation="Horizontal" Spacing="12">
                                 <Button x:Name="SaveModelBtn" Content="Save Model Config" Click="SaveModelConfig_Click"
-                                        Background="{StaticResource AppAccentGradientBrush}"
-                                        BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                        Foreground="#16110D" Padding="20,8"/>
+                                        Padding="20,8"/>
                                 <TextBlock x:Name="ModelSaveStatus" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                             </StackPanel>

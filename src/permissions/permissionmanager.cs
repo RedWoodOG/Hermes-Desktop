@@ -130,7 +130,7 @@ public sealed class PermissionManager
     private bool IsReadOnlyTool<T>(string toolName, T input)
     {
         // Read-only tools
-        var readOnlyTools = new[] { "read_file", "glob", "grep", "ls", "task_get", "task_list" };
+        var readOnlyTools = new[] { "read_file", "glob", "grep", "ls", "task_get", "task_list", "terminal", "web_search", "web_fetch", "todo_write", "ask_user", "schedule_cron" };
         
         if (readOnlyTools.Contains(toolName))
             return true;
@@ -147,7 +147,13 @@ public sealed class PermissionManager
     private bool IsReadOnlyBashCommand(string command)
     {
         // Read-only commands
-        var readOnlyPrefixes = new[] { "git ", "ls ", "cat ", "head ", "tail ", "grep ", "rg ", "find ", "pwd ", "echo " };
+        var readOnlyPrefixes = new[] {
+            "git ", "ls ", "dir ", "cat ", "head ", "tail ", "grep ", "rg ", "find ",
+            "pwd ", "echo ", "type ", "where ", "which ", "wc ", "du ", "df ",
+            "dotnet --", "dotnet list", "node --", "python --version",
+            "Get-ChildItem", "Get-Content", "Get-Item", "Get-Process",
+            "Test-Path", "Resolve-Path"
+        };
         return readOnlyPrefixes.Any(p => command.StartsWith(p, StringComparison.OrdinalIgnoreCase));
     }
     

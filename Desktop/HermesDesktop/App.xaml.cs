@@ -92,9 +92,23 @@ public partial class App : Application
             skillsDir,
             sp.GetRequiredService<ILogger<SkillManager>>()));
 
-        // Permission manager
+        // Permission manager — Auto mode: read-only tools auto-approved, writes ask
         services.AddSingleton(sp => new PermissionManager(
-            new PermissionContext(),
+            new PermissionContext
+            {
+                Mode = PermissionMode.Auto,
+                AlwaysAllow =
+                {
+                    PermissionRule.AllowAll("read_file"),
+                    PermissionRule.AllowAll("glob"),
+                    PermissionRule.AllowAll("grep"),
+                    PermissionRule.AllowAll("web_search"),
+                    PermissionRule.AllowAll("web_fetch"),
+                    PermissionRule.AllowAll("todo_write"),
+                    PermissionRule.AllowAll("ask_user"),
+                    PermissionRule.AllowAll("terminal"),
+                }
+            },
             sp.GetRequiredService<ILogger<PermissionManager>>()));
 
         // Task manager
@@ -203,6 +217,9 @@ public partial class App : Application
         // Wire permission prompt callback to show a ContentDialog in the UI
         WirePermissionCallback(provider);
 
+        // Wire buddy session awareness — agent activity feeds buddy XP/mood
+        WireBuddyActivity(provider);
+
         return provider;
     }
 
@@ -247,6 +264,37 @@ public partial class App : Application
 
             return await tcs.Task;
         };
+    }
+
+    /// <summary>
+    /// Wire Agent activity events to BuddyService for passive XP/mood.
+    /// </summary>
+    private static void WireBuddyActivity(IServiceProvider services)
+    {
+        try
+        {
+            var agent = services.GetRequiredService<Hermes.Agent.Core.Agent>();
+            var buddyService = services.GetRequiredService<BuddyService>();
+
+            agent.ActivityEntryAdded += entry =>
+            {
+                // Fire-and-forget — don't block the agent loop
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var evt = entry.ToolName.ToLower() switch
+                        {
+                            "user_message" => BuddySessionEvent.UserMessage,
+                            _ => BuddySessionEvent.ToolComplete
+                        };
+                        await buddyService.OnActivityAsync(evt);
+                    }
+                    catch { /* swallow buddy errors */ }
+                });
+            };
+        }
+        catch { /* buddy wiring is optional */ }
     }
 
     /// <summary>

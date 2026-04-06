@@ -38,9 +38,12 @@ public sealed partial class SettingsPage : Page
 
     private void OnPageLoaded(object sender, RoutedEventArgs e)
     {
-        // Pre-populate fields from current config
         var provider = HermesEnvironment.ModelProvider.ToLowerInvariant();
-        var matchIndex = 6; // default to "local"
+
+        // Map legacy "custom" and "local" to "ollama"
+        if (provider is "custom" or "local") provider = "ollama";
+
+        var matchIndex = 7; // default to ollama (last item)
         for (int i = 0; i < ProviderCombo.Items.Count; i++)
         {
             if (ProviderCombo.Items[i] is ComboBoxItem item &&
@@ -50,9 +53,6 @@ public sealed partial class SettingsPage : Page
                 break;
             }
         }
-        // Handle legacy "custom" tag mapping to "local"
-        if (provider == "custom")
-            matchIndex = 6;
 
         ProviderCombo.SelectedIndex = matchIndex;
 
@@ -66,10 +66,9 @@ public sealed partial class SettingsPage : Page
 
     private void ProviderCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        var providerTag = (ProviderCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "local";
+        var providerTag = (ProviderCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "ollama";
         PopulateModelCombo(providerTag);
 
-        // Auto-fill base URL for known providers
         if (ModelCatalog.ProviderBaseUrls.TryGetValue(providerTag, out var defaultUrl))
         {
             BaseUrlBox.Text = defaultUrl;
@@ -78,6 +77,12 @@ public sealed partial class SettingsPage : Page
 
     private void PopulateModelCombo(string provider)
     {
+        if (provider is "ollama" or "local" or "custom")
+        {
+            PopulateOllamaModelsAsync();
+            return;
+        }
+
         _suppressModelComboEvent = true;
         ModelCombo.Items.Clear();
 
@@ -96,15 +101,67 @@ public sealed partial class SettingsPage : Page
 
         _suppressModelComboEvent = false;
 
-        // Update context label for first item
         if (models.Count > 0)
             ContextLengthLabel.Text = $"Context: {ModelCatalog.FormatContextLength(models[0].ContextLength)}";
         else
             ContextLengthLabel.Text = "Context: --";
     }
 
+    private async void PopulateOllamaModelsAsync()
+    {
+        _suppressModelComboEvent = true;
+        ModelCombo.Items.Clear();
+        ModelCombo.Items.Add(new ComboBoxItem { Content = "Scanning Ollama...", Tag = "", IsEnabled = false });
+        ModelCombo.SelectedIndex = 0;
+        ContextLengthLabel.Text = "Fetching models from Ollama...";
+        _suppressModelComboEvent = false;
+
+        var baseUrl = BaseUrlBox.Text?.Trim() ?? "http://127.0.0.1:11434/v1";
+        // Strip /v1 suffix to get the Ollama API root
+        var ollamaRoot = baseUrl.Replace("/v1", "").TrimEnd('/');
+
+        var models = await ModelCatalog.FetchOllamaModelsAsync(ollamaRoot);
+
+        _suppressModelComboEvent = true;
+        ModelCombo.Items.Clear();
+
+        if (models.Count == 0)
+        {
+            ModelCombo.Items.Add(new ComboBoxItem
+            {
+                Content = "No models found (is Ollama running?)",
+                Tag = "",
+                IsEnabled = false
+            });
+            ContextLengthLabel.Text = "Context: -- (Ollama not reachable)";
+        }
+        else
+        {
+            foreach (var m in models)
+            {
+                ModelCombo.Items.Add(new ComboBoxItem
+                {
+                    Content = $"{m.DisplayName}  ({ModelCatalog.FormatContextLength(m.ContextLength)})",
+                    Tag = m.Id
+                });
+            }
+            ContextLengthLabel.Text = $"Context: {ModelCatalog.FormatContextLength(models[0].ContextLength)}";
+        }
+
+        if (ModelCombo.Items.Count > 0)
+            ModelCombo.SelectedIndex = 0;
+
+        _suppressModelComboEvent = false;
+
+        // Try to select the currently configured model
+        SelectCurrentModel(HermesEnvironment.DefaultModel);
+    }
+
     private void SelectCurrentModel(string modelId)
     {
+        if (string.IsNullOrEmpty(modelId)) return;
+
+        // Exact match first
         for (int i = 0; i < ModelCombo.Items.Count; i++)
         {
             if (ModelCombo.Items[i] is ComboBoxItem item &&
@@ -113,12 +170,40 @@ public sealed partial class SettingsPage : Page
                 _suppressModelComboEvent = true;
                 ModelCombo.SelectedIndex = i;
                 _suppressModelComboEvent = false;
-
-                var ctx = ModelCatalog.GetContextLength(modelId);
-                ContextLengthLabel.Text = $"Context: {ModelCatalog.FormatContextLength(ctx)}";
+                UpdateContextLabel(item.Tag?.ToString() ?? modelId);
                 return;
             }
         }
+
+        // Partial/contains match (e.g. "glm-5:cloud" matches Ollama's "glm-5:cloud")
+        for (int i = 0; i < ModelCombo.Items.Count; i++)
+        {
+            if (ModelCombo.Items[i] is ComboBoxItem item)
+            {
+                var tag = item.Tag?.ToString() ?? "";
+                if (!string.IsNullOrEmpty(tag) &&
+                    (tag.Contains(modelId, StringComparison.OrdinalIgnoreCase) ||
+                     modelId.Contains(tag, StringComparison.OrdinalIgnoreCase)))
+                {
+                    _suppressModelComboEvent = true;
+                    ModelCombo.SelectedIndex = i;
+                    _suppressModelComboEvent = false;
+                    ModelBox.Text = tag; // Update to the actual Ollama model name
+                    UpdateContextLabel(tag);
+                    return;
+                }
+            }
+        }
+
+        // No match found — keep the custom model text as-is
+        ModelBox.Text = modelId;
+    }
+
+    private void UpdateContextLabel(string modelId)
+    {
+        // Check catalog first, then check Ollama-fetched models
+        var ctx = ModelCatalog.GetContextLength(modelId);
+        ContextLengthLabel.Text = $"Context: {ModelCatalog.FormatContextLength(ctx)}";
     }
 
     private void ModelCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -137,7 +222,9 @@ public sealed partial class SettingsPage : Page
     {
         try
         {
-            var providerTag = (ProviderCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "custom";
+            var providerTag = (ProviderCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "ollama";
+            // Save as "local" in config.yaml for backward compat with OpenAI-compat endpoint
+            if (providerTag == "ollama") providerTag = "local";
             var baseUrl = BaseUrlBox.Text.Trim();
             var model = ModelBox.Text.Trim();
             var apiKey = ApiKeyBox.Password.Trim();
