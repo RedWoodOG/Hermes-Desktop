@@ -145,6 +145,7 @@ public static class BuddyEngine
     public static string Interact(BuddyState state, BuddyAction action, BuddyStats buddyStats)
     {
         var now = DateTime.UtcNow;
+        // Set before switch: even rejected attempts count as "user was here" for idle detection
         state.LastInteraction = now;
 
         switch (action)
