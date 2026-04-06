@@ -7,8 +7,9 @@
     <Grid RowDefinitions="Auto,*">
         <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,0,0,8">
             <TextBlock Text="Tasks" Style="{StaticResource SectionTitleTextStyle}"/>
-            <Button x:Name="RefreshBtn" Content="↻" Click="Refresh_Click" CornerRadius="6" Padding="6,2"
-                    Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+            <Button x:Name="RefreshBtn" Content="↻" Click="Refresh_Click" Padding="6,2"
+                    Style="{StaticResource GhostButtonStyle}"
+                    AutomationProperties.Name="Refresh tasks"/>
         </StackPanel>
 
         <TextBlock Grid.Row="1" x:Name="EmptyState" Visibility="Collapsed"

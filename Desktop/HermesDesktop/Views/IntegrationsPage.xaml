@@ -52,18 +52,14 @@
                             x:Uid="IntegrationsOpenLogsButton"
                             AccessKey="G"
                             AutomationProperties.AutomationId="IntegrationsOpenLogsButton"
-                            Background="{StaticResource AppInsetBrush}"
-                            BorderBrush="{StaticResource AppStrokeBrush}"
-                            Click="OpenLogs_Click"
-                            Foreground="White" />
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Click="OpenLogs_Click" />
                         <Button
                             x:Uid="IntegrationsOpenConfigButton"
                             AccessKey="C"
                             AutomationProperties.AutomationId="IntegrationsOpenConfigButton"
-                            Background="{StaticResource AppInsetBrush}"
-                            BorderBrush="{StaticResource AppStrokeBrush}"
-                            Click="OpenConfig_Click"
-                            Foreground="White" />
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Click="OpenConfig_Click" />
                     </StackPanel>
                 </StackPanel>
             </Border>

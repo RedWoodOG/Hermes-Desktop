@@ -12,8 +12,9 @@
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="0,0,0,8">
             <TextBox x:Name="SearchBox" PlaceholderText="Search sessions..." Width="160" FontSize="12"/>
-            <Button x:Name="NewSessionBtn" Content="+" Click="NewSession_Click" CornerRadius="6" Padding="8,4"
-                    Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D" ToolTipService.ToolTip="New session"/>
+            <Button x:Name="NewSessionBtn" Content="+" Click="NewSession_Click" Padding="8,4"
+                    AutomationProperties.Name="New session"
+                    ToolTipService.ToolTip="New session"/>
         </StackPanel>
 
         <TextBlock Grid.Row="2" x:Name="EmptyState" Visibility="Collapsed"

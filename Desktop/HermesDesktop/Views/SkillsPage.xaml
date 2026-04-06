@@ -41,7 +41,8 @@
                 <TextBlock Text="Sort:" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
                 <ComboBox x:Name="SortSelector" FontSize="12" MinWidth="130" Padding="8,4"
                           Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"
-                          SelectionChanged="SortSelector_SelectionChanged">
+                          SelectionChanged="SortSelector_SelectionChanged"
+                          AutomationProperties.Name="Sort skills by">
                     <ComboBoxItem Content="Name (A-Z)" Tag="name_asc" IsSelected="True"/>
                     <ComboBoxItem Content="Name (Z-A)" Tag="name_desc"/>
                     <ComboBoxItem Content="Category" Tag="category"/>
@@ -56,10 +57,10 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <TextBox x:Name="SearchBox" PlaceholderText="&#xE721;  Search skills by name, description, category, or tools..."
+            <TextBox x:Name="SearchBox" PlaceholderText="Search skills by name, description, category, or tools..."
                      FontSize="13" TextChanged="SearchBox_TextChanged"
                      Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"
-                     Padding="12,10"/>
+                     Padding="12,10" AutomationProperties.Name="Search skills"/>
 
             <!-- Category filter chips scroll -->
             <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled"
@@ -92,7 +93,8 @@
                     </Border>
 
                     <ListView Grid.Row="1" x:Name="SkillsList" Background="Transparent" Padding="6"
-                              SelectionChanged="SkillsList_SelectionChanged">
+                              SelectionChanged="SkillsList_SelectionChanged"
+                              AutomationProperties.Name="Skills list">
                         <ListView.ItemContainerStyle>
                             <Style TargetType="ListViewItem">
                                 <Setter Property="Padding" Value="0"/>

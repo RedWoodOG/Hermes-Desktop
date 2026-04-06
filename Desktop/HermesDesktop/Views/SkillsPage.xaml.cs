@@ -71,7 +71,7 @@ public sealed partial class SkillsPage : Page
             {
                 var cat = DeriveCategory(s);
                 var (bg, fg) = GetCategoryColors(cat);
-                var toolList = s.Tools ?? new List<string>();
+                var toolList = (s.Tools ?? new List<string>()).Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
                 return new SkillDisplayItem
                 {
                     Name = s.Name ?? "(unnamed)",
@@ -129,6 +129,7 @@ public sealed partial class SkillsPage : Page
                 : new SolidColorBrush(Color.FromArgb(255, 50, 58, 70)),
             BorderThickness = new Thickness(1),
         };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(btn, $"Filter by {label}, {count} skills");
         btn.Click += CategoryChip_Click;
         CategoryChips.Children.Add(btn);
     }
@@ -213,7 +214,7 @@ public sealed partial class SkillsPage : Page
                 if (parts.Count > 0) return parts[^1];
             }
         }
-        catch { }
+        catch (Exception ex) { System.Diagnostics.Debug.WriteLine($"DeriveCategory path parsing failed: {ex.Message}"); }
         var tools = string.Join(" ", skill.Tools ?? new List<string>()).ToLower();
         if (tools.Contains("bash") || tools.Contains("terminal")) return "automation";
         if (tools.Contains("read_file") && tools.Contains("write_file")) return "code";
