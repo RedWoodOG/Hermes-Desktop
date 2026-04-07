@@ -219,40 +219,58 @@ public sealed partial class ChatPage : Page
         }
 
         SetBusy(true);
-        ShowThinking(true);
+        ShowThinking(true, "Hermes is thinking");
 
         try
         {
-            // Create the assistant message bubble immediately (empty)
-            var assistantItem = AddMessage(
-                ResourceLoader.GetString("ChatAssistantLabel"), "",
-                HorizontalAlignment.Left,
-                _assistantBackgroundBrush, _assistantBorderBrush, _secondaryLabelBrush);
-            assistantItem.IsStreaming = true;
+            // Don't create the assistant bubble yet — wait for real content.
+            // This prevents an empty bubble sitting on screen during the thinking phase.
+            ChatMessageItem? assistantItem = null;
+            var thinkingBuffer = new System.Text.StringBuilder();
+            var hasContent = false;
+            var dotCount = 0;
+            DispatcherTimer? dotTimer = null;
+
+            // Animate dots in the thinking bar while waiting
+            dotTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+            dotTimer.Tick += (_, _) =>
+            {
+                dotCount = (dotCount + 1) % 4;
+                var phase = assistantItem is null ? "thinking" : "reasoning";
+                ThinkingText.Text = $"Hermes is {phase}" + new string('.', dotCount);
+            };
+            dotTimer.Start();
 
             // Stream structured events (tokens + thinking)
-            var hasContent = false;
             await foreach (var evt in _chatService.StreamStructuredAsync(prompt, CancellationToken.None))
             {
                 switch (evt.Type)
                 {
                     case ChatStreamEventType.Thinking:
-                        if (!assistantItem.IsThinking)
-                        {
-                            assistantItem.IsThinking = true;
-                            ThinkingText.Text = "Hermes is reasoning...";
-                        }
-                        assistantItem.AppendThinking(evt.Text);
+                        // Buffer thinking content silently — no bubble yet.
+                        // The thinking bar with animated dots is the only visual feedback.
+                        thinkingBuffer.Append(evt.Text);
                         break;
 
                     case ChatStreamEventType.Token:
                         if (!hasContent)
                         {
                             hasContent = true;
-                            assistantItem.IsThinking = false;
+
+                            // NOW create the bubble — user sees it appear with content, not empty
+                            assistantItem = AddMessage(
+                                ResourceLoader.GetString("ChatAssistantLabel"), "",
+                                HorizontalAlignment.Left,
+                                _assistantBackgroundBrush, _assistantBorderBrush, _secondaryLabelBrush);
+                            assistantItem.IsStreaming = true;
+
+                            // Attach buffered thinking content if any
+                            if (thinkingBuffer.Length > 0)
+                                assistantItem.ThinkingContent = thinkingBuffer.ToString();
+
                             ShowThinking(false);
                         }
-                        assistantItem.AppendToken(evt.Text);
+                        assistantItem!.AppendToken(evt.Text);
                         break;
 
                     case ChatStreamEventType.Error:
@@ -261,13 +279,17 @@ public sealed partial class ChatPage : Page
                 }
             }
 
-            assistantItem.IsStreaming = false;
-            assistantItem.IsThinking = false;
+            dotTimer.Stop();
+
+            if (assistantItem is not null)
+            {
+                assistantItem.IsStreaming = false;
+            }
 
             if (!hasContent)
             {
-                // Stream produced nothing — fall back to blocking send
-                Messages.Remove(assistantItem);
+                // Stream produced no content tokens — fall back to blocking send
+                ShowThinking(true, "Hermes is generating");
                 var reply = await Task.Run(() => _chatService.SendAsync(prompt, CancellationToken.None));
                 ShowThinking(false);
                 if (!string.IsNullOrWhiteSpace(reply.Response))
@@ -344,7 +366,7 @@ public sealed partial class ChatPage : Page
         {
             var invoker = App.Services.GetRequiredService<SkillInvoker>();
             SetBusy(true);
-            ShowThinking(true);
+            ShowThinking(true, "Running skill...");
 
             var response = await invoker.InvokeAsync(command, args, CancellationToken.None);
             ShowThinking(false);
@@ -418,11 +440,12 @@ public sealed partial class ChatPage : Page
         PromptTextBox.IsEnabled = !busy;
     }
 
-    private void ShowThinking(bool show)
+    private void ShowThinking(bool show, string? label = null)
     {
         ThinkingIndicator.Opacity = show ? 1.0 : 0.0;
         ThinkingRing.IsActive = show;
-        // Don't scroll here — let AddMessage handle it once
+        if (label is not null)
+            ThinkingText.Text = label;
     }
 
     private void AppendUserMessage(string text) =>
