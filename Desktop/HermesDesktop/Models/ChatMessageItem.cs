@@ -54,7 +54,6 @@ public sealed class ChatMessageItem : INotifyPropertyChanged
     private string _thinkingContent = "";
     private bool _isStreaming;
     private bool _isThinking;
-    private bool _hasThinking;
     private ChatMessageType _messageType;
 
     public ChatMessageItem(

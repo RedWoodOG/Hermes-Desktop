@@ -266,70 +266,103 @@ public sealed class OpenAiClient : IChatClient
         IEnumerable<ToolDefinition>? tools = null,
         [EnumeratorCancellation] CancellationToken ct = default)
     {
-        // Track <think>...</think> tags for reasoning models (Ollama QwQ, DeepSeek-R1, etc.)
+        // Buffer-based <think>...</think> parser that handles tags split across SSE tokens.
+        // Ollama reasoning models (QwQ, DeepSeek-R1, etc.) wrap reasoning in these tags.
         var inThinkBlock = false;
-        var thinkBuffer = new StringBuilder();
+        var buffer = new StringBuilder();
 
         await foreach (var token in StreamAsync(messages.ToList(), ct))
         {
-            // Check for <think> tag opening
-            if (!inThinkBlock && token.Contains("<think>"))
+            buffer.Append(token);
+
+            // Process buffer — emit complete segments, keep partial tags buffered
+            while (buffer.Length > 0)
             {
-                inThinkBlock = true;
-                // Extract any content after <think> tag
-                var afterTag = token[(token.IndexOf("<think>") + "<think>".Length)..];
+                var text = buffer.ToString();
 
-                // Emit any content before <think> as regular token
-                var beforeTag = token[..token.IndexOf("<think>")];
-                if (!string.IsNullOrEmpty(beforeTag))
-                    yield return new StreamEvent.TokenDelta(beforeTag);
-
-                if (!string.IsNullOrEmpty(afterTag))
+                if (!inThinkBlock)
                 {
-                    // Check if </think> is in the same token
-                    if (afterTag.Contains("</think>"))
+                    var openIdx = text.IndexOf("<think>");
+                    if (openIdx >= 0)
                     {
-                        var thinking = afterTag[..afterTag.IndexOf("</think>")];
-                        if (!string.IsNullOrEmpty(thinking))
-                            yield return new StreamEvent.ThinkingDelta(thinking);
-                        inThinkBlock = false;
-
-                        var afterClose = afterTag[(afterTag.IndexOf("</think>") + "</think>".Length)..];
-                        if (!string.IsNullOrEmpty(afterClose))
-                            yield return new StreamEvent.TokenDelta(afterClose);
+                        // Emit text before the tag as regular content
+                        if (openIdx > 0)
+                            yield return new StreamEvent.TokenDelta(text[..openIdx]);
+                        inThinkBlock = true;
+                        buffer.Clear();
+                        buffer.Append(text[(openIdx + "<think>".Length)..]);
+                        continue; // Re-process remaining buffer
                     }
-                    else
+
+                    // Check for partial tag at end (e.g., "<thi" could become "<think>")
+                    if (text.Length > 0 && text[^1] == '<' || (text.Length >= 2 && text.EndsWith("<t")) ||
+                        text.EndsWith("<th") || text.EndsWith("<thi") || text.EndsWith("<thin") || text.EndsWith("<think"))
                     {
-                        yield return new StreamEvent.ThinkingDelta(afterTag);
+                        // Find where the potential partial tag starts
+                        var partialStart = text.LastIndexOf('<');
+                        if (partialStart >= 0 && partialStart < text.Length)
+                        {
+                            if (partialStart > 0)
+                                yield return new StreamEvent.TokenDelta(text[..partialStart]);
+                            buffer.Clear();
+                            buffer.Append(text[partialStart..]);
+                            break; // Wait for more data
+                        }
                     }
-                }
-                continue;
-            }
 
-            // Inside a think block
-            if (inThinkBlock)
-            {
-                if (token.Contains("</think>"))
-                {
-                    var beforeClose = token[..token.IndexOf("</think>")];
-                    if (!string.IsNullOrEmpty(beforeClose))
-                        yield return new StreamEvent.ThinkingDelta(beforeClose);
-                    inThinkBlock = false;
-
-                    var afterClose = token[(token.IndexOf("</think>") + "</think>".Length)..];
-                    if (!string.IsNullOrEmpty(afterClose))
-                        yield return new StreamEvent.TokenDelta(afterClose);
+                    // No tags — emit everything
+                    yield return new StreamEvent.TokenDelta(text);
+                    buffer.Clear();
                 }
                 else
                 {
-                    yield return new StreamEvent.ThinkingDelta(token);
-                }
-                continue;
-            }
+                    // Inside think block — look for closing tag
+                    var closeIdx = text.IndexOf("</think>");
+                    if (closeIdx >= 0)
+                    {
+                        if (closeIdx > 0)
+                            yield return new StreamEvent.ThinkingDelta(text[..closeIdx]);
+                        inThinkBlock = false;
+                        buffer.Clear();
+                        buffer.Append(text[(closeIdx + "</think>".Length)..]);
+                        continue; // Re-process remaining buffer (may contain another <think>)
+                    }
 
-            // Regular content token
-            yield return new StreamEvent.TokenDelta(token);
+                    // Check for partial closing tag at end
+                    if (text.EndsWith("<") || text.EndsWith("</") || text.EndsWith("</t") ||
+                        text.EndsWith("</th") || text.EndsWith("</thi") || text.EndsWith("</thin") ||
+                        text.EndsWith("</think"))
+                    {
+                        var partialStart = text.LastIndexOf('<');
+                        if (partialStart > 0)
+                        {
+                            yield return new StreamEvent.ThinkingDelta(text[..partialStart]);
+                            buffer.Clear();
+                            buffer.Append(text[partialStart..]);
+                            break; // Wait for more data
+                        }
+                        break; // Entire buffer is partial tag — wait
+                    }
+
+                    // No closing tag — emit as thinking
+                    yield return new StreamEvent.ThinkingDelta(text);
+                    buffer.Clear();
+                }
+
+                break; // Processed entire buffer
+            }
         }
+
+        // Flush any remaining buffer
+        if (buffer.Length > 0)
+        {
+            var remaining = buffer.ToString();
+            if (inThinkBlock)
+                yield return new StreamEvent.ThinkingDelta(remaining);
+            else
+                yield return new StreamEvent.TokenDelta(remaining);
+        }
+
         yield return new StreamEvent.MessageComplete("stop", new UsageStats(0, 0));
     }
 }

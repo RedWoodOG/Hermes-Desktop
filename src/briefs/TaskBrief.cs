@@ -230,7 +230,7 @@ public static class TypeGuidanceKeys
     public const string LintRules = "lint_rules";        // path to lint config
 
     // Analysis
-    public const string AnalysisFramework = "framework"; // "SWOT|5-forces|comparison"
+    public const string AnalysisFramework = "analysis_framework"; // "SWOT|5-forces|comparison"
     public const string Dimensions = "dimensions";       // "price,features,ux"
 
     // Brainstorming

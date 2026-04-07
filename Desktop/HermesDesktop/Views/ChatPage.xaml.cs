@@ -288,12 +288,13 @@ public sealed partial class ChatPage : Page
 
             if (!hasContent)
             {
-                // Stream produced no content tokens — fall back to blocking send
-                ShowThinking(true, "Hermes is generating");
-                var reply = await Task.Run(() => _chatService.SendAsync(prompt, CancellationToken.None));
+                // Stream completed without producing any content tokens.
+                // Don't fall back to SendAsync — StreamStructuredAsync already
+                // saved the user message to the session, so SendAsync would
+                // duplicate it and corrupt the conversation history.
                 ShowThinking(false);
-                if (!string.IsNullOrWhiteSpace(reply.Response))
-                    AppendAssistantMessage(reply.Response);
+                if (thinkingBuffer.Length > 0)
+                    AppendSystemMessage("Model produced only reasoning with no response. Try again or use a different model.");
                 else
                     AppendSystemMessage("LLM returned an empty response.");
             }

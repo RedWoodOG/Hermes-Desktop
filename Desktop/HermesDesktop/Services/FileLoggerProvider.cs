@@ -19,7 +19,9 @@ internal sealed class FileLoggerProvider : ILoggerProvider
     public FileLoggerProvider(string logPath)
     {
         _logPath = logPath;
-        Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+        var dir = Path.GetDirectoryName(logPath);
+        if (!string.IsNullOrEmpty(dir))
+            Directory.CreateDirectory(dir);
     }
 
     public ILogger CreateLogger(string categoryName) =>
