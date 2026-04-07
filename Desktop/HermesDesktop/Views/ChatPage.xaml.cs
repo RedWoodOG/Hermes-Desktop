@@ -221,25 +221,24 @@ public sealed partial class ChatPage : Page
         SetBusy(true);
         ShowThinking(true, "Hermes is thinking");
 
+        // Dot timer declared outside try so finally can always stop it
+        var dotCount = 0;
+        ChatMessageItem? assistantItem = null;
+        var dotTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        dotTimer.Tick += (_, _) =>
+        {
+            dotCount = (dotCount + 1) % 4;
+            var phase = assistantItem is null ? "thinking" : "reasoning";
+            ThinkingText.Text = $"Hermes is {phase}" + new string('.', dotCount);
+        };
+        dotTimer.Start();
+
         try
         {
             // Don't create the assistant bubble yet — wait for real content.
             // This prevents an empty bubble sitting on screen during the thinking phase.
-            ChatMessageItem? assistantItem = null;
             var thinkingBuffer = new System.Text.StringBuilder();
             var hasContent = false;
-            var dotCount = 0;
-            DispatcherTimer? dotTimer = null;
-
-            // Animate dots in the thinking bar while waiting
-            dotTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
-            dotTimer.Tick += (_, _) =>
-            {
-                dotCount = (dotCount + 1) % 4;
-                var phase = assistantItem is null ? "thinking" : "reasoning";
-                ThinkingText.Text = $"Hermes is {phase}" + new string('.', dotCount);
-            };
-            dotTimer.Start();
 
             // Stream structured events (tokens + thinking)
             await foreach (var evt in _chatService.StreamStructuredAsync(prompt, CancellationToken.None))
@@ -279,8 +278,6 @@ public sealed partial class ChatPage : Page
                 }
             }
 
-            dotTimer.Stop();
-
             if (assistantItem is not null)
             {
                 assistantItem.IsStreaming = false;
@@ -318,6 +315,7 @@ public sealed partial class ChatPage : Page
         }
         finally
         {
+            dotTimer.Stop();
             SetBusy(false);
             SessionIdLabel.Text = string.IsNullOrEmpty(_chatService.CurrentSessionId)
                 ? "New Session" : $"Session: {_chatService.CurrentSessionId}";

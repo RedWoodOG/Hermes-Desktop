@@ -119,7 +119,7 @@ Each brief type has known keys that control type-specific behavior:
 ### Analysis
 | Key | Values | Default |
 |---|---|---|
-| `framework` | `SWOT`, `5-forces`, `comparison`, etc. | - |
+| `analysis_framework` | `SWOT`, `5-forces`, `comparison`, etc. | - |
 | `dimensions` | comma-separated comparison axes | - |
 
 ### Brainstorming

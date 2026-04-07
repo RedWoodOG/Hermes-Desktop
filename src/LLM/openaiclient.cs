@@ -99,7 +99,7 @@ public sealed class OpenAiClient : IChatClient
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
 
-        HttpResponseMessage response;
+        HttpResponseMessage? response = null;
         try
         {
             response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
@@ -107,11 +107,13 @@ public sealed class OpenAiClient : IChatClient
         }
         catch (HttpRequestException ex)
         {
+            response?.Dispose();
             yield return $"\n[Connection error: {ex.Message}]";
             yield break;
         }
         catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
         {
+            response?.Dispose();
             yield return "\n[Request timed out — the LLM server may be overloaded or unreachable]";
             yield break;
         }
@@ -273,6 +275,14 @@ public sealed class OpenAiClient : IChatClient
 
         await foreach (var token in StreamAsync(messages.ToList(), ct))
         {
+            // Detect error markers from the base stream (connection errors, timeouts)
+            // and route them as StreamError instead of TokenDelta
+            if (token.StartsWith("\n[") && token.EndsWith("]"))
+            {
+                yield return new StreamEvent.StreamError(new Exception(token.Trim('\n', '[', ']')));
+                continue;
+            }
+
             buffer.Append(token);
 
             // Process buffer — emit complete segments, keep partial tags buffered
