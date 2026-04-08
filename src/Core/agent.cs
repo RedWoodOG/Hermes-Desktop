@@ -2,6 +2,7 @@ namespace Hermes.Agent.Core;
 
 using Hermes.Agent.LLM;
 using Hermes.Agent.Permissions;
+using Hermes.Agent.Plugins;
 using Hermes.Agent.Security;
 using Hermes.Agent.Soul;
 using Hermes.Agent.Transcript;
@@ -23,6 +24,7 @@ public sealed class Agent : IAgent
     private readonly MemoryManager? _memories;
     private readonly ContextManager? _contextManager;
     private readonly SoulService? _soulService;
+    private readonly PluginManager? _pluginManager;
 
     /// <summary>Safety limit to prevent infinite tool loops.</summary>
     public int MaxToolIterations { get; set; } = 25;
@@ -66,7 +68,8 @@ public sealed class Agent : IAgent
         TranscriptStore? transcripts = null,
         MemoryManager? memories = null,
         ContextManager? contextManager = null,
-        SoulService? soulService = null)
+        SoulService? soulService = null,
+        PluginManager? pluginManager = null)
     {
         _chatClient = chatClient;
         _logger = logger;
@@ -75,6 +78,7 @@ public sealed class Agent : IAgent
         _memories = memories;
         _contextManager = contextManager;
         _soulService = soulService;
+        _pluginManager = pluginManager;
     }
 
     public void RegisterTool(ITool tool)
@@ -103,9 +107,35 @@ public sealed class Agent : IAgent
     /// </summary>
     public async Task<string> ChatAsync(string message, Session session, CancellationToken ct)
     {
-        // ── Memory injection ──
-        // Load relevant memories and inject as a system message at the start
-        if (_memories is not null)
+        // ── Plugin turn start ──
+        if (_pluginManager is not null)
+        {
+            try { await _pluginManager.OnTurnStartAsync(session.Messages.Count, message, ct); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Plugin OnTurnStart failed"); }
+        }
+
+        // ── Plugin system prompt blocks (includes memory via BuiltinMemoryPlugin) ──
+        if (_pluginManager is not null)
+        {
+            try
+            {
+                var pluginBlocks = await _pluginManager.GetSystemPromptBlocksAsync(ct);
+                if (!string.IsNullOrWhiteSpace(pluginBlocks))
+                {
+                    session.Messages.Insert(0, new Message
+                    {
+                        Role = "system",
+                        Content = pluginBlocks
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Plugin system prompt blocks failed");
+            }
+        }
+        // Fallback: direct memory injection when no plugin manager
+        else if (_memories is not null)
         {
             try
             {
@@ -187,6 +217,14 @@ public sealed class Agent : IAgent
                 await _transcripts.SaveMessageAsync(session.Id, assistantMsg, ct);
             if (_contextManager is not null)
                 await _contextManager.UpdateAfterResponseAsync(session.Id, ct: ct);
+
+            // Plugin turn end
+            if (_pluginManager is not null)
+            {
+                try { await _pluginManager.OnTurnEndAsync(message, response, session.Id, ct); }
+                catch (Exception ex) { _logger.LogWarning(ex, "Plugin OnTurnEnd failed"); }
+            }
+
             return response;
         }
 

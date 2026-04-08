@@ -13,6 +13,7 @@ using Hermes.Agent.Context;
 using Hermes.Agent.Agents;
 using Hermes.Agent.Coordinator;
 using Hermes.Agent.Mcp;
+using Hermes.Agent.Plugins;
 using Hermes.Agent.Soul;
 using Hermes.Agent.Tools;
 using HermesDesktop.Services;
@@ -164,6 +165,14 @@ public partial class App : Application
         // Tool registry (shared across agent and subagents)
         services.AddSingleton<IToolRegistry, ToolRegistry>();
 
+        // Plugin manager
+        services.AddSingleton(sp =>
+        {
+            var pm = new PluginManager(sp.GetRequiredService<ILogger<PluginManager>>());
+            pm.Register(new BuiltinMemoryPlugin(sp.GetRequiredService<MemoryManager>()));
+            return pm;
+        });
+
         // Core agent — wired with all optional dependencies
         services.AddSingleton(sp => new Agent(
             sp.GetRequiredService<IChatClient>(),
@@ -172,7 +181,8 @@ public partial class App : Application
             transcripts: sp.GetRequiredService<TranscriptStore>(),
             memories: sp.GetRequiredService<MemoryManager>(),
             contextManager: sp.GetRequiredService<ContextManager>(),
-            soulService: sp.GetRequiredService<SoulService>()));
+            soulService: sp.GetRequiredService<SoulService>(),
+            pluginManager: sp.GetRequiredService<PluginManager>()));
 
         // Agent service (subagent spawning, worktree isolation)
         var worktreesDir = Path.Combine(projectDir, "worktrees");
