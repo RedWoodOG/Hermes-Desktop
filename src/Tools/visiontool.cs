@@ -85,12 +85,20 @@ public sealed class VisionTool : ITool
                 imageContent = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
             }
 
-            // Send to vision model via content blocks
-            // Most providers accept image_url in content array
-            var prompt = $"[Image: {imageContent}]\n\n{p.Question}";
+            // Send as OpenAI-compatible multi-modal content blocks.
+            // Ollama, OpenAI, and OpenRouter all accept this format.
+            // The content field uses a JSON array with text + image_url blocks.
+            var contentBlocks = System.Text.Json.JsonSerializer.Serialize(new object[]
+            {
+                new { type = "text", text = p.Question },
+                new { type = "image_url", image_url = new { url = imageContent } }
+            });
 
+            // Use the structured content as the message content.
+            // Most OpenAI-compatible APIs (including Ollama) parse this correctly
+            // when content is a JSON array instead of a plain string.
             var response = await _chatClient.CompleteAsync(
-                [new Message { Role = "user", Content = prompt }], ct);
+                [new Message { Role = "user", Content = contentBlocks }], ct);
 
             return ToolResult.Ok(response);
         }

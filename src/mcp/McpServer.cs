@@ -23,15 +23,21 @@ public sealed class McpServer : IAsyncDisposable
 {
     private readonly ILogger<McpServer> _logger;
     private readonly Dictionary<string, ITool> _tools;
+    private readonly string? _authToken;
     private HttpListener? _listener;
     private CancellationTokenSource? _cts;
     private bool _running;
 
-    public McpServer(IReadOnlyDictionary<string, ITool> tools, ILogger<McpServer> logger)
+    /// <param name="authToken">Bearer token for authentication. If set, all requests must include it. Auto-generated if null.</param>
+    public McpServer(IReadOnlyDictionary<string, ITool> tools, ILogger<McpServer> logger, string? authToken = null)
     {
         _tools = new Dictionary<string, ITool>(tools);
         _logger = logger;
+        _authToken = authToken ?? Guid.NewGuid().ToString("N");
     }
+
+    /// <summary>Auth token clients must send as Bearer token.</summary>
+    public string AuthToken => _authToken!;
 
     public bool IsRunning => _running;
     public int Port { get; private set; }
@@ -47,7 +53,8 @@ public sealed class McpServer : IAsyncDisposable
         _listener.Start();
 
         _running = true;
-        _logger.LogInformation("MCP server started on port {Port} with {Count} tools", port, _tools.Count);
+        _logger.LogInformation("MCP server started on port {Port} with {Count} tools (token: {Token})",
+            port, _tools.Count, _authToken![..8] + "...");
 
         _ = Task.Run(() => ListenLoopAsync(_cts.Token), _cts.Token);
     }
@@ -72,6 +79,18 @@ public sealed class McpServer : IAsyncDisposable
     {
         var path = context.Request.Url?.AbsolutePath ?? "/";
         var method = context.Request.HttpMethod;
+
+        // Auth check — all endpoints require bearer token
+        var authHeader = context.Request.Headers["Authorization"];
+        if (string.IsNullOrWhiteSpace(authHeader) || !authHeader.Equals($"Bearer {_authToken}", StringComparison.Ordinal))
+        {
+            context.Response.StatusCode = 401;
+            context.Response.ContentType = "application/json";
+            var unauthorized = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new { error = "Unauthorized — include Authorization: Bearer <token>" }));
+            await context.Response.OutputStream.WriteAsync(unauthorized, ct);
+            context.Response.Close();
+            return;
+        }
 
         try
         {

@@ -1,16 +1,18 @@
 namespace Hermes.Agent.Execution;
 
-using System.Diagnostics;
-using System.Text;
-
 // ══════════════════════════════════════════════
 // Modal Serverless Execution Backend
 // ══════════════════════════════════════════════
 //
 // Upstream ref: tools/environments/modal.py
-// Cloud sandbox execution via Modal CLI.
-// Hibernates when idle — minimal cost.
+// Modal requires Python SDK for proper sandbox management.
+// This backend is a placeholder — use Docker or SSH instead.
 
+/// <summary>
+/// Modal serverless execution backend.
+/// NOT YET IMPLEMENTED — Modal requires Python SDK integration.
+/// Use Docker or SSH backends as alternatives.
+/// </summary>
 public sealed class ModalBackend : IExecutionBackend
 {
     private readonly ExecutionConfig _config;
@@ -18,89 +20,21 @@ public sealed class ModalBackend : IExecutionBackend
     public ModalBackend(ExecutionConfig config) => _config = config;
     public ExecutionBackendType Type => ExecutionBackendType.Modal;
 
-    public async Task<ExecutionResult> ExecuteAsync(
+    public Task<ExecutionResult> ExecuteAsync(
         string command, string? workingDirectory, int? timeoutMs,
         bool background, CancellationToken ct)
     {
-        var timeout = timeoutMs ?? _config.DefaultTimeoutMs;
-        var sw = Stopwatch.StartNew();
-
-        // Use Modal CLI sandbox
-        var appName = _config.ModalAppName ?? "hermes-sandbox";
-        var args = $"shell {appName} --cmd \"{command.Replace("\"", "\\\"")}\"";
-
-        if (workingDirectory is not null)
-            args = $"shell {appName} --cmd \"cd '{workingDirectory}' && {command.Replace("\"", "\\\"")}\"";
-
-        var psi = new ProcessStartInfo
+        return Task.FromResult(new ExecutionResult
         {
-            FileName = "modal",
-            Arguments = args,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true,
-            StandardOutputEncoding = Encoding.UTF8,
-            StandardErrorEncoding = Encoding.UTF8
-        };
-
-        using var process = new Process { StartInfo = psi };
-
-        try { process.Start(); }
-        catch (Exception ex)
-        {
-            return new ExecutionResult
-            {
-                Output = $"Modal CLI not found or failed to start: {ex.Message}\nInstall with: pip install modal",
-                ExitCode = -1,
-                DurationMs = 0
-            };
-        }
-
-        if (background)
-        {
-            sw.Stop();
-            return new ExecutionResult
-            {
-                Output = $"Modal sandbox command started (PID: {process.Id})",
-                ExitCode = 0,
-                DurationMs = sw.ElapsedMilliseconds,
-                BackgroundProcessId = process.Id.ToString()
-            };
-        }
-
-        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        timeoutCts.CancelAfter(timeout);
-
-        try
-        {
-            var stdout = await process.StandardOutput.ReadToEndAsync(timeoutCts.Token);
-            var stderr = await process.StandardError.ReadToEndAsync(timeoutCts.Token);
-            await process.WaitForExitAsync(timeoutCts.Token);
-            sw.Stop();
-
-            var output = string.IsNullOrEmpty(stderr) ? stdout : $"{stdout}\n{stderr}";
-            output = OutputTruncator.Truncate(output, _config.MaxOutputChars);
-
-            return new ExecutionResult
-            {
-                Output = string.IsNullOrWhiteSpace(output) ? "(no output)" : output,
-                ExitCode = process.ExitCode,
-                ExitCodeMeaning = ExitCodeInterpreter.Interpret(command, process.ExitCode),
-                DurationMs = sw.ElapsedMilliseconds
-            };
-        }
-        catch (OperationCanceledException)
-        {
-            try { process.Kill(entireProcessTree: true); } catch { }
-            sw.Stop();
-            return new ExecutionResult
-            {
-                Output = $"Modal command timed out after {timeout}ms",
-                ExitCode = 124,
-                DurationMs = sw.ElapsedMilliseconds
-            };
-        }
+            Output = "Modal backend is not yet implemented. " +
+                     "Modal requires Python SDK (pip install modal) for proper sandbox management.\n\n" +
+                     "Alternatives:\n" +
+                     "  - Set backend to 'docker' for containerized execution\n" +
+                     "  - Set backend to 'ssh' for remote execution\n" +
+                     "  - Set backend to 'local' for direct execution",
+            ExitCode = -1,
+            DurationMs = 0
+        });
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;

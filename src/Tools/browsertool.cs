@@ -1,28 +1,33 @@
 namespace Hermes.Agent.Tools;
 
 using Hermes.Agent.Core;
-using System.Diagnostics;
+using Microsoft.Playwright;
 using System.Text;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 
 // ══════════════════════════════════════════════
-// Browser Tool — Accessibility Tree Based
+// Browser Tool — Proper Playwright API
 // ══════════════════════════════════════════════
 //
 // Upstream ref: tools/browser_tool.py
-// Uses headless Chromium via Playwright's accessibility snapshot.
-// No vision model needed — page represented as text with ref IDs.
+// Uses Microsoft.Playwright NuGet for headless Chromium.
+// Accessibility tree snapshot for text-based page representation.
+// SSRF protection on all navigation.
 
 /// <summary>
-/// Browser automation via accessibility tree (not screenshots).
-/// Actions: navigate, click, type, scroll, press, evaluate JS.
-/// Elements get refs like @e1, @e2 for agent interaction.
+/// Browser automation via Playwright accessibility tree.
+/// Actions: navigate, click, type, scroll, press, js, snapshot, close.
+/// Returns page content as structured text, not screenshots.
 /// </summary>
-public sealed class BrowserTool : ITool
+public sealed class BrowserTool : ITool, IAsyncDisposable
 {
+    private IPlaywright? _playwright;
+    private IBrowser? _browser;
+    private IPage? _page;
+    private readonly SemaphoreSlim _lock = new(1, 1);
+
     public string Name => "browser";
-    public string Description => "Browse the web. Actions: navigate(url), click(ref), type(ref,text), scroll(direction), press(key), js(expression), snapshot. Elements have refs like @e1.";
+    public string Description => "Browse the web. Actions: navigate(url), click(selector), type(selector,text), scroll(direction), press(key), js(expression), snapshot, close.";
     public Type ParametersType => typeof(BrowserParameters);
 
     // SSRF protection
@@ -40,17 +45,51 @@ public sealed class BrowserTool : ITool
     {
         var p = (BrowserParameters)parameters;
 
-        return p.Action.ToLowerInvariant() switch
+        try
         {
-            "navigate" => await NavigateAsync(p, ct),
-            "click" => await RunPlaywrightAsync($"click {p.Ref}", ct),
-            "type" or "fill" => await RunPlaywrightAsync($"fill {p.Ref} \"{Escape(p.Text ?? "")}\"", ct),
-            "scroll" => await RunPlaywrightAsync($"scroll {p.Direction ?? "down"}", ct),
-            "press" => await RunPlaywrightAsync($"press {p.Key ?? "Enter"}", ct),
-            "js" or "evaluate" => await RunPlaywrightAsync($"evaluate \"{Escape(p.Expression ?? "")}\"", ct),
-            "snapshot" => await RunPlaywrightAsync("snapshot", ct),
-            _ => ToolResult.Fail($"Unknown action: {p.Action}. Use: navigate, click, type, scroll, press, js, snapshot")
-        };
+            return p.Action.ToLowerInvariant() switch
+            {
+                "navigate" => await NavigateAsync(p, ct),
+                "click" => await ClickAsync(p),
+                "type" or "fill" => await TypeAsync(p),
+                "scroll" => await ScrollAsync(p),
+                "press" => await PressAsync(p),
+                "js" or "evaluate" => await EvaluateAsync(p),
+                "snapshot" => await SnapshotAsync(),
+                "close" => await CloseAsync(),
+                _ => ToolResult.Fail("Unknown action. Use: navigate, click, type, scroll, press, js, snapshot, close")
+            };
+        }
+        catch (PlaywrightException ex)
+        {
+            return ToolResult.Fail($"Browser error: {ex.Message}");
+        }
+        catch (Exception ex) when (ex.Message.Contains("Playwright"))
+        {
+            return ToolResult.Fail(
+                "Playwright not installed. Run: pwsh -Command \"dotnet tool install --global Microsoft.Playwright.CLI && playwright install chromium\"\n" +
+                $"Error: {ex.Message}");
+        }
+    }
+
+    private async Task EnsureBrowserAsync()
+    {
+        await _lock.WaitAsync();
+        try
+        {
+            if (_page is not null) return;
+
+            _playwright = await Playwright.CreateAsync();
+            _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Headless = true
+            });
+            _page = await _browser.NewPageAsync();
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     private async Task<ToolResult> NavigateAsync(BrowserParameters p, CancellationToken ct)
@@ -70,53 +109,148 @@ public sealed class BrowserTool : ITool
         if (ApiKeyInUrl.IsMatch(p.Url))
             return ToolResult.Fail("URL contains API key — blocked for security.");
 
-        return await RunPlaywrightAsync($"navigate \"{Escape(p.Url)}\"", ct);
+        await EnsureBrowserAsync();
+        await _page!.GotoAsync(p.Url, new PageGotoOptions
+        {
+            WaitUntil = WaitUntilState.DOMContentLoaded,
+            Timeout = 30000
+        });
+
+        // Post-navigation SSRF check (redirects)
+        var finalUrl = _page.Url;
+        if (Uri.TryCreate(finalUrl, UriKind.Absolute, out var finalUri) &&
+            (BlockedHosts.Contains(finalUri.Host) || PrivateIpPattern.IsMatch(finalUri.Host)))
+        {
+            await _page.GotoAsync("about:blank");
+            return ToolResult.Fail($"Navigation redirected to blocked host: {finalUri.Host}");
+        }
+
+        return await SnapshotAsync();
+    }
+
+    private async Task<ToolResult> ClickAsync(BrowserParameters p)
+    {
+        if (string.IsNullOrWhiteSpace(p.Ref))
+            return ToolResult.Fail("Selector/ref is required for click.");
+        await EnsureBrowserAsync();
+        await _page!.ClickAsync(p.Ref, new PageClickOptions { Timeout = 10000 });
+        await _page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        return await SnapshotAsync();
+    }
+
+    private async Task<ToolResult> TypeAsync(BrowserParameters p)
+    {
+        if (string.IsNullOrWhiteSpace(p.Ref))
+            return ToolResult.Fail("Selector/ref is required for type.");
+        await EnsureBrowserAsync();
+        await _page!.FillAsync(p.Ref, p.Text ?? "", new PageFillOptions { Timeout = 10000 });
+        return ToolResult.Ok($"Typed into {p.Ref}");
+    }
+
+    private async Task<ToolResult> ScrollAsync(BrowserParameters p)
+    {
+        await EnsureBrowserAsync();
+        var direction = p.Direction?.ToLowerInvariant() ?? "down";
+        var delta = direction == "up" ? -500 : 500;
+        // Scroll 5 times for visible movement (upstream pattern)
+        for (var i = 0; i < 5; i++)
+            await _page!.Mouse.WheelAsync(0, delta);
+        return await SnapshotAsync();
+    }
+
+    private async Task<ToolResult> PressAsync(BrowserParameters p)
+    {
+        await EnsureBrowserAsync();
+        await _page!.Keyboard.PressAsync(p.Key ?? "Enter");
+        return ToolResult.Ok($"Pressed {p.Key ?? "Enter"}");
+    }
+
+    private async Task<ToolResult> EvaluateAsync(BrowserParameters p)
+    {
+        if (string.IsNullOrWhiteSpace(p.Expression))
+            return ToolResult.Fail("Expression is required for js/evaluate.");
+        await EnsureBrowserAsync();
+        var result = await _page!.EvaluateAsync<object>(p.Expression);
+        return ToolResult.Ok(result?.ToString() ?? "(undefined)");
     }
 
     /// <summary>
-    /// Run a Playwright CLI command. Falls back to a helpful error if not installed.
-    /// In production, this would use Microsoft.Playwright NuGet directly.
+    /// Get the accessibility tree snapshot of the current page.
+    /// This is the core representation — no vision model needed.
     /// </summary>
-    private static async Task<ToolResult> RunPlaywrightAsync(string command, CancellationToken ct)
+    private async Task<ToolResult> SnapshotAsync()
     {
-        try
+        if (_page is null) return ToolResult.Fail("No page open. Use navigate first.");
+
+        var title = await _page.TitleAsync();
+        var url = _page.Url;
+
+        // Get accessibility snapshot
+        var snapshot = await _page.Accessibility.SnapshotAsync();
+        var sb = new StringBuilder();
+        sb.AppendLine($"Page: {title}");
+        sb.AppendLine($"URL: {url}");
+        sb.AppendLine();
+
+        if (snapshot is not null)
+            RenderAccessibilityNode(snapshot, sb, 0);
+        else
+            sb.AppendLine("(accessibility tree not available)");
+
+        var output = sb.ToString();
+        // Truncate if too large (>8000 chars)
+        if (output.Length > 8000)
+            output = output[..8000] + "\n... [truncated — use click/scroll to explore]";
+
+        return ToolResult.Ok(output);
+    }
+
+    private static void RenderAccessibilityNode(
+        AccessibilitySnapshotResult node, StringBuilder sb, int depth)
+    {
+        var indent = new string(' ', depth * 2);
+        var role = node.Role ?? "";
+        var name = node.Name ?? "";
+
+        // Skip generic/container nodes with no useful info
+        if (!string.IsNullOrWhiteSpace(name) || role is "link" or "button" or "textbox"
+            or "heading" or "img" or "checkbox" or "radio" or "combobox")
         {
-            // Use npx playwright CLI for accessibility snapshot
-            var psi = new ProcessStartInfo
-            {
-                FileName = "npx",
-                Arguments = $"playwright test --headed=false -c \"{command}\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8
-            };
-
-            using var process = new Process { StartInfo = psi };
-            process.Start();
-
-            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            timeoutCts.CancelAfter(TimeSpan.FromSeconds(30));
-
-            var stdout = await process.StandardOutput.ReadToEndAsync(timeoutCts.Token);
-            var stderr = await process.StandardError.ReadToEndAsync(timeoutCts.Token);
-            await process.WaitForExitAsync(timeoutCts.Token);
-
-            if (process.ExitCode == 0)
-                return ToolResult.Ok(string.IsNullOrWhiteSpace(stdout) ? "(page loaded)" : stdout);
-
-            return ToolResult.Fail($"Browser action failed: {stderr}");
+            sb.Append(indent);
+            if (!string.IsNullOrWhiteSpace(role))
+                sb.Append($"[{role}] ");
+            if (!string.IsNullOrWhiteSpace(name))
+                sb.Append(name);
+            if (!string.IsNullOrWhiteSpace(node.Value))
+                sb.Append($" = \"{node.Value}\"");
+            sb.AppendLine();
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+
+        if (node.Children is not null)
         {
-            return ToolResult.Fail(
-                "Browser tool requires Playwright. Install with: npx playwright install chromium\n" +
-                $"Error: {ex.Message}");
+            foreach (var child in node.Children)
+                RenderAccessibilityNode(child, sb, depth + 1);
         }
     }
 
-    private static string Escape(string s) => s.Replace("\\", "\\\\").Replace("\"", "\\\"");
+    private async Task<ToolResult> CloseAsync()
+    {
+        if (_browser is not null) await _browser.CloseAsync();
+        _playwright?.Dispose();
+        _page = null;
+        _browser = null;
+        _playwright = null;
+        return ToolResult.Ok("Browser closed.");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_browser is not null)
+        {
+            try { await _browser.CloseAsync(); } catch { }
+        }
+        _playwright?.Dispose();
+    }
 }
 
 public sealed class BrowserParameters
