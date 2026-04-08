@@ -53,7 +53,6 @@ public sealed class ChatMessageItem : INotifyPropertyChanged
     private string _content;
     private string _thinkingContent = "";
     private bool _isStreaming;
-    private bool _isThinking;
     private ChatMessageType _messageType;
 
     public ChatMessageItem(
@@ -93,13 +92,6 @@ public sealed class ChatMessageItem : INotifyPropertyChanged
     {
         get => _thinkingContent;
         set { _thinkingContent = value; OnPropertyChanged(); OnPropertyChanged(nameof(HasThinking)); }
-    }
-
-    /// <summary>Whether the model is currently in a thinking phase.</summary>
-    public bool IsThinking
-    {
-        get => _isThinking;
-        set { _isThinking = value; OnPropertyChanged(); }
     }
 
     /// <summary>Whether this message has any thinking content to display.</summary>

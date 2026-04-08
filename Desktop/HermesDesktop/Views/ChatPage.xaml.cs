@@ -246,9 +246,10 @@ public sealed partial class ChatPage : Page
                 switch (evt.Type)
                 {
                     case ChatStreamEventType.Thinking:
-                        // Buffer thinking content silently — no bubble yet.
-                        // The thinking bar with animated dots is the only visual feedback.
-                        thinkingBuffer.Append(evt.Text);
+                        if (assistantItem is not null)
+                            assistantItem.AppendThinking(evt.Text);
+                        else
+                            thinkingBuffer.Append(evt.Text);
                         break;
 
                     case ChatStreamEventType.Token:

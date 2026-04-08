@@ -588,7 +588,10 @@ Rules:
                         // doesn't include `id` but TaskBrief.Id is required
                         var node = JsonNode.Parse(candidate);
                         if (node is JsonObject obj)
+                        {
                             obj["id"] = briefId;
+                            obj["status"] = "Draft"; // Force Draft — LLM must not bypass approval
+                        }
                         brief = node?.Deserialize<TaskBrief>(JsonOpts);
                         if (brief is not null) break;
                     }

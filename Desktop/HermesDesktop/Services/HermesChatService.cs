@@ -128,10 +128,13 @@ internal sealed class HermesChatService : IDisposable
             }
         }
 
-        // Save complete assistant response
-        var assistantMsg = new Message { Role = "assistant", Content = fullResponse.ToString() };
-        _currentSession.AddMessage(assistantMsg);
-        await _transcriptStore.SaveMessageAsync(_currentSession.Id, assistantMsg, CancellationToken.None);
+        // Save complete assistant response — skip if empty to avoid corrupting history
+        if (fullResponse.Length > 0)
+        {
+            var assistantMsg = new Message { Role = "assistant", Content = fullResponse.ToString() };
+            _currentSession.AddMessage(assistantMsg);
+            await _transcriptStore.SaveMessageAsync(_currentSession.Id, assistantMsg, CancellationToken.None);
+        }
     }
 
     // ── Legacy string streaming (kept for backwards compatibility) ──

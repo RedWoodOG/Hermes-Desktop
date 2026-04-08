@@ -305,7 +305,7 @@ public sealed class OpenAiClient : IChatClient
                     }
 
                     // Check for partial tag at end (e.g., "<thi" could become "<think>")
-                    if (text.Length > 0 && text[^1] == '<' || (text.Length >= 2 && text.EndsWith("<t")) ||
+                    if ((text.Length > 0 && text[^1] == '<') || (text.Length >= 2 && text.EndsWith("<t")) ||
                         text.EndsWith("<th") || text.EndsWith("<thi") || text.EndsWith("<thin") || text.EndsWith("<think"))
                     {
                         // Find where the potential partial tag starts
