@@ -119,8 +119,8 @@ public sealed partial class SettingsPage : Page
     // ── Platforms ──
     private void LoadPlatformSettings()
     {
-        TelegramBotTokenBox.Password = HermesEnvironment.ReadPlatformSetting("telegram", "bot_token") ?? "";
-        DiscordBotTokenBox.Password = HermesEnvironment.ReadPlatformSetting("discord", "bot_token") ?? "";
+        TelegramBotTokenBox.Password = HermesEnvironment.ReadPlatformSetting("telegram", "token") ?? "";
+        DiscordBotTokenBox.Password = HermesEnvironment.ReadPlatformSetting("discord", "token") ?? "";
         DiscordRequireMentionToggle.IsOn = string.Equals(
             HermesEnvironment.ReadPlatformSetting("discord", "require_mention"), "true", StringComparison.OrdinalIgnoreCase);
         DiscordAutoThreadToggle.IsOn = string.Equals(
@@ -128,18 +128,18 @@ public sealed partial class SettingsPage : Page
         DiscordReactionsToggle.IsOn = string.Equals(
             HermesEnvironment.ReadPlatformSetting("discord", "reactions"), "true", StringComparison.OrdinalIgnoreCase);
 
-        SlackBotTokenBox.Password = HermesEnvironment.ReadPlatformSetting("slack", "bot_token") ?? "";
+        SlackBotTokenBox.Password = HermesEnvironment.ReadPlatformSetting("slack", "token") ?? "";
         SlackAppTokenBox.Password = HermesEnvironment.ReadPlatformSetting("slack", "app_token") ?? "";
 
-        MatrixAccessTokenBox.Password = HermesEnvironment.ReadPlatformSetting("matrix", "access_token") ?? "";
-        MatrixHomeserverBox.Text = HermesEnvironment.ReadPlatformSetting("matrix", "homeserver_url") ?? "";
+        MatrixAccessTokenBox.Password = HermesEnvironment.ReadPlatformSetting("matrix", "token") ?? "";
+        MatrixHomeserverBox.Text = HermesEnvironment.ReadPlatformSetting("matrix", "homeserver") ?? "";
 
         WebhookEnabledToggle.IsOn = string.Equals(
             HermesEnvironment.ReadPlatformSetting("webhook", "enabled"), "true", StringComparison.OrdinalIgnoreCase);
         var webhookPort = HermesEnvironment.ReadPlatformSetting("webhook", "port");
         if (double.TryParse(webhookPort, NumberStyles.Integer, CultureInfo.InvariantCulture, out var wp))
             WebhookPortBox.Value = wp;
-        WebhookHmacSecretBox.Password = HermesEnvironment.ReadPlatformSetting("webhook", "hmac_secret") ?? "";
+        WebhookHmacSecretBox.Password = HermesEnvironment.ReadPlatformSetting("webhook", "secret") ?? "";
 
         EmailAddressBox.Text = HermesEnvironment.ReadPlatformSetting("email", "address") ?? "";
         EmailPasswordBox.Password = HermesEnvironment.ReadPlatformSetting("email", "password") ?? "";
@@ -295,9 +295,7 @@ public sealed partial class SettingsPage : Page
                 return;
             }
 
-            await HermesEnvironment.SaveModelConfigAsync(providerTag, baseUrl, model, apiKey);
-
-            // Save temperature and max_tokens into model section via generic helper
+            // Save model section (provider, base_url, default, temperature, max_tokens, optional api_key)
             var extras = new Dictionary<string, string>
             {
                 ["provider"] = providerTag,
@@ -351,32 +349,32 @@ public sealed partial class SettingsPage : Page
         {
             // Telegram
             if (!string.IsNullOrWhiteSpace(TelegramBotTokenBox.Password))
-                await HermesEnvironment.SavePlatformSettingAsync("telegram", "bot_token", TelegramBotTokenBox.Password.Trim());
+                await HermesEnvironment.SavePlatformSettingAsync("telegram", "token", TelegramBotTokenBox.Password.Trim());
 
             // Discord
             if (!string.IsNullOrWhiteSpace(DiscordBotTokenBox.Password))
-                await HermesEnvironment.SavePlatformSettingAsync("discord", "bot_token", DiscordBotTokenBox.Password.Trim());
+                await HermesEnvironment.SavePlatformSettingAsync("discord", "token", DiscordBotTokenBox.Password.Trim());
             await HermesEnvironment.SavePlatformSettingAsync("discord", "require_mention", DiscordRequireMentionToggle.IsOn.ToString().ToLowerInvariant());
             await HermesEnvironment.SavePlatformSettingAsync("discord", "auto_thread", DiscordAutoThreadToggle.IsOn.ToString().ToLowerInvariant());
             await HermesEnvironment.SavePlatformSettingAsync("discord", "reactions", DiscordReactionsToggle.IsOn.ToString().ToLowerInvariant());
 
             // Slack
             if (!string.IsNullOrWhiteSpace(SlackBotTokenBox.Password))
-                await HermesEnvironment.SavePlatformSettingAsync("slack", "bot_token", SlackBotTokenBox.Password.Trim());
+                await HermesEnvironment.SavePlatformSettingAsync("slack", "token", SlackBotTokenBox.Password.Trim());
             if (!string.IsNullOrWhiteSpace(SlackAppTokenBox.Password))
                 await HermesEnvironment.SavePlatformSettingAsync("slack", "app_token", SlackAppTokenBox.Password.Trim());
 
             // Matrix
             if (!string.IsNullOrWhiteSpace(MatrixAccessTokenBox.Password))
-                await HermesEnvironment.SavePlatformSettingAsync("matrix", "access_token", MatrixAccessTokenBox.Password.Trim());
+                await HermesEnvironment.SavePlatformSettingAsync("matrix", "token", MatrixAccessTokenBox.Password.Trim());
             if (!string.IsNullOrWhiteSpace(MatrixHomeserverBox.Text))
-                await HermesEnvironment.SavePlatformSettingAsync("matrix", "homeserver_url", MatrixHomeserverBox.Text.Trim());
+                await HermesEnvironment.SavePlatformSettingAsync("matrix", "homeserver", MatrixHomeserverBox.Text.Trim());
 
             // Webhook
             await HermesEnvironment.SavePlatformSettingAsync("webhook", "enabled", WebhookEnabledToggle.IsOn.ToString().ToLowerInvariant());
             await HermesEnvironment.SavePlatformSettingAsync("webhook", "port", ((int)WebhookPortBox.Value).ToString(CultureInfo.InvariantCulture));
             if (!string.IsNullOrWhiteSpace(WebhookHmacSecretBox.Password))
-                await HermesEnvironment.SavePlatformSettingAsync("webhook", "hmac_secret", WebhookHmacSecretBox.Password.Trim());
+                await HermesEnvironment.SavePlatformSettingAsync("webhook", "secret", WebhookHmacSecretBox.Password.Trim());
 
             // Email
             if (!string.IsNullOrWhiteSpace(EmailAddressBox.Text))
