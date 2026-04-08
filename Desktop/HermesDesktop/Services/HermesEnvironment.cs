@@ -688,11 +688,19 @@ internal static class HermesEnvironment
             }
         }
 
-        // Build new section lines
+        // Build new section lines — quote values containing YAML-special characters
         var newSection = new List<string> { $"{sectionName}:" };
         foreach (var kv in settings)
         {
-            newSection.Add($"  {kv.Key}: {kv.Value}");
+            var val = kv.Value;
+            // Quote if value contains YAML-special chars: #, :, {, }, [, ], leading/trailing quotes or spaces
+            if (val.Contains('#') || val.Contains(": ") || val.Contains('{') || val.Contains('}') ||
+                val.Contains('[') || val.Contains(']') || val.StartsWith("'") || val.StartsWith("\"") ||
+                val.StartsWith(" ") || val.EndsWith(" "))
+            {
+                val = $"\"{val.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
+            }
+            newSection.Add($"  {kv.Key}: {val}");
         }
 
         if (sectionStart >= 0)

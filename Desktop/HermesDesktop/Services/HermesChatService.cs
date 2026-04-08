@@ -103,31 +103,36 @@ internal sealed class HermesChatService : IDisposable
         _streamCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
         var fullResponse = new System.Text.StringBuilder();
-        await foreach (var evt in _agent.StreamChatAsync(message, _currentSession!, _streamCts.Token))
+        try
         {
-            switch (evt)
+            await foreach (var evt in _agent.StreamChatAsync(message, _currentSession!, _streamCts.Token))
             {
-                case Hermes.Agent.LLM.StreamEvent.TokenDelta td:
-                    fullResponse.Append(td.Text);
-                    yield return new ChatStreamEvent(ChatStreamEventType.Token, td.Text);
-                    break;
+                switch (evt)
+                {
+                    case Hermes.Agent.LLM.StreamEvent.TokenDelta td:
+                        fullResponse.Append(td.Text);
+                        yield return new ChatStreamEvent(ChatStreamEventType.Token, td.Text);
+                        break;
 
-                case Hermes.Agent.LLM.StreamEvent.ThinkingDelta tk:
-                    yield return new ChatStreamEvent(ChatStreamEventType.Thinking, tk.Text);
-                    break;
+                    case Hermes.Agent.LLM.StreamEvent.ThinkingDelta tk:
+                        yield return new ChatStreamEvent(ChatStreamEventType.Thinking, tk.Text);
+                        break;
 
-                case Hermes.Agent.LLM.StreamEvent.StreamError err:
-                    yield return new ChatStreamEvent(ChatStreamEventType.Error, err.Error.Message);
-                    break;
+                    case Hermes.Agent.LLM.StreamEvent.StreamError err:
+                        yield return new ChatStreamEvent(ChatStreamEventType.Error, err.Error.Message);
+                        break;
+                }
             }
         }
-
-        // Agent handles transcript saving internally, but save here too as safety net
-        if (fullResponse.Length > 0 && _currentSession!.Messages.LastOrDefault()?.Role != "assistant")
+        finally
         {
-            var assistantMsg = new Message { Role = "assistant", Content = fullResponse.ToString() };
-            _currentSession.AddMessage(assistantMsg);
-            await _transcriptStore.SaveMessageAsync(_currentSession.Id, assistantMsg, CancellationToken.None);
+            // Save partial or complete response — handles both normal completion and cancellation
+            if (fullResponse.Length > 0 && _currentSession!.Messages.LastOrDefault()?.Role != "assistant")
+            {
+                var assistantMsg = new Message { Role = "assistant", Content = fullResponse.ToString() };
+                _currentSession.AddMessage(assistantMsg);
+                await _transcriptStore.SaveMessageAsync(_currentSession.Id, assistantMsg, CancellationToken.None);
+            }
         }
     }
 

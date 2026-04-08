@@ -291,6 +291,32 @@ public partial class App : Application
 
         // Agent tool (subagent spawning — needs chat client and tool registry)
         RegisterAndTrack(agent, toolRegistry, new AgentTool(chatClient, toolRegistry));
+
+        // Memory tool
+        var memoryToolDir = Path.Combine(HermesEnvironment.HermesHomePath, "memories");
+        RegisterAndTrack(agent, toolRegistry, new MemoryTool(memoryToolDir));
+
+        // Session search tool
+        var transcriptDir = Path.Combine(
+            HermesEnvironment.HermesHomePath, "hermes-cs", "transcripts");
+        RegisterAndTrack(agent, toolRegistry, new SessionSearchTool(transcriptDir));
+
+        // Skill invoke tool
+        var skillManager = services.GetRequiredService<SkillManager>();
+        RegisterAndTrack(agent, toolRegistry, new SkillInvokeTool(skillManager));
+
+        // Send message tool (stub — gateway integration pending)
+        RegisterAndTrack(agent, toolRegistry, new SendMessageTool());
+
+        // Code sandbox tool
+        RegisterAndTrack(agent, toolRegistry, new CodeSandboxTool());
+
+        // Checkpoint tool
+        var checkpointDir = Path.Combine(HermesEnvironment.HermesHomePath, "checkpoints");
+        RegisterAndTrack(agent, toolRegistry, new CheckpointTool(checkpointDir));
+
+        // Patch tool
+        RegisterAndTrack(agent, toolRegistry, new PatchTool());
     }
 
     /// <summary>Register a tool with both the Agent and the shared IToolRegistry.</summary>
