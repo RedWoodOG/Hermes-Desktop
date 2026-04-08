@@ -168,8 +168,16 @@ public sealed class SkillManager
         return context;
     }
     
+    // ── Validation constants (upstream: skill_manager_tool.py) ──
+    private static readonly System.Text.RegularExpressions.Regex NamePattern =
+        new(@"^[a-z0-9][a-z0-9._-]*$", System.Text.RegularExpressions.RegexOptions.Compiled);
+    private const int MaxNameLength = 64;
+    private const int MaxDescriptionLength = 1024;
+    private const int MaxContentLength = 100_000;
+
     /// <summary>
-    /// Create a new skill.
+    /// Create a new skill with validation, atomic write, and security scanning.
+    /// Upstream ref: tools/skill_manager_tool.py _create_skill
     /// </summary>
     public async Task<Skill> CreateSkillAsync(
         string name,
@@ -177,38 +185,161 @@ public sealed class SkillManager
         string systemPrompt,
         List<string> tools,
         string? model,
+        string? category,
         CancellationToken ct)
     {
-        var filename = $"{name.ToLower().Replace(" ", "-")}.md";
-        var path = Path.Combine(_skillsDir, filename);
-        
-        var frontmatter = $@"---
-name: {name}
-description: {description}
-tools: {string.Join(", ", tools)}
-{(model != null ? $"model: {model}" : "")}
----
-";
-        
+        // ── Validation (upstream patterns) ──
+        var safeName = name.ToLowerInvariant().Replace(" ", "-");
+        if (safeName.Length > MaxNameLength)
+            throw new ArgumentException($"Skill name too long (max {MaxNameLength} chars)");
+        if (!NamePattern.IsMatch(safeName))
+            throw new ArgumentException($"Invalid skill name: must match {NamePattern}");
+        if (description.Length > MaxDescriptionLength)
+            throw new ArgumentException($"Description too long (max {MaxDescriptionLength} chars)");
+        if (_skills.ContainsKey(safeName))
+            throw new ArgumentException($"Skill '{safeName}' already exists");
+
+        // Build content
+        var frontmatter = $"---\nname: {safeName}\ndescription: {description}\ntools: {string.Join(", ", tools)}\n";
+        if (model is not null) frontmatter += $"model: {model}\n";
+        frontmatter += "---\n";
         var content = frontmatter + systemPrompt;
-        
-        await File.WriteAllTextAsync(path, content, ct);
-        
+
+        if (content.Length > MaxContentLength)
+            throw new ArgumentException($"Skill content too long (max {MaxContentLength} chars)");
+
+        // Determine path (with optional category subdirectory)
+        var dir = category is not null ? Path.Combine(_skillsDir, category) : _skillsDir;
+        Directory.CreateDirectory(dir);
+        var path = Path.Combine(dir, $"{safeName}.md");
+
+        // ── Atomic write (upstream pattern: temp file + rename) ──
+        var tempPath = path + ".tmp";
+        try
+        {
+            await File.WriteAllTextAsync(tempPath, content, ct);
+            File.Move(tempPath, path, overwrite: true);
+        }
+        catch
+        {
+            if (File.Exists(tempPath)) File.Delete(tempPath);
+            throw;
+        }
+
+        // ── Security scan + rollback ──
+        if (Agent.Security.SecretScanner.ContainsSecrets(content))
+        {
+            File.Delete(path);
+            throw new InvalidOperationException("Skill content contains secrets — creation blocked and rolled back.");
+        }
+
         var skill = new Skill
         {
-            Name = name,
+            Name = safeName,
             Description = description,
             FilePath = path,
             Tools = tools,
             Model = model,
             SystemPrompt = systemPrompt
         };
-        
-        _skills[name] = skill;
-        
-        _logger.LogInformation("Created skill: {Name}", name);
-        
+
+        _skills[safeName] = skill;
+        _logger.LogInformation("Created skill: {Name} at {Path}", safeName, path);
         return skill;
+    }
+
+    /// <summary>
+    /// Edit (full rewrite) an existing skill with validation and rollback.
+    /// Upstream ref: tools/skill_manager_tool.py _edit_skill
+    /// </summary>
+    public async Task<Skill> EditSkillAsync(string name, string newContent, CancellationToken ct)
+    {
+        if (!_skills.TryGetValue(name, out var existing))
+            throw new SkillNotFoundException(name);
+        if (newContent.Length > MaxContentLength)
+            throw new ArgumentException($"Skill content too long (max {MaxContentLength} chars)");
+
+        // Backup original for rollback
+        var backup = await File.ReadAllTextAsync(existing.FilePath, ct);
+
+        // Atomic write
+        var tempPath = existing.FilePath + ".tmp";
+        try
+        {
+            await File.WriteAllTextAsync(tempPath, newContent, ct);
+            File.Move(tempPath, existing.FilePath, overwrite: true);
+        }
+        catch
+        {
+            if (File.Exists(tempPath)) File.Delete(tempPath);
+            throw;
+        }
+
+        // Security scan + rollback
+        if (Agent.Security.SecretScanner.ContainsSecrets(newContent))
+        {
+            await File.WriteAllTextAsync(existing.FilePath, backup, ct);
+            throw new InvalidOperationException("Edited skill contains secrets — rolled back to original.");
+        }
+
+        // Re-parse
+        var updated = ParseSkillFile(existing.FilePath);
+        if (updated is not null) _skills[name] = updated;
+
+        _logger.LogInformation("Edited skill: {Name}", name);
+        return updated ?? existing;
+    }
+
+    /// <summary>
+    /// Patch a skill with targeted find-and-replace.
+    /// Upstream ref: tools/skill_manager_tool.py _patch_skill
+    /// </summary>
+    public async Task<Skill> PatchSkillAsync(string name, string oldText, string newText, bool replaceAll, CancellationToken ct)
+    {
+        if (!_skills.TryGetValue(name, out var existing))
+            throw new SkillNotFoundException(name);
+
+        var content = await File.ReadAllTextAsync(existing.FilePath, ct);
+        var backup = content;
+
+        if (!content.Contains(oldText))
+            throw new ArgumentException($"Text to replace not found in skill '{name}'");
+
+        content = replaceAll
+            ? content.Replace(oldText, newText)
+            : ReplaceFirst(content, oldText, newText);
+
+        // Atomic write
+        var tempPath = existing.FilePath + ".tmp";
+        try
+        {
+            await File.WriteAllTextAsync(tempPath, content, ct);
+            File.Move(tempPath, existing.FilePath, overwrite: true);
+        }
+        catch
+        {
+            if (File.Exists(tempPath)) File.Delete(tempPath);
+            throw;
+        }
+
+        // Security scan + rollback
+        if (Agent.Security.SecretScanner.ContainsSecrets(content))
+        {
+            await File.WriteAllTextAsync(existing.FilePath, backup, ct);
+            throw new InvalidOperationException("Patched skill contains secrets — rolled back.");
+        }
+
+        var updated = ParseSkillFile(existing.FilePath);
+        if (updated is not null) _skills[name] = updated;
+
+        _logger.LogInformation("Patched skill: {Name}", name);
+        return updated ?? existing;
+    }
+
+    private static string ReplaceFirst(string text, string oldValue, string newValue)
+    {
+        var idx = text.IndexOf(oldValue, StringComparison.Ordinal);
+        return idx < 0 ? text : string.Concat(text.AsSpan(0, idx), newValue, text.AsSpan(idx + oldValue.Length));
     }
     
     /// <summary>

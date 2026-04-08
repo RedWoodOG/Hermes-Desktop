@@ -19,10 +19,19 @@ public sealed class CredentialPool
         public int RequestCount { get; set; }
         public bool IsFailed { get; set; }
         public DateTime? FailedAt { get; set; }
+        public int? LastErrorCode { get; set; }
+        public string? LastErrorReason { get; set; }
+        public int ActiveLeases { get; set; }
     }
 
-    /// <summary>Cooldown before retrying a failed credential (1 hour for 429, 24h default).</summary>
-    public TimeSpan FailedCooldown { get; set; } = TimeSpan.FromHours(1);
+    /// <summary>Cooldown for rate-limit errors (429).</summary>
+    public TimeSpan RateLimitCooldown { get; set; } = TimeSpan.FromHours(1);
+
+    /// <summary>Cooldown for other errors (401, 500, etc).</summary>
+    public TimeSpan DefaultCooldown { get; set; } = TimeSpan.FromHours(24);
+
+    /// <summary>Max concurrent leases per credential.</summary>
+    public int MaxConcurrentLeases { get; set; } = 1;
 
     /// <summary>Selection strategy.</summary>
     public PoolStrategy Strategy { get; set; } = PoolStrategy.LeastUsed;
@@ -99,10 +108,11 @@ public sealed class CredentialPool
     }
 
     /// <summary>
-    /// Mark a credential as failed (e.g. on 401/402/429 response).
-    /// The pool will rotate to the next healthy credential.
+    /// Mark a credential as failed with error code context.
+    /// Upstream ref: credential_pool.py mark_exhausted_and_rotate
+    /// Cooldown: 1 hour for 429 (rate limit), 24 hours for others.
     /// </summary>
-    public void MarkFailed(string apiKey)
+    public void MarkFailed(string apiKey, int? statusCode = null, string? reason = null)
     {
         lock (_lock)
         {
@@ -111,6 +121,8 @@ public sealed class CredentialPool
             {
                 entry.IsFailed = true;
                 entry.FailedAt = DateTime.UtcNow;
+                entry.LastErrorCode = statusCode;
+                entry.LastErrorReason = reason;
             }
         }
     }
@@ -124,14 +136,64 @@ public sealed class CredentialPool
             {
                 e.IsFailed = false;
                 e.FailedAt = null;
+                e.LastErrorCode = null;
+                e.LastErrorReason = null;
             }
+        }
+    }
+
+    // ── Lease System (upstream: acquire_lease/release_lease) ──
+
+    /// <summary>
+    /// Acquire a lease on a credential for concurrent use.
+    /// Prefers credentials below MaxConcurrentLeases soft cap.
+    /// Returns API key or null if all exhausted.
+    /// </summary>
+    public string? AcquireLease()
+    {
+        lock (_lock)
+        {
+            var healthy = _entries.Where(e => !e.IsFailed || IsRecovered(e)).ToList();
+            if (healthy.Count == 0) return null;
+
+            // Prefer entries below the soft cap
+            var belowCap = healthy.Where(e => e.ActiveLeases < MaxConcurrentLeases).ToList();
+            var pool = belowCap.Count > 0 ? belowCap : healthy;
+
+            // Pick least-leased, break ties by priority (index)
+            var selected = pool.MinBy(e => e.ActiveLeases) ?? pool[0];
+            selected.ActiveLeases++;
+            selected.RequestCount++;
+            return selected.ApiKey;
+        }
+    }
+
+    /// <summary>Release a lease on a credential.</summary>
+    public void ReleaseLease(string apiKey)
+    {
+        lock (_lock)
+        {
+            var entry = _entries.FirstOrDefault(e => e.ApiKey == apiKey);
+            if (entry is not null && entry.ActiveLeases > 0)
+                entry.ActiveLeases--;
+        }
+    }
+
+    /// <summary>Active lease count for a credential.</summary>
+    public int GetLeaseCount(string apiKey)
+    {
+        lock (_lock)
+        {
+            var entry = _entries.FirstOrDefault(e => e.ApiKey == apiKey);
+            return entry?.ActiveLeases ?? 0;
         }
     }
 
     private bool IsRecovered(PoolEntry entry)
     {
-        return entry.FailedAt.HasValue &&
-               DateTime.UtcNow - entry.FailedAt.Value > FailedCooldown;
+        if (!entry.FailedAt.HasValue) return false;
+        var cooldown = entry.LastErrorCode == 429 ? RateLimitCooldown : DefaultCooldown;
+        return DateTime.UtcNow - entry.FailedAt.Value > cooldown;
     }
 }
 
