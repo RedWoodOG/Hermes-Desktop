@@ -8,6 +8,7 @@ using Hermes.Agent.Transcript;
 using Hermes.Agent.Memory;
 using Hermes.Agent.Context;
 using Microsoft.Extensions.Logging;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 public sealed class Agent : IAgent
@@ -384,6 +385,325 @@ public sealed class Agent : IAgent
         if (_transcripts is not null)
             await _transcripts.SaveMessageAsync(session.Id, fallbackMsg, ct);
         return fallback;
+    }
+
+    /// <summary>
+    /// Streaming chat loop with tool calling. Mirrors ChatAsync but yields StreamEvent
+    /// objects as they arrive. Tool-calling turns use non-streaming CompleteWithToolsAsync
+    /// (same as the Python agent), but the final text response is streamed token-by-token.
+    /// </summary>
+    public async IAsyncEnumerable<StreamEvent> StreamChatAsync(
+        string message, Session session,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        // ── Memory injection ──
+        if (_memories is not null)
+        {
+            try
+            {
+                var recentTools = _tools.Keys.Take(10).ToList();
+                var relevantMemories = await _memories.LoadRelevantMemoriesAsync(message, recentTools, ct);
+                if (relevantMemories.Count > 0)
+                {
+                    var memoryBlock = string.Join("\n---\n",
+                        relevantMemories.Select(m => $"[{m.Type}] {m.Filename}:\n{m.Content}"));
+                    session.Messages.Insert(0, new Message
+                    {
+                        Role = "system",
+                        Content = $"[Relevant Memories]\n{memoryBlock}"
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load memories, continuing without them");
+            }
+        }
+
+        // ── Add user message ──
+        var userMessage = new Message { Role = "user", Content = message };
+        session.AddMessage(userMessage);
+        if (_transcripts is not null)
+            await _transcripts.SaveMessageAsync(session.Id, userMessage, ct);
+
+        _logger.LogInformation("Processing streaming message for session {SessionId}", session.Id);
+
+        // ── Soul injection (fallback path — when ContextManager is null) ──
+        if (_contextManager is null && _soulService is not null)
+        {
+            try
+            {
+                var soulContext = await _soulService.AssembleSoulContextAsync();
+                if (!string.IsNullOrWhiteSpace(soulContext))
+                {
+                    session.Messages.Insert(0, new Message
+                    {
+                        Role = "system",
+                        Content = soulContext
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load soul context, continuing without it");
+            }
+        }
+
+        // ── Context manager integration ──
+        List<Message>? preparedContext = null;
+        if (_contextManager is not null)
+        {
+            try
+            {
+                preparedContext = await _contextManager.PrepareContextAsync(
+                    session.Id, message, retrievedContext: null, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "ContextManager failed, falling back to raw session messages");
+            }
+        }
+
+        if (_tools.Count == 0)
+        {
+            // No tools registered — stream the response directly
+            var messagesToSend = preparedContext ?? session.Messages;
+            var fullResponse = new System.Text.StringBuilder();
+
+            await foreach (var evt in _chatClient.StreamAsync(null, messagesToSend, null, ct))
+            {
+                if (evt is StreamEvent.TokenDelta td)
+                    fullResponse.Append(td.Text);
+
+                yield return evt;
+            }
+
+            // Save accumulated response
+            if (fullResponse.Length > 0)
+            {
+                var assistantMsg = new Message { Role = "assistant", Content = fullResponse.ToString() };
+                session.AddMessage(assistantMsg);
+                if (_transcripts is not null)
+                    await _transcripts.SaveMessageAsync(session.Id, assistantMsg, ct);
+            }
+            if (_contextManager is not null)
+                await _contextManager.UpdateAfterResponseAsync(session.Id, ct: ct);
+            yield break;
+        }
+
+        // ── Tool-calling loop ──
+        var toolDefs = GetToolDefinitions();
+        var iterations = 0;
+
+        while (iterations < MaxToolIterations)
+        {
+            iterations++;
+
+            var messagesToUse = (iterations == 1 && preparedContext is not null)
+                ? preparedContext
+                : session.Messages;
+
+            var response = await _chatClient.CompleteWithToolsAsync(messagesToUse, toolDefs, ct);
+
+            if (!response.HasToolCalls)
+            {
+                // LLM is done — stream the final text as a single token delta
+                var finalContent = response.Content ?? "";
+                if (!string.IsNullOrEmpty(finalContent))
+                    yield return new StreamEvent.TokenDelta(finalContent);
+
+                var finalMsg = new Message { Role = "assistant", Content = finalContent };
+                session.AddMessage(finalMsg);
+                if (_transcripts is not null)
+                    await _transcripts.SaveMessageAsync(session.Id, finalMsg, ct);
+                if (_contextManager is not null)
+                    await _contextManager.UpdateAfterResponseAsync(session.Id, ct: ct);
+                yield break;
+            }
+
+            // Record assistant message with tool call requests
+            var assistantToolMsg = new Message
+            {
+                Role = "assistant",
+                Content = response.Content ?? "",
+                ToolCalls = response.ToolCalls
+            };
+            session.AddMessage(assistantToolMsg);
+            if (_transcripts is not null)
+                await _transcripts.SaveMessageAsync(session.Id, assistantToolMsg, ct);
+
+            // Execute each tool call
+            foreach (var toolCall in response.ToolCalls!)
+            {
+                // ── Permission gate ──
+                if (_permissions is not null)
+                {
+                    try
+                    {
+                        var decision = await _permissions.CheckPermissionsAsync(
+                            toolCall.Name, toolCall.Arguments, ct);
+
+                        if (decision.Behavior == PermissionBehavior.Deny)
+                        {
+                            var deniedEntry = new ActivityEntry
+                            {
+                                ToolName = toolCall.Name,
+                                ToolCallId = toolCall.Id,
+                                InputSummary = Truncate(toolCall.Arguments, 200),
+                                OutputSummary = $"Permission denied: {decision.DecisionReason ?? decision.Message ?? "Blocked"}",
+                                Status = ActivityStatus.Denied
+                            };
+                            ActivityLog.Add(deniedEntry);
+                            ActivityEntryAdded?.Invoke(deniedEntry);
+                            if (_transcripts is not null)
+                                await _transcripts.SaveActivityAsync(session.Id, deniedEntry, ct);
+
+                            var denialMsg = new Message
+                            {
+                                Role = "tool",
+                                Content = $"Permission denied: {decision.DecisionReason ?? decision.Message ?? "Blocked by permission rule"}",
+                                ToolCallId = toolCall.Id,
+                                ToolName = toolCall.Name
+                            };
+                            session.AddMessage(denialMsg);
+                            if (_transcripts is not null)
+                                await _transcripts.SaveMessageAsync(session.Id, denialMsg, ct);
+                            continue;
+                        }
+
+                        if (decision.Behavior == PermissionBehavior.Ask)
+                        {
+                            var permissionMessage = decision.Message ?? "This operation requires permission";
+                            bool allowed = false;
+
+                            if (PermissionPromptCallback is not null)
+                            {
+                                try
+                                {
+                                    allowed = await PermissionPromptCallback(toolCall.Name, permissionMessage);
+                                }
+                                catch (Exception promptEx)
+                                {
+                                    _logger.LogWarning(promptEx, "Permission prompt callback failed, denying");
+                                }
+                            }
+
+                            if (!allowed)
+                            {
+                                var userDeniedEntry = new ActivityEntry
+                                {
+                                    ToolName = toolCall.Name,
+                                    ToolCallId = toolCall.Id,
+                                    InputSummary = Truncate(toolCall.Arguments, 200),
+                                    OutputSummary = $"Permission denied by user: {permissionMessage}",
+                                    Status = ActivityStatus.Denied
+                                };
+                                ActivityLog.Add(userDeniedEntry);
+                                ActivityEntryAdded?.Invoke(userDeniedEntry);
+                                if (_transcripts is not null)
+                                    await _transcripts.SaveActivityAsync(session.Id, userDeniedEntry, ct);
+
+                                var askMsg = new Message
+                                {
+                                    Role = "tool",
+                                    Content = $"Permission denied by user: {permissionMessage}",
+                                    ToolCallId = toolCall.Id,
+                                    ToolName = toolCall.Name
+                                };
+                                session.AddMessage(askMsg);
+                                if (_transcripts is not null)
+                                    await _transcripts.SaveMessageAsync(session.Id, askMsg, ct);
+                                continue;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Permission check failed for {ToolName}, allowing execution", toolCall.Name);
+                    }
+                }
+
+                // Yield tool-calling status to the UI
+                yield return new StreamEvent.TokenDelta($"\n[Calling tool: {toolCall.Name}]\n");
+
+                // ── Activity tracking: BEFORE execution ──
+                var activityEntry = new ActivityEntry
+                {
+                    ToolName = toolCall.Name,
+                    ToolCallId = toolCall.Id,
+                    InputSummary = Truncate(toolCall.Arguments, 200),
+                    Status = ActivityStatus.Running
+                };
+                ActivityLog.Add(activityEntry);
+                ActivityEntryAdded?.Invoke(activityEntry);
+
+                _logger.LogInformation("Executing tool {ToolName} (call {CallId})", toolCall.Name, toolCall.Id);
+                var sw = System.Diagnostics.Stopwatch.StartNew();
+                var result = await ExecuteToolCallAsync(toolCall, ct);
+                sw.Stop();
+
+                // ── Activity tracking: AFTER execution ──
+                activityEntry.DurationMs = sw.ElapsedMilliseconds;
+                activityEntry.Status = result.Success ? ActivityStatus.Success : ActivityStatus.Failed;
+                activityEntry.OutputSummary = Truncate(result.Content, 200);
+
+                // ── Soul: record mistakes on tool failure ──
+                if (!result.Success && _soulService is not null)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _soulService.RecordMistakeAsync(new MistakeEntry
+                            {
+                                Context = $"Tool: {toolCall.Name}, Args: {Truncate(toolCall.Arguments, 100)}",
+                                Mistake = $"Tool execution failed: {Truncate(result.Content, 200)}",
+                                Correction = "Tool returned an error — review approach",
+                                Lesson = $"When using {toolCall.Name}, verify inputs before execution"
+                            });
+                        }
+                        catch { /* fire and forget */ }
+                    }, CancellationToken.None);
+                }
+
+                if (result.Content.Contains("--- a/") || result.Content.Contains("+++ b/"))
+                {
+                    activityEntry.DiffPreview = Truncate(result.Content, 2000);
+                }
+
+                ActivityEntryAdded?.Invoke(activityEntry);
+                if (_transcripts is not null)
+                    await _transcripts.SaveActivityAsync(session.Id, activityEntry, ct);
+
+                // ── Secret exfiltration scan ──
+                var resultContent = result.Content;
+                if (SecretScanner.ContainsSecrets(resultContent))
+                {
+                    _logger.LogWarning("Secrets detected in tool result from {ToolName}, redacting", toolCall.Name);
+                    resultContent = SecretScanner.RedactSecrets(resultContent);
+                }
+
+                var toolResultMsg = new Message
+                {
+                    Role = "tool",
+                    Content = resultContent,
+                    ToolCallId = toolCall.Id,
+                    ToolName = toolCall.Name
+                };
+                session.AddMessage(toolResultMsg);
+                if (_transcripts is not null)
+                    await _transcripts.SaveMessageAsync(session.Id, toolResultMsg, ct);
+            }
+        }
+
+        // Hit max iterations
+        _logger.LogWarning("Hit max tool iterations ({Max}) for session {SessionId}", MaxToolIterations, session.Id);
+        var fallback = "I've reached the maximum number of tool call iterations. Here's what I've accomplished so far based on the conversation above.";
+        yield return new StreamEvent.TokenDelta(fallback);
+        var fallbackMsg = new Message { Role = "assistant", Content = fallback };
+        session.AddMessage(fallbackMsg);
+        if (_transcripts is not null)
+            await _transcripts.SaveMessageAsync(session.Id, fallbackMsg, ct);
     }
 
     private async Task<ToolResult> ExecuteToolCallAsync(ToolCall toolCall, CancellationToken ct)

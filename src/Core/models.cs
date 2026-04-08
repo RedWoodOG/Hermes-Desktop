@@ -51,6 +51,7 @@ public interface ITool
 public interface IAgent
 {
     Task<string> ChatAsync(string message, Session session, CancellationToken ct);
+    IAsyncEnumerable<Hermes.Agent.LLM.StreamEvent> StreamChatAsync(string message, Session session, CancellationToken ct);
     void RegisterTool(ITool tool);
 }
 
