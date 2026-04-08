@@ -100,6 +100,7 @@ public sealed class OpenAiClient : IChatClient
         };
 
         HttpResponseMessage? response = null;
+        string? connectionError = null;
         try
         {
             response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
@@ -108,17 +109,21 @@ public sealed class OpenAiClient : IChatClient
         catch (HttpRequestException ex)
         {
             response?.Dispose();
-            yield return $"\n[Connection error: {ex.Message}]";
-            yield break;
+            connectionError = $"\n[Connection error: {ex.Message}]";
         }
-        catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
             response?.Dispose();
-            yield return "\n[Request timed out — the LLM server may be overloaded or unreachable]";
+            connectionError = "\n[Request timed out — the LLM server may be overloaded or unreachable]";
+        }
+
+        if (connectionError is not null)
+        {
+            yield return connectionError;
             yield break;
         }
 
-        using (response)
+        using (response!)
         {
             using var stream = await response.Content.ReadAsStreamAsync(ct);
             using var reader = new StreamReader(stream);
@@ -126,13 +131,20 @@ public sealed class OpenAiClient : IChatClient
             while (!ct.IsCancellationRequested)
             {
                 string? line;
+                string? readError = null;
                 try
                 {
                     line = await reader.ReadLineAsync(ct);
                 }
                 catch (IOException)
                 {
-                    yield return "\n[Connection lost during streaming]";
+                    readError = "\n[Connection lost during streaming]";
+                    line = null;
+                }
+
+                if (readError is not null)
+                {
+                    yield return readError;
                     yield break;
                 }
 

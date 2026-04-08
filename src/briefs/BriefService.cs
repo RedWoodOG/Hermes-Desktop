@@ -1,5 +1,6 @@
 namespace Hermes.Agent.Briefs;
 
+using Hermes.Agent.Core;
 using Hermes.Agent.LLM;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
