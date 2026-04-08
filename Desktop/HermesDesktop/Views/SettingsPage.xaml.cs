@@ -347,45 +347,34 @@ public sealed partial class SettingsPage : Page
     {
         try
         {
-            // Telegram
-            if (!string.IsNullOrWhiteSpace(TelegramBotTokenBox.Password))
-                await HermesEnvironment.SavePlatformSettingAsync("telegram", "token", TelegramBotTokenBox.Password.Trim());
+            // Telegram — always persist so clearing a token actually takes effect
+            await HermesEnvironment.SavePlatformSettingAsync("telegram", "token", TelegramBotTokenBox.Password.Trim());
 
             // Discord
-            if (!string.IsNullOrWhiteSpace(DiscordBotTokenBox.Password))
-                await HermesEnvironment.SavePlatformSettingAsync("discord", "token", DiscordBotTokenBox.Password.Trim());
+            await HermesEnvironment.SavePlatformSettingAsync("discord", "token", DiscordBotTokenBox.Password.Trim());
             await HermesEnvironment.SavePlatformSettingAsync("discord", "require_mention", DiscordRequireMentionToggle.IsOn.ToString().ToLowerInvariant());
             await HermesEnvironment.SavePlatformSettingAsync("discord", "auto_thread", DiscordAutoThreadToggle.IsOn.ToString().ToLowerInvariant());
             await HermesEnvironment.SavePlatformSettingAsync("discord", "reactions", DiscordReactionsToggle.IsOn.ToString().ToLowerInvariant());
 
             // Slack
-            if (!string.IsNullOrWhiteSpace(SlackBotTokenBox.Password))
-                await HermesEnvironment.SavePlatformSettingAsync("slack", "token", SlackBotTokenBox.Password.Trim());
-            if (!string.IsNullOrWhiteSpace(SlackAppTokenBox.Password))
-                await HermesEnvironment.SavePlatformSettingAsync("slack", "app_token", SlackAppTokenBox.Password.Trim());
+            await HermesEnvironment.SavePlatformSettingAsync("slack", "token", SlackBotTokenBox.Password.Trim());
+            await HermesEnvironment.SavePlatformSettingAsync("slack", "app_token", SlackAppTokenBox.Password.Trim());
 
             // Matrix
-            if (!string.IsNullOrWhiteSpace(MatrixAccessTokenBox.Password))
-                await HermesEnvironment.SavePlatformSettingAsync("matrix", "token", MatrixAccessTokenBox.Password.Trim());
-            if (!string.IsNullOrWhiteSpace(MatrixHomeserverBox.Text))
-                await HermesEnvironment.SavePlatformSettingAsync("matrix", "homeserver", MatrixHomeserverBox.Text.Trim());
+            await HermesEnvironment.SavePlatformSettingAsync("matrix", "token", MatrixAccessTokenBox.Password.Trim());
+            await HermesEnvironment.SavePlatformSettingAsync("matrix", "homeserver", MatrixHomeserverBox.Text.Trim());
 
             // Webhook
             await HermesEnvironment.SavePlatformSettingAsync("webhook", "enabled", WebhookEnabledToggle.IsOn.ToString().ToLowerInvariant());
             await HermesEnvironment.SavePlatformSettingAsync("webhook", "port", ((int)WebhookPortBox.Value).ToString(CultureInfo.InvariantCulture));
-            if (!string.IsNullOrWhiteSpace(WebhookHmacSecretBox.Password))
-                await HermesEnvironment.SavePlatformSettingAsync("webhook", "secret", WebhookHmacSecretBox.Password.Trim());
+            await HermesEnvironment.SavePlatformSettingAsync("webhook", "secret", WebhookHmacSecretBox.Password.Trim());
 
             // Email
-            if (!string.IsNullOrWhiteSpace(EmailAddressBox.Text))
-                await HermesEnvironment.SavePlatformSettingAsync("email", "address", EmailAddressBox.Text.Trim());
-            if (!string.IsNullOrWhiteSpace(EmailPasswordBox.Password))
-                await HermesEnvironment.SavePlatformSettingAsync("email", "password", EmailPasswordBox.Password.Trim());
-            if (!string.IsNullOrWhiteSpace(EmailImapHostBox.Text))
-                await HermesEnvironment.SavePlatformSettingAsync("email", "imap_host", EmailImapHostBox.Text.Trim());
+            await HermesEnvironment.SavePlatformSettingAsync("email", "address", EmailAddressBox.Text.Trim());
+            await HermesEnvironment.SavePlatformSettingAsync("email", "password", EmailPasswordBox.Password.Trim());
+            await HermesEnvironment.SavePlatformSettingAsync("email", "imap_host", EmailImapHostBox.Text.Trim());
             await HermesEnvironment.SavePlatformSettingAsync("email", "imap_port", ((int)EmailImapPortBox.Value).ToString(CultureInfo.InvariantCulture));
-            if (!string.IsNullOrWhiteSpace(EmailSmtpHostBox.Text))
-                await HermesEnvironment.SavePlatformSettingAsync("email", "smtp_host", EmailSmtpHostBox.Text.Trim());
+            await HermesEnvironment.SavePlatformSettingAsync("email", "smtp_host", EmailSmtpHostBox.Text.Trim());
             await HermesEnvironment.SavePlatformSettingAsync("email", "smtp_port", ((int)EmailSmtpPortBox.Value).ToString(CultureInfo.InvariantCulture));
 
             PlatformSaveStatus.Text = "All platforms saved. Restart gateway to apply.";

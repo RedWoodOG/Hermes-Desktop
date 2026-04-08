@@ -276,10 +276,8 @@ public sealed class CoordinatorService
 
             if (verification.RequiresManualReview)
             {
-                // Manual review — mark brief as blocked, task as awaiting review
+                // Manual review — mark brief as blocked (pending review), don't fail the task
                 await _briefService.UpdateBriefAsync(brief.Id, b => b.Status = BriefStatus.Blocked, ct);
-                await _taskManager.FailTaskAsync(taskResult!.TaskId,
-                    $"Awaiting manual review by {brief.EscalateTo ?? "user"}", ct);
                 _logger.LogInformation("Brief {BriefId} awaiting manual review by {EscalateTo}",
                     brief.Id, brief.EscalateTo ?? "user");
             }

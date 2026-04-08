@@ -552,27 +552,6 @@ internal static class HermesEnvironment
         return value;
     }
 
-    /// <summary>Write model configuration to config.yaml.</summary>
-    internal static async Task SaveModelConfigAsync(string provider, string baseUrl, string model, string apiKey)
-    {
-        var configPath = HermesConfigPath;
-        var dir = Path.GetDirectoryName(configPath);
-        if (dir is not null && !Directory.Exists(dir))
-            Directory.CreateDirectory(dir);
-
-        var settings = new Dictionary<string, string>
-        {
-            ["provider"] = provider,
-            ["base_url"] = baseUrl,
-            ["default"] = model,
-        };
-
-        if (!string.IsNullOrWhiteSpace(apiKey))
-            settings["api_key"] = apiKey;
-
-        await WriteYamlSectionAsync(configPath, "model", settings);
-    }
-
     /// <summary>Write an integration token to config.yaml under the integrations section.</summary>
     internal static async Task SaveIntegrationTokenAsync(string key, string value)
     {
@@ -602,9 +581,11 @@ internal static class HermesEnvironment
             if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("#", StringComparison.Ordinal))
                 continue;
 
-            if (!char.IsWhiteSpace(rawLine, 0) && line.EndsWith(":", StringComparison.Ordinal))
+            // Any non-indented line is a section boundary
+            if (rawLine.Length > 0 && !char.IsWhiteSpace(rawLine, 0))
             {
-                inSection = string.Equals(line, "integrations:", StringComparison.OrdinalIgnoreCase);
+                inSection = line.EndsWith(":", StringComparison.Ordinal) &&
+                            string.Equals(line, "integrations:", StringComparison.OrdinalIgnoreCase);
                 continue;
             }
 
@@ -633,9 +614,11 @@ internal static class HermesEnvironment
             if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("#", StringComparison.Ordinal))
                 continue;
 
-            if (!char.IsWhiteSpace(rawLine, 0) && line.EndsWith(":", StringComparison.Ordinal))
+            // Any non-indented line is a section boundary (whether it ends with ':' or not)
+            if (rawLine.Length > 0 && !char.IsWhiteSpace(rawLine, 0))
             {
-                inSection = string.Equals(line, sectionHeader, StringComparison.OrdinalIgnoreCase);
+                inSection = line.EndsWith(":", StringComparison.Ordinal) &&
+                            string.Equals(line, sectionHeader, StringComparison.OrdinalIgnoreCase);
                 continue;
             }
 

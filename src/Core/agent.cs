@@ -538,14 +538,11 @@ public sealed class Agent : IAgent
                 yield return evt;
             }
 
-            // Save accumulated response
-            if (fullResponse.Length > 0)
-            {
-                var assistantMsg = new Message { Role = "assistant", Content = fullResponse.ToString() };
-                session.AddMessage(assistantMsg);
-                if (_transcripts is not null)
-                    await _transcripts.SaveMessageAsync(session.Id, assistantMsg, ct);
-            }
+            // Save accumulated response — always save, even if empty, to match ChatAsync behavior
+            var assistantMsg = new Message { Role = "assistant", Content = fullResponse.ToString() };
+            session.AddMessage(assistantMsg);
+            if (_transcripts is not null)
+                await _transcripts.SaveMessageAsync(session.Id, assistantMsg, ct);
             if (_contextManager is not null)
                 await _contextManager.UpdateAfterResponseAsync(session.Id, ct: ct);
             yield break;

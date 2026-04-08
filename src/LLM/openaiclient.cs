@@ -116,11 +116,13 @@ public sealed class OpenAiClient : IChatClient
         catch (HttpRequestException ex)
         {
             response?.Dispose();
+            response = null;
             connectionError = $"\n[Connection error: {ex.Message}]";
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
             response?.Dispose();
+            response = null;
             connectionError = "\n[Request timed out — the LLM server may be overloaded or unreachable]";
         }
 
@@ -388,9 +390,9 @@ public sealed class OpenAiClient : IChatClient
                                     }
 
                                     // Check for partial <think> tag at end
-                                    if (text.Length > 0 && text[^1] == '<' || text.EndsWith("<t") ||
+                                    if (text.Length > 0 && (text[^1] == '<' || text.EndsWith("<t") ||
                                         text.EndsWith("<th") || text.EndsWith("<thi") ||
-                                        text.EndsWith("<thin") || text.EndsWith("<think"))
+                                        text.EndsWith("<thin") || text.EndsWith("<think")))
                                     {
                                         var ps = text.LastIndexOf('<');
                                         if (ps >= 0 && ps < text.Length)

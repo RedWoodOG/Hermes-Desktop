@@ -267,8 +267,7 @@ public sealed partial class ChatPage : Page
                     case ChatStreamEventType.Thinking:
                         if (assistantItem is not null)
                             assistantItem.AppendThinking(evt.Text);
-                        else
-                            thinkingBuffer.Append(evt.Text);
+                        thinkingBuffer.Append(evt.Text);
                         break;
 
                     case ChatStreamEventType.Token:
@@ -455,6 +454,14 @@ public sealed partial class ChatPage : Page
             {
                 _permissionMode = captured;
                 PermissionModeLabel.Text = $"{captured} mode";
+                _chatService.SetPermissionMode(captured switch
+                {
+                    "Plan" => Hermes.Agent.Permissions.PermissionMode.Plan,
+                    "Auto" => Hermes.Agent.Permissions.PermissionMode.Auto,
+                    "Accept Edits" => Hermes.Agent.Permissions.PermissionMode.AcceptEdits,
+                    "Bypass" => Hermes.Agent.Permissions.PermissionMode.BypassPermissions,
+                    _ => Hermes.Agent.Permissions.PermissionMode.Default
+                });
             };
             flyout.Items.Add(item);
         }

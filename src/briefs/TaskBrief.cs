@@ -69,7 +69,7 @@ public sealed class TaskBrief
     // ── Identity ──
 
     /// <summary>Unique brief ID (e.g., "T-001").</summary>
-    public required string Id { get; init; }
+    public required string Id { get; init; } = "";
 
     /// <summary>Short, imperative title (e.g., "Research competitor pricing").</summary>
     public required string Title { get; set; }

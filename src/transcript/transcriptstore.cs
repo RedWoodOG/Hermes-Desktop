@@ -131,20 +131,24 @@ public sealed class TranscriptStore
     public async Task DeleteSessionAsync(string sessionId, CancellationToken ct)
     {
         var transcriptPath = GetTranscriptPath(sessionId);
-        
-        if (File.Exists(transcriptPath))
+        var activityPath = GetActivityPath(sessionId);
+
+        if (File.Exists(transcriptPath) || File.Exists(activityPath))
         {
             await _writeLock.WaitAsync(ct);
             try
             {
-                File.Delete(transcriptPath);
+                if (File.Exists(transcriptPath))
+                    File.Delete(transcriptPath);
+                if (File.Exists(activityPath))
+                    File.Delete(activityPath);
             }
             finally
             {
                 _writeLock.Release();
             }
         }
-        
+
         _cache.TryRemove(sessionId, out _);
     }
     
