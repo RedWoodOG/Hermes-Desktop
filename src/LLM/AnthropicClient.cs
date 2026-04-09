@@ -64,14 +64,70 @@ public sealed class AnthropicClient : IChatClient
         return content.ToString();
     }
 
-    public Task<ChatResponse> CompleteWithToolsAsync(
+    public async Task<ChatResponse> CompleteWithToolsAsync(
         IEnumerable<Message> messages,
         IEnumerable<ToolDefinition> tools,
         CancellationToken ct)
     {
-        // Anthropic tool calling not yet implemented — fail fast so callers know
-        throw new NotSupportedException(
-            "Anthropic tool calling is not yet implemented. Use OpenAiClient for tool-calling workflows.");
+        var msgList = messages.ToList();
+        var systemPrompt = string.Join("\n", msgList
+            .Where(m => m.Role == "system")
+            .Select(m => m.Content));
+        var nonSystemMessages = msgList.Where(m => m.Role != "system");
+
+        var payload = BuildPayload(
+            string.IsNullOrEmpty(systemPrompt) ? null : systemPrompt,
+            nonSystemMessages, tools, stream: false);
+
+        var json = JsonSerializer.Serialize(payload, JsonOptions);
+        var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages")
+        {
+            Content = new StringContent(json, Encoding.UTF8, "application/json")
+        };
+
+        var response = await _httpClient.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
+        var root = doc.RootElement;
+
+        var stopReason = root.TryGetProperty("stop_reason", out var sr) ? sr.GetString() : "stop";
+        string? textContent = null;
+        List<ToolCall>? toolCalls = null;
+
+        if (root.TryGetProperty("content", out var contentArray))
+        {
+            var textParts = new StringBuilder();
+
+            foreach (var block in contentArray.EnumerateArray())
+            {
+                var blockType = block.GetProperty("type").GetString();
+
+                if (blockType == "text")
+                {
+                    textParts.Append(block.GetProperty("text").GetString() ?? "");
+                }
+                else if (blockType == "tool_use")
+                {
+                    toolCalls ??= new List<ToolCall>();
+                    toolCalls.Add(new ToolCall
+                    {
+                        Id = block.GetProperty("id").GetString()!,
+                        Name = block.GetProperty("name").GetString()!,
+                        Arguments = block.GetProperty("input").GetRawText()
+                    });
+                }
+            }
+
+            textContent = textParts.Length > 0 ? textParts.ToString() : null;
+        }
+
+        return new ChatResponse
+        {
+            Content = textContent,
+            ToolCalls = toolCalls,
+            FinishReason = stopReason
+        };
     }
 
     public async IAsyncEnumerable<string> StreamAsync(
@@ -283,12 +339,50 @@ public sealed class AnthropicClient : IChatClient
             // Skip system messages — they're passed as the top-level "system" parameter
             if (msg.Role == "system") continue;
 
-            // Anthropic only supports "user" and "assistant" roles
-            formattedMessages.Add(new
+            if (msg.Role == "assistant" && msg.ToolCalls is { Count: > 0 })
             {
-                role = msg.Role == "assistant" ? "assistant" : "user",
-                content = msg.Content
-            });
+                // Assistant message with tool calls → content blocks
+                var contentBlocks = new List<object>();
+                if (!string.IsNullOrEmpty(msg.Content))
+                    contentBlocks.Add(new { type = "text", text = msg.Content });
+                foreach (var tc in msg.ToolCalls)
+                {
+                    contentBlocks.Add(new
+                    {
+                        type = "tool_use",
+                        id = tc.Id,
+                        name = tc.Name,
+                        input = JsonSerializer.Deserialize<JsonElement>(tc.Arguments)
+                    });
+                }
+                formattedMessages.Add(new { role = "assistant", content = contentBlocks });
+            }
+            else if (msg.Role == "tool")
+            {
+                // Tool result → user message with tool_result content block
+                formattedMessages.Add(new
+                {
+                    role = "user",
+                    content = new object[]
+                    {
+                        new
+                        {
+                            type = "tool_result",
+                            tool_use_id = msg.ToolCallId ?? "",
+                            content = msg.Content
+                        }
+                    }
+                });
+            }
+            else
+            {
+                // Regular user/assistant message
+                formattedMessages.Add(new
+                {
+                    role = msg.Role == "assistant" ? "assistant" : "user",
+                    content = msg.Content
+                });
+            }
         }
         
         var payload = new Dictionary<string, object>
