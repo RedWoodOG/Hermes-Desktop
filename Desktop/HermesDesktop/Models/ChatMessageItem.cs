@@ -51,6 +51,7 @@ public sealed class ToolCallInfo : INotifyPropertyChanged
 public sealed class ChatMessageItem : INotifyPropertyChanged
 {
     private string _content;
+    private readonly System.Text.StringBuilder _thinkingBuilder = new();
     private string _thinkingContent = "";
     private bool _isStreaming;
     private ChatMessageType _messageType;
@@ -121,7 +122,8 @@ public sealed class ChatMessageItem : INotifyPropertyChanged
 
     public void AppendThinking(string token)
     {
-        _thinkingContent += token;
+        _thinkingBuilder.Append(token);
+        _thinkingContent = _thinkingBuilder.ToString();
         OnPropertyChanged(nameof(ThinkingContent));
         OnPropertyChanged(nameof(HasThinking));
     }

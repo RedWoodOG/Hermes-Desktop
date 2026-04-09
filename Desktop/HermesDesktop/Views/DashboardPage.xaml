@@ -190,6 +190,48 @@
                     </StackPanel>
                 </Border>
             </Grid>
+            <!-- ═══ Usage Insights ═══ -->
+            <Border x:Name="InsightsPanel" Style="{StaticResource SurfaceCardStyle}" Visibility="Collapsed">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="Usage Insights" FontSize="16" FontWeight="SemiBold"/>
+
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Total Messages -->
+                        <StackPanel Spacing="2">
+                            <TextBlock Text="Total Turns" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Name="InsightsTurnsText" Text="0" FontSize="22" FontWeight="Bold"
+                                       Foreground="{StaticResource AppAccentTextBrush}"/>
+                        </StackPanel>
+
+                        <!-- Total Tool Calls -->
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="Tool Calls" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Name="InsightsToolCallsText" Text="0" FontSize="22" FontWeight="Bold"
+                                       Foreground="#6BCB77"/>
+                        </StackPanel>
+
+                        <!-- Avg Response Time -->
+                        <StackPanel Grid.Column="2" Spacing="2">
+                            <TextBlock Text="Est. Cost" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Name="InsightsCostText" Text="$0.00" FontSize="22" FontWeight="Bold"
+                                       Foreground="#818CF8"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- Top Tools -->
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Top Tools" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        <StackPanel x:Name="TopToolsList" Spacing="2"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
         </StackPanel>
     </ScrollViewer>
 </Page>

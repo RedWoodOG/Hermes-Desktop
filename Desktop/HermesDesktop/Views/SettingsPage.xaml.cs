@@ -47,6 +47,8 @@ public sealed partial class SettingsPage : Page
         LoadPlatformSettings();
         LoadMemorySettings();
         LoadDisplaySettings();
+        LoadExecutionSettings();
+        LoadPluginSettings();
     }
 
     // ── Model ──
@@ -304,8 +306,15 @@ public sealed partial class SettingsPage : Page
                 ["temperature"] = TemperatureSlider.Value.ToString("F1", CultureInfo.InvariantCulture),
                 ["max_tokens"] = ((int)MaxTokensBox.Value).ToString(CultureInfo.InvariantCulture),
             };
+            // Preserve existing api_key if user didn't type a new one
             if (!string.IsNullOrWhiteSpace(apiKey))
                 extras["api_key"] = apiKey;
+            else
+            {
+                var existingKey = HermesEnvironment.ModelApiKey;
+                if (!string.IsNullOrWhiteSpace(existingKey))
+                    extras["api_key"] = existingKey;
+            }
 
             await HermesEnvironment.SaveConfigSectionAsync("model", extras);
 
@@ -475,6 +484,108 @@ public sealed partial class SettingsPage : Page
     private void OpenConfig_Click(object sender, RoutedEventArgs e) => HermesEnvironment.OpenConfig();
     private void OpenLogs_Click(object sender, RoutedEventArgs e) => HermesEnvironment.OpenLogs();
     private void OpenWorkspace_Click(object sender, RoutedEventArgs e) => HermesEnvironment.OpenWorkspace();
+
+    // ═══════════════════════════════════════════
+    //  Execution Environment
+    // ═══════════════════════════════════════════
+
+    private void LoadExecutionSettings()
+    {
+        SelectComboByTag(ExecBackendCombo,
+            HermesEnvironment.ReadConfigSetting("terminal", "backend") ?? "local");
+
+        ExecWorkingDirBox.Text = HermesEnvironment.ReadConfigSetting("terminal", "working_directory") ?? ".";
+
+        var timeout = HermesEnvironment.ReadConfigSetting("terminal", "timeout");
+        if (double.TryParse(timeout, NumberStyles.Integer, CultureInfo.InvariantCulture, out var to))
+            ExecTimeoutBox.Value = to;
+
+        DockerImageBox.Text = HermesEnvironment.ReadConfigSetting("terminal", "docker_image")
+            ?? "nikolaik/python-nodejs:python3.11-nodejs20";
+
+        var cpu = HermesEnvironment.ReadConfigSetting("terminal", "container_cpu");
+        if (double.TryParse(cpu, NumberStyles.Integer, CultureInfo.InvariantCulture, out var c))
+            DockerCpuBox.Value = c;
+
+        var mem = HermesEnvironment.ReadConfigSetting("terminal", "container_memory");
+        if (double.TryParse(mem, NumberStyles.Integer, CultureInfo.InvariantCulture, out var m))
+            DockerMemoryBox.Value = m;
+
+        UpdateDockerVisibility();
+    }
+
+    private void ExecBackendCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        UpdateDockerVisibility();
+    }
+
+    private void UpdateDockerVisibility()
+    {
+        if (DockerOptionsPanel is null) return;
+        var tag = (ExecBackendCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "local";
+        DockerOptionsPanel.Visibility = string.Equals(tag, "docker", StringComparison.OrdinalIgnoreCase)
+            ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private async void SaveExecutionConfig_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var settings = new Dictionary<string, string>
+            {
+                ["backend"] = (ExecBackendCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "local",
+                ["working_directory"] = ExecWorkingDirBox.Text.Trim(),
+                ["timeout"] = ((int)ExecTimeoutBox.Value).ToString(CultureInfo.InvariantCulture),
+                ["docker_image"] = DockerImageBox.Text.Trim(),
+                ["container_cpu"] = ((int)DockerCpuBox.Value).ToString(CultureInfo.InvariantCulture),
+                ["container_memory"] = ((int)DockerMemoryBox.Value).ToString(CultureInfo.InvariantCulture),
+            };
+
+            await HermesEnvironment.SaveConfigSectionAsync("terminal", settings);
+
+            ExecutionSaveStatus.Text = "Saved successfully. Restart to apply.";
+            ExecutionSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOnlineBrush"];
+        }
+        catch (Exception ex)
+        {
+            ExecutionSaveStatus.Text = $"Error: {ex.Message}";
+            ExecutionSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
+        }
+    }
+
+    // ═══════════════════════════════════════════
+    //  Plugins & Extensions
+    // ═══════════════════════════════════════════
+
+    private void LoadPluginSettings()
+    {
+        var builtinEnabled = HermesEnvironment.ReadConfigSetting("plugins", "builtin_memory");
+        BuiltinMemoryPluginToggle.IsOn = !string.Equals(builtinEnabled, "false", StringComparison.OrdinalIgnoreCase);
+
+        ExternalMemoryProviderBox.Text = HermesEnvironment.ReadConfigSetting("plugins", "external_memory_provider") ?? "";
+    }
+
+    private async void SavePluginConfig_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            var settings = new Dictionary<string, string>
+            {
+                ["builtin_memory"] = BuiltinMemoryPluginToggle.IsOn.ToString().ToLowerInvariant(),
+                ["external_memory_provider"] = ExternalMemoryProviderBox.Text.Trim(),
+            };
+
+            await HermesEnvironment.SaveConfigSectionAsync("plugins", settings);
+
+            PluginSaveStatus.Text = "Saved successfully. Restart to apply.";
+            PluginSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOnlineBrush"];
+        }
+        catch (Exception ex)
+        {
+            PluginSaveStatus.Text = $"Error: {ex.Message}";
+            PluginSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
+        }
+    }
 
     // ═══════════════════════════════════════════
     //  Helpers

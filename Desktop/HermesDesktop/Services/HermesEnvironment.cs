@@ -620,9 +620,10 @@ internal static class HermesEnvironment
         if (string.IsNullOrEmpty(val)) return "\"\"";
         if (val.Contains('#') || val.Contains(": ") || val.Contains('{') || val.Contains('}') ||
             val.Contains('[') || val.Contains(']') || val.StartsWith("'") || val.StartsWith("\"") ||
-            val.StartsWith(" ") || val.EndsWith(" "))
+            val.StartsWith(" ") || val.EndsWith(" ") ||
+            val.Contains('\n') || val.Contains('\r'))
         {
-            return $"\"{val.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
+            return $"\"{val.Replace("\\", "\\\\").Replace("\"", "\\\"").Replace("\n", "\\n").Replace("\r", "\\r")}\"";
         }
         return val;
     }

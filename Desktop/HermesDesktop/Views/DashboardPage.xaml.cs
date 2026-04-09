@@ -1,4 +1,5 @@
 using HermesDesktop.Services;
+using Hermes.Agent.Analytics;
 using Hermes.Agent.Core;
 using Hermes.Agent.LLM;
 using Hermes.Agent.Skills;
@@ -39,6 +40,7 @@ public sealed partial class DashboardPage : Page
         LoadStats();
         LoadPlatformBadges();
         LoadModelInfo();
+        LoadInsights();
         await LoadRecentSessionsAsync();
         await CheckLlmStatusAsync();
     }
@@ -238,6 +240,58 @@ public sealed partial class DashboardPage : Page
 
     private void OpenLogs_Click(object sender, RoutedEventArgs e) => HermesEnvironment.OpenLogs();
     private void OpenConfig_Click(object sender, RoutedEventArgs e) => HermesEnvironment.OpenConfig();
+
+    // ── Usage Insights ──
+
+    private void LoadInsights()
+    {
+        var insights = App.Services?.GetService<InsightsService>();
+        if (insights is null)
+        {
+            InsightsPanel.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        InsightsPanel.Visibility = Visibility.Visible;
+        var data = insights.GetInsights();
+
+        InsightsTurnsText.Text = data.TotalTurns.ToString("N0");
+
+        long totalToolCalls = 0;
+        foreach (var ts in data.ToolUsage.Values)
+            totalToolCalls += ts.TotalCalls;
+        InsightsToolCallsText.Text = totalToolCalls.ToString("N0");
+
+        InsightsCostText.Text = $"${data.EstimatedCostUsd:F4}";
+
+        // Top 5 tools
+        TopToolsList.Children.Clear();
+        var topTools = data.ToolUsage
+            .OrderByDescending(kv => kv.Value.TotalCalls)
+            .Take(5);
+
+        foreach (var kv in topTools)
+        {
+            var avgMs = kv.Value.TotalCalls > 0 ? kv.Value.TotalDurationMs / kv.Value.TotalCalls : 0;
+            TopToolsList.Children.Add(new TextBlock
+            {
+                Text = $"{kv.Key}: {kv.Value.TotalCalls:N0} calls (avg {avgMs}ms)",
+                FontSize = 12,
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 180, 180, 180))
+            });
+        }
+
+        if (!data.ToolUsage.Any())
+        {
+            TopToolsList.Children.Add(new TextBlock
+            {
+                Text = "No tool usage recorded yet.",
+                FontSize = 12,
+                Opacity = 0.5,
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 150, 150, 150))
+            });
+        }
+    }
 
     // ── Helpers ──
 

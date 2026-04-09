@@ -571,7 +571,140 @@
                 </Expander.Content>
             </Expander>
 
-            <!-- ═══ G. Paths & System ═══ -->
+            <!-- ═══ G. Execution Environment ═══ -->
+            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <FontIcon Glyph="&#xE756;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
+                        <TextBlock Text="Execution Environment" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Expander.Header>
+                <Expander.Content>
+                    <StackPanel Spacing="12" Padding="4,8,4,4">
+                        <!-- Backend -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="BACKEND" Style="{StaticResource LabelTextStyle}"/>
+                            <ComboBox x:Name="ExecBackendCombo" HorizontalAlignment="Stretch"
+                                      Background="{StaticResource AppInsetBrush}"
+                                      BorderBrush="{StaticResource AppStrokeBrush}"
+                                      SelectionChanged="ExecBackendCombo_SelectionChanged">
+                                <ComboBoxItem Content="Local" Tag="local"/>
+                                <ComboBoxItem Content="Docker" Tag="docker"/>
+                                <ComboBoxItem Content="SSH" Tag="ssh"/>
+                                <ComboBoxItem Content="Modal" Tag="modal"/>
+                                <ComboBoxItem Content="Daytona" Tag="daytona"/>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <!-- Working Directory -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="WORKING DIRECTORY" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="ExecWorkingDirBox" PlaceholderText="."
+                                     Background="{StaticResource AppInsetBrush}"
+                                     BorderBrush="{StaticResource AppStrokeBrush}"
+                                     Foreground="White"/>
+                        </StackPanel>
+
+                        <!-- Timeout -->
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="TIMEOUT (SECONDS)" Style="{StaticResource LabelTextStyle}"/>
+                            <NumberBox x:Name="ExecTimeoutBox" Value="180"
+                                       Minimum="1" Maximum="3600" SpinButtonPlacementMode="Inline"
+                                       Background="{StaticResource AppInsetBrush}"
+                                       BorderBrush="{StaticResource AppStrokeBrush}"/>
+                        </StackPanel>
+
+                        <!-- Docker-specific fields (visible only when Docker selected) -->
+                        <StackPanel x:Name="DockerOptionsPanel" Spacing="8" Visibility="Collapsed">
+                            <Border Height="1" Background="{StaticResource AppStrokeBrush}" Margin="0,4"/>
+                            <TextBlock Text="DOCKER OPTIONS" Style="{StaticResource LabelTextStyle}"/>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="DOCKER IMAGE" Style="{StaticResource LabelTextStyle}"/>
+                                <TextBox x:Name="DockerImageBox"
+                                         PlaceholderText="nikolaik/python-nodejs:python3.11-nodejs20"
+                                         Background="{StaticResource AppInsetBrush}"
+                                         BorderBrush="{StaticResource AppStrokeBrush}"
+                                         Foreground="White"/>
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="CONTAINER CPU" Style="{StaticResource LabelTextStyle}"/>
+                                <NumberBox x:Name="DockerCpuBox" Value="1"
+                                           Minimum="1" Maximum="32" SpinButtonPlacementMode="Inline"
+                                           Background="{StaticResource AppInsetBrush}"
+                                           BorderBrush="{StaticResource AppStrokeBrush}"/>
+                            </StackPanel>
+
+                            <StackPanel Spacing="4">
+                                <TextBlock Text="CONTAINER MEMORY (MB)" Style="{StaticResource LabelTextStyle}"/>
+                                <NumberBox x:Name="DockerMemoryBox" Value="5120"
+                                           Minimum="256" Maximum="65536" SpinButtonPlacementMode="Inline"
+                                           Background="{StaticResource AppInsetBrush}"
+                                           BorderBrush="{StaticResource AppStrokeBrush}"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- Save -->
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Button Content="Save Execution Config" Click="SaveExecutionConfig_Click"
+                                    Background="{StaticResource AppAccentGradientBrush}"
+                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
+                                    Foreground="#16110D" Padding="20,8"/>
+                            <TextBlock x:Name="ExecutionSaveStatus" VerticalAlignment="Center"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Expander.Content>
+            </Expander>
+
+            <!-- ═══ H. Plugins & Extensions ═══ -->
+            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <FontIcon Glyph="&#xEA86;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
+                        <TextBlock Text="Plugins &amp; Extensions" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Expander.Header>
+                <Expander.Content>
+                    <StackPanel Spacing="12" Padding="4,8,4,4">
+                        <Grid ColumnSpacing="12" RowSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="Built-in Memory Plugin" VerticalAlignment="Center"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
+                            <ToggleSwitch x:Name="BuiltinMemoryPluginToggle" Grid.Column="1" IsOn="True"/>
+
+                            <TextBlock Grid.Row="1" Text="EXTERNAL MEMORY PROVIDER" VerticalAlignment="Center"
+                                       Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="ExternalMemoryProviderBox" Grid.Row="1" Grid.Column="1"
+                                     PlaceholderText="Leave empty for built-in only"
+                                     Background="{StaticResource AppInsetBrush}"
+                                     BorderBrush="{StaticResource AppStrokeBrush}"
+                                     Foreground="White"/>
+                        </Grid>
+
+                        <!-- Save -->
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Button Content="Save Plugin Config" Click="SavePluginConfig_Click"
+                                    Background="{StaticResource AppAccentGradientBrush}"
+                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
+                                    Foreground="#16110D" Padding="20,8"/>
+                            <TextBlock x:Name="PluginSaveStatus" VerticalAlignment="Center"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Expander.Content>
+            </Expander>
+
+            <!-- ═══ I. Paths & System ═══ -->
             <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal" Spacing="10">

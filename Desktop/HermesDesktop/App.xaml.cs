@@ -13,6 +13,7 @@ using Hermes.Agent.Context;
 using Hermes.Agent.Agents;
 using Hermes.Agent.Coordinator;
 using Hermes.Agent.Mcp;
+using Hermes.Agent.Analytics;
 using Hermes.Agent.Plugins;
 using Hermes.Agent.Soul;
 using Hermes.Agent.Tools;
@@ -172,6 +173,10 @@ public partial class App : Application
             pm.Register(new BuiltinMemoryPlugin(sp.GetRequiredService<MemoryManager>()));
             return pm;
         });
+
+        // Analytics / Insights service
+        var insightsDir = Path.Combine(projectDir, "analytics");
+        services.AddSingleton(_ => new InsightsService(insightsDir));
 
         // Core agent — wired with all optional dependencies
         services.AddSingleton(sp => new Agent(
