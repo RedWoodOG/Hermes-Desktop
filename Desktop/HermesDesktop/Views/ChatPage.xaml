@@ -143,13 +143,22 @@
                         </Grid>
                     </Border>
 
-                    <!-- Permission mode indicator + disclaimer -->
+                    <!-- Model switcher + Permission mode + disclaimer -->
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
-                        <StackPanel Orientation="Horizontal" Spacing="6" Opacity="0.5">
+                        <!-- Model quick-switch -->
+                        <ComboBox x:Name="ModelSwitchCombo" FontSize="11" MinWidth="160" MaxWidth="240"
+                                  MinHeight="24" Padding="6,2" CornerRadius="4"
+                                  Background="{StaticResource AppInsetBrush}"
+                                  BorderBrush="{StaticResource AppStrokeBrush}"
+                                  VerticalAlignment="Center"
+                                  SelectionChanged="ModelSwitchCombo_SelectionChanged"/>
+                        <!-- Permission mode -->
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Opacity="0.5" Margin="12,0,0,0">
                             <TextBlock x:Name="PermissionModeLabel" Text="Default mode"
                                        FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"
                                        VerticalAlignment="Center" />
@@ -157,7 +166,7 @@
                                              FontSize="11" Padding="0"
                                              Click="PermissionModeToggle_Click" />
                         </StackPanel>
-                        <TextBlock Grid.Column="1" Text="Hermes can make mistakes. Verify important information."
+                        <TextBlock Grid.Column="2" Text="Hermes can make mistakes. Verify important information."
                                    FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}"
                                    Opacity="0.4" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>

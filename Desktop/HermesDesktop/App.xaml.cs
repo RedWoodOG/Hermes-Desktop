@@ -67,17 +67,18 @@ public partial class App : Application
         if (credentialPool is not null)
             services.AddSingleton(credentialPool);
 
+        // Chat client factory — enables runtime model/provider swapping
+        // Pattern from Claude Code: model read from state at call time, fresh client on swap
+        services.AddSingleton(sp => new ChatClientFactory(
+            sp.GetRequiredService<LlmConfig>(),
+            new HttpClient { Timeout = TimeSpan.FromMinutes(5) },
+            sp.GetRequiredService<ILogger<ChatClientFactory>>(),
+            sp.GetService<CredentialPool>()));
+
+        // Swappable proxy — all existing IChatClient consumers automatically route
+        // through the factory's current client. No code changes needed anywhere else.
         services.AddSingleton<IChatClient>(sp =>
-        {
-            var config = sp.GetRequiredService<LlmConfig>();
-            var http = sp.GetRequiredService<HttpClient>();
-            var pool = sp.GetService<CredentialPool>(); // null if not configured
-            return config.Provider?.ToLowerInvariant() switch
-            {
-                "anthropic" or "claude" => new AnthropicClient(config, http, pool),
-                _ => new OpenAiClient(config, http, pool),
-            };
-        });
+            new SwappableChatClient(sp.GetRequiredService<ChatClientFactory>()));
 
         // Hermes home directory
         var hermesHome = HermesEnvironment.HermesHomePath;

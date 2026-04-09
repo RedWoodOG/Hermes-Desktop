@@ -6,6 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Hermes.Agent.Core;
+using Hermes.Agent.LLM;
 using Hermes.Agent.Skills;
 using Hermes.Agent.Soul;
 using Hermes.Agent.Transcript;
@@ -29,6 +30,8 @@ public sealed partial class ChatPage : Page
     private readonly TranscriptStore _transcriptStore = App.Services.GetRequiredService<TranscriptStore>();
     private readonly SessionRecorder _sessionRecorder = new();
     private readonly SoulService _soulService = App.Services.GetRequiredService<SoulService>();
+    private readonly ChatClientFactory _clientFactory = App.Services.GetRequiredService<ChatClientFactory>();
+    private bool _suppressModelSwitch;
     private readonly Brush _assistantBackgroundBrush;
     private readonly Brush _assistantBorderBrush;
     private readonly Brush _userBackgroundBrush;
@@ -125,12 +128,89 @@ public sealed partial class ChatPage : Page
             }
         };
 
+        PopulateModelSwitcher();
+
         if (_soulService.IsFirstRun())
             ShowOnboarding();
         else
             AppendWelcomeMessage();
 
         await RefreshConnectionStatusAsync();
+    }
+
+    // ── Model Switcher ──
+
+    private void PopulateModelSwitcher()
+    {
+        _suppressModelSwitch = true;
+
+        ModelSwitchCombo.Items.Clear();
+
+        // Read API keys from config.yaml provider_keys section (never hardcode keys in source)
+        var anthropicKey = HermesEnvironment.ReadConfigSetting("model", "api_key")
+            ?? HermesEnvironment.ReadConfigSetting("provider_keys", "anthropic") ?? "";
+        var openaiKey = HermesEnvironment.ReadConfigSetting("provider_keys", "openai") ?? "";
+        var qwenKey = HermesEnvironment.ReadConfigSetting("provider_keys", "qwen") ?? "";
+        var ollamaUrl = HermesEnvironment.ReadConfigSetting("provider_keys", "ollama_url")
+            ?? "http://127.0.0.1:11434/v1";
+
+        var presets = new (string Label, string Provider, string Model, string BaseUrl, string ApiKey)[]
+        {
+            ("Claude Sonnet 4.6", "anthropic", "claude-sonnet-4-6", "https://api.anthropic.com", anthropicKey),
+            ("GPT-5.4", "openai", "gpt-5.4", "https://api.openai.com/v1", openaiKey),
+            ("GPT-5.4 Mini", "openai", "gpt-5.4-mini", "https://api.openai.com/v1", openaiKey),
+            ("Ollama (Local)", "ollama", "glm-4.7-flash:latest", ollamaUrl, ""),
+            ("Qwen", "qwen", "qwen-plus", "https://dashscope.aliyuncs.com/compatible-mode/v1", qwenKey),
+        };
+
+        int selectedIdx = 0;
+        var currentModel = _clientFactory.CurrentModel;
+
+        for (int i = 0; i < presets.Length; i++)
+        {
+            var p = presets[i];
+            ModelSwitchCombo.Items.Add(new ComboBoxItem
+            {
+                Content = p.Label,
+                Tag = $"{p.Provider}|{p.Model}|{p.BaseUrl}|{p.ApiKey}"
+            });
+            if (string.Equals(p.Model, currentModel, StringComparison.OrdinalIgnoreCase))
+                selectedIdx = i;
+        }
+
+        ModelSwitchCombo.SelectedIndex = selectedIdx;
+        _suppressModelSwitch = false;
+    }
+
+    private void ModelSwitchCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressModelSwitch || ModelSwitchCombo.SelectedItem is not ComboBoxItem item)
+            return;
+
+        var tag = item.Tag?.ToString() ?? "";
+        var parts = tag.Split('|', 4);
+        if (parts.Length < 3) return;
+
+        var provider = parts[0];
+        var model = parts[1];
+        var baseUrl = parts[2];
+        var apiKey = parts.Length > 3 ? parts[3] : "";
+
+        var newConfig = new LlmConfig
+        {
+            Provider = provider,
+            Model = model,
+            BaseUrl = baseUrl,
+            ApiKey = string.IsNullOrEmpty(apiKey) ? null : apiKey,
+            Temperature = 0.7,
+            MaxTokens = 4096
+        };
+
+        _clientFactory.SwitchProvider(newConfig);
+
+        // Update status bar
+        ConnectionStateText.Text = $"Switched to {item.Content}";
+        AppendSystemMessage($"Model switched to **{item.Content}** ({provider}/{model})");
     }
 
     private async void OnSessionSelected(string sessionId)
