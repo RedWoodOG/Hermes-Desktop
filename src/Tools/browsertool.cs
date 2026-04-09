@@ -185,17 +185,21 @@ public sealed class BrowserTool : ITool, IAsyncDisposable
         var title = await _page.TitleAsync();
         var url = _page.Url;
 
-        // Get accessibility snapshot
-        var snapshot = await _page.Accessibility.SnapshotAsync();
+        // Get page text content (Playwright removed Accessibility.SnapshotAsync in newer versions)
         var sb = new StringBuilder();
         sb.AppendLine($"Page: {title}");
         sb.AppendLine($"URL: {url}");
         sb.AppendLine();
 
-        if (snapshot is not null)
-            RenderAccessibilityNode(snapshot, sb, 0);
-        else
-            sb.AppendLine("(accessibility tree not available)");
+        try
+        {
+            var bodyText = await _page.InnerTextAsync("body");
+            sb.AppendLine(bodyText);
+        }
+        catch
+        {
+            sb.AppendLine("(page content not available)");
+        }
 
         var output = sb.ToString();
         // Truncate if too large (>8000 chars)
@@ -251,6 +255,15 @@ public sealed class BrowserTool : ITool, IAsyncDisposable
         }
         _playwright?.Dispose();
     }
+}
+
+/// <summary>Represents a node in the browser accessibility tree.</summary>
+public sealed class AccessibilitySnapshotResult
+{
+    public string? Role { get; set; }
+    public string? Name { get; set; }
+    public string? Value { get; set; }
+    public IReadOnlyList<AccessibilitySnapshotResult>? Children { get; set; }
 }
 
 public sealed class BrowserParameters

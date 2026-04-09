@@ -227,7 +227,7 @@ public sealed class SkillManager
         }
 
         // ── Security scan + rollback ──
-        if (Agent.Security.SecretScanner.ContainsSecrets(content))
+        if (Hermes.Agent.Security.SecretScanner.ContainsSecrets(content))
         {
             File.Delete(path);
             throw new InvalidOperationException("Skill content contains secrets — creation blocked and rolled back.");
@@ -276,7 +276,7 @@ public sealed class SkillManager
         }
 
         // Security scan + rollback
-        if (Agent.Security.SecretScanner.ContainsSecrets(newContent))
+        if (Hermes.Agent.Security.SecretScanner.ContainsSecrets(newContent))
         {
             await File.WriteAllTextAsync(existing.FilePath, backup, ct);
             throw new InvalidOperationException("Edited skill contains secrets — rolled back to original.");
@@ -323,7 +323,7 @@ public sealed class SkillManager
         }
 
         // Security scan + rollback
-        if (Agent.Security.SecretScanner.ContainsSecrets(content))
+        if (Hermes.Agent.Security.SecretScanner.ContainsSecrets(content))
         {
             await File.WriteAllTextAsync(existing.FilePath, backup, ct);
             throw new InvalidOperationException("Patched skill contains secrets — rolled back.");
