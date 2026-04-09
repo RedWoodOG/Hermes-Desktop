@@ -27,6 +27,20 @@
                 </StackPanel>
             </Border>
 
+            <!-- Gateway requirement notice -->
+            <Border Background="#1A1500" CornerRadius="8" Padding="16,12" BorderBrush="#3A3000" BorderThickness="1">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="&#xE946; Messaging platforms require the Hermes Agent CLI gateway"
+                               FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                               FontSize="13" Foreground="{StaticResource AppAccentTextBrush}" />
+                    <TextBlock Text="The desktop app configures and manages the gateway, but messaging (Telegram, Discord, Slack, etc.) runs as a separate Python service. Install hermes-agent to enable platform integrations."
+                               FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap" />
+                    <HyperlinkButton Content="Install hermes-agent (pip install hermes-agent)"
+                                     NavigateUri="https://github.com/NousResearch/hermes-agent"
+                                     FontSize="12" Padding="0" />
+                </StackPanel>
+            </Border>
+
             <!-- Gateway Status -->
             <Border Style="{StaticResource SurfaceCardStyle}">
                 <StackPanel Spacing="12">

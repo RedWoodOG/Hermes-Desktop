@@ -96,8 +96,18 @@ public partial class App : Application
             sp.GetRequiredService<IChatClient>(),
             sp.GetRequiredService<ILogger<MemoryManager>>()));
 
-        // Skill manager
+        // Skill manager — copy bundled skills on first run if user dir is empty
         var skillsDir = Path.Combine(projectDir, "skills");
+        var bundledSkillsDir = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", "skills");
+        if (!Directory.Exists(skillsDir) || !Directory.EnumerateFileSystemEntries(skillsDir).Any())
+        {
+            var resolvedBundled = Path.GetFullPath(bundledSkillsDir);
+            if (Directory.Exists(resolvedBundled))
+            {
+                CopyDirectoryRecursive(resolvedBundled, skillsDir);
+                System.Diagnostics.Debug.WriteLine($"Copied bundled skills from {resolvedBundled} to {skillsDir}");
+            }
+        }
         services.AddSingleton(sp => new SkillManager(
             skillsDir,
             sp.GetRequiredService<ILogger<SkillManager>>()));
@@ -354,6 +364,16 @@ public partial class App : Application
     {
         agent.RegisterTool(tool);
         registry.RegisterTool(tool);
+    }
+
+    /// <summary>Copy a directory tree recursively (used for first-run skill bundling).</summary>
+    private static void CopyDirectoryRecursive(string source, string destination)
+    {
+        Directory.CreateDirectory(destination);
+        foreach (var file in Directory.EnumerateFiles(source))
+            File.Copy(file, Path.Combine(destination, Path.GetFileName(file)), overwrite: false);
+        foreach (var dir in Directory.EnumerateDirectories(source))
+            CopyDirectoryRecursive(dir, Path.Combine(destination, Path.GetFileName(dir)));
     }
 
     /// <summary>
