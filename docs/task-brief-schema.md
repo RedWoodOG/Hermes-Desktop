@@ -13,7 +13,7 @@ A brief is the contract between the user and the coordinator (M). It answers:
 | What's explicitly off-limits? | `exclude` |
 | How many agents, doing what? | `agentCount` + `agentRoles` |
 | What does the output look like? | `outputFormat` + `outputTemplate` |
-| How do we know it's done RIGHT? | `verifyMethod` + `verifyChecklist` |
+| How do we know it's done RIGHT? | `verifyMethod` (`Checklist`, `Contains`, `Schema`, `Manual`) + verification data |
 | What kind of task is this? | `type` + `typeGuidance` |
 | Who handles blockers? | `escalateTo` |
 
@@ -35,7 +35,11 @@ A brief is the contract between the user and the coordinator (M). It answers:
 5. Agents work within hard boundaries from the brief
          │
          ▼
-6. M verifies output against the brief's checklist
+6. M verifies output using the brief's verification method:
+   - Checklist: LLM evaluates each item in verifyChecklist
+   - Contains: Machine checks for required strings in verifyContains
+   - Schema: Validates JSON against verifySchema
+   - Manual: Routes to verifyManual (human review)
          │
          ▼
 7. Pass → Done │ Fail → Retry or escalate
@@ -265,7 +269,7 @@ M drafts:
 1. **Explicit over inferred.** If it matters, it's in the brief. Agents don't guess.
 2. **Hard boundaries over soft guidance.** `focus` and `exclude` are walls, not fences.
 3. **Templates over descriptions.** "Fill in this table" beats "produce a table".
-4. **Machine-checkable over judgment calls.** `verifyContains` needs no LLM. `verifyChecklist` items are yes/no.
+4. **Machine-checkable over judgment calls.** `verifyContains` and `verifySchema` need no LLM. `verifyChecklist` items are yes/no.
 5. **Turn limits are mandatory.** Local models will loop forever without them.
 6. **Fewer agents with clear roles.** 2 focused agents beats 5 vague ones.
 7. **M drafts, user approves.** The user's interface is natural language, not JSON.
