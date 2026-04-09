@@ -333,6 +333,8 @@ public sealed partial class ChatPage : Page
         }
         finally
         {
+            if (assistantItem is not null)
+                assistantItem.IsStreaming = false;
             dotTimer.Stop();
             SetBusy(false);
             SessionIdLabel.Text = string.IsNullOrEmpty(_chatService.CurrentSessionId)

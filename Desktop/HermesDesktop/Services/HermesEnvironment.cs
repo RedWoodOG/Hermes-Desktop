@@ -395,7 +395,7 @@ internal static class HermesEnvironment
             string trimmed = lines[i].Trim();
             if (trimmed.StartsWith(keyPrefix, StringComparison.OrdinalIgnoreCase))
             {
-                lines[i] = $"    {key}: {value}";
+                lines[i] = $"    {key}: {QuoteYamlValue(value)}";
                 found = true;
                 break;
             }
@@ -403,7 +403,7 @@ internal static class HermesEnvironment
 
         if (!found)
         {
-            lines.Insert(platStart + 1, $"    {key}: {value}");
+            lines.Insert(platStart + 1, $"    {key}: {QuoteYamlValue(value)}");
         }
 
         await File.WriteAllLinesAsync(configPath, lines);
@@ -569,36 +569,7 @@ internal static class HermesEnvironment
     }
 
     /// <summary>Read a value from the integrations section of config.yaml.</summary>
-    internal static string? ReadIntegrationSetting(string key)
-    {
-        if (!File.Exists(HermesConfigPath))
-            return null;
-
-        bool inSection = false;
-        foreach (string rawLine in File.ReadLines(HermesConfigPath))
-        {
-            string line = rawLine.TrimEnd();
-            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("#", StringComparison.Ordinal))
-                continue;
-
-            // Any non-indented line is a section boundary
-            if (rawLine.Length > 0 && !char.IsWhiteSpace(rawLine, 0))
-            {
-                inSection = line.EndsWith(":", StringComparison.Ordinal) &&
-                            string.Equals(line, "integrations:", StringComparison.OrdinalIgnoreCase);
-                continue;
-            }
-
-            if (!inSection) continue;
-
-            string trimmed = line.Trim();
-            string prefix = $"{key}:";
-            if (trimmed.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                return trimmed[prefix.Length..].Trim().Trim('"', '\'');
-        }
-
-        return null;
-    }
+    internal static string? ReadIntegrationSetting(string key) => ReadConfigSetting("integrations", key);
 
     /// <summary>Read a value from any top-level section of config.yaml (section.key).</summary>
     internal static string? ReadConfigSetting(string section, string key)
@@ -643,6 +614,19 @@ internal static class HermesEnvironment
         await WriteYamlSectionAsync(configPath, section, settings);
     }
 
+    /// <summary>Quote a YAML value if it contains special characters.</summary>
+    private static string QuoteYamlValue(string val)
+    {
+        if (string.IsNullOrEmpty(val)) return "\"\"";
+        if (val.Contains('#') || val.Contains(": ") || val.Contains('{') || val.Contains('}') ||
+            val.Contains('[') || val.Contains(']') || val.StartsWith("'") || val.StartsWith("\"") ||
+            val.StartsWith(" ") || val.EndsWith(" "))
+        {
+            return $"\"{val.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
+        }
+        return val;
+    }
+
     private static async Task WriteYamlSectionAsync(string configPath, string sectionName, Dictionary<string, string> settings)
     {
         var lines = File.Exists(configPath)
@@ -675,15 +659,7 @@ internal static class HermesEnvironment
         var newSection = new List<string> { $"{sectionName}:" };
         foreach (var kv in settings)
         {
-            var val = kv.Value;
-            // Quote if value contains YAML-special chars: #, :, {, }, [, ], leading/trailing quotes or spaces
-            if (val.Contains('#') || val.Contains(": ") || val.Contains('{') || val.Contains('}') ||
-                val.Contains('[') || val.Contains(']') || val.StartsWith("'") || val.StartsWith("\"") ||
-                val.StartsWith(" ") || val.EndsWith(" "))
-            {
-                val = $"\"{val.Replace("\\", "\\\\").Replace("\"", "\\\"")}\"";
-            }
-            newSection.Add($"  {kv.Key}: {val}");
+            newSection.Add($"  {kv.Key}: {QuoteYamlValue(kv.Value)}");
         }
 
         if (sectionStart >= 0)
