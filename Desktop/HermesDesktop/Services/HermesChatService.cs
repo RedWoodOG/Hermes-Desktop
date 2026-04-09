@@ -100,6 +100,7 @@ internal sealed class HermesChatService : IDisposable
         [EnumeratorCancellation] CancellationToken ct)
     {
         EnsureSession();
+        _streamCts?.Dispose();
         _streamCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
         var fullResponse = new System.Text.StringBuilder();
