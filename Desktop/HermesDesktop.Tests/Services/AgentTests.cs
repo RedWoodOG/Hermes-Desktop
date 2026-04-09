@@ -266,6 +266,66 @@ public class AgentTests
             await _agent.ChatAsync("any", session, cts.Token));
     }
 
+    /// <summary>
+    /// End-to-end tool loop (provider-agnostic): LLM requests a tool → tool executes → LLM returns final text.
+    /// Mirrors Anthropic/OpenRouter tool-calling behavior without live HTTP; guards HermesChatService path.
+    /// </summary>
+    [TestMethod]
+    public async Task ChatAsync_TwoTurnToolLoop_ExecutesToolThenReturnsFinalAnswer()
+    {
+        var tool = CreateMockTool("e2e_tool");
+        tool.Setup(t => t.ExecuteAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ToolResult.Ok("tool_result_payload"));
+        _agent.RegisterTool(tool.Object);
+
+        var session = new Session { Id = "sess-tool-e2e" };
+
+        var turn1 = new ChatResponse
+        {
+            Content = "",
+            FinishReason = "tool_calls",
+            ToolCalls =
+            [
+                new ToolCall { Id = "call_1", Name = "e2e_tool", Arguments = "{}" }
+            ]
+        };
+        var turn2 = new ChatResponse
+        {
+            Content = "Final answer after tool.",
+            FinishReason = "stop",
+            ToolCalls = null
+        };
+
+        var responses = new Queue<ChatResponse>([turn1, turn2]);
+        _mockChatClient
+            .Setup(c => c.CompleteWithToolsAsync(
+                It.IsAny<IEnumerable<Message>>(),
+                It.IsAny<IEnumerable<ToolDefinition>>(),
+                It.IsAny<CancellationToken>()))
+            .Returns(() =>
+            {
+                var next = responses.Dequeue();
+                return Task.FromResult(next);
+            });
+
+        var result = await _agent.ChatAsync("Please use e2e_tool.", session, CancellationToken.None);
+
+        Assert.AreEqual("Final answer after tool.", result);
+        _mockChatClient.Verify(c => c.CompleteWithToolsAsync(
+            It.IsAny<IEnumerable<Message>>(),
+            It.IsAny<IEnumerable<ToolDefinition>>(),
+            It.IsAny<CancellationToken>()), Times.Exactly(2));
+
+        tool.Verify(t => t.ExecuteAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Once);
+
+        Assert.IsTrue(session.Messages.Count >= 4, "Expected user + assistant (tool calls) + tool + assistant");
+        Assert.AreEqual("user", session.Messages[0].Role);
+        Assert.AreEqual("assistant", session.Messages[1].Role);
+        Assert.IsNotNull(session.Messages[1].ToolCalls);
+        Assert.AreEqual("tool", session.Messages[2].Role);
+        Assert.AreEqual("assistant", session.Messages[3].Role);
+    }
+
     // ── Helpers ──
 
     private static Mock<ITool> CreateMockTool(string name)

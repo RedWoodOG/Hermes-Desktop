@@ -16,6 +16,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.Windows.ApplicationModel.Resources;
+using Windows.ApplicationModel.DataTransfer;
 
 namespace HermesDesktop.Views;
 
@@ -69,6 +70,7 @@ public sealed partial class ChatPage : Page
 
         ConnectionStateText.Text = ResourceLoader.GetString("ChatStatusChecking");
         SessionIdLabel.Text = "New Session";
+        UpdateSessionFooterCopyButton();
 
         // Wire session panel click → load session into chat
         SessionPanelView.SessionSelected += OnSessionSelected;
@@ -168,6 +170,7 @@ public sealed partial class ChatPage : Page
 
             ScrollToBottom();
             SessionIdLabel.Text = $"Session: {sessionId}";
+            UpdateSessionFooterCopyButton();
             ConnectionStateText.Text = ResourceLoader.GetString("StatusConnected");
 
             // Load activity entries for replay panel
@@ -339,6 +342,7 @@ public sealed partial class ChatPage : Page
             SetBusy(false);
             SessionIdLabel.Text = string.IsNullOrEmpty(_chatService.CurrentSessionId)
                 ? "New Session" : $"Session: {_chatService.CurrentSessionId}";
+            UpdateSessionFooterCopyButton();
             PromptTextBox.Focus(FocusState.Programmatic);
         }
     }
@@ -428,6 +432,7 @@ public sealed partial class ChatPage : Page
         _sessionRecorder.StopRecording();
         Messages.Clear();
         SessionIdLabel.Text = "New Session";
+        UpdateSessionFooterCopyButton();
         _onboarding = OnboardingState.None;
 
         if (_soulService.IsFirstRun())
@@ -476,7 +481,25 @@ public sealed partial class ChatPage : Page
     {
         ConnectionStateText.Text = ResourceLoader.GetString("ChatStatusChecking");
         var (isHealthy, _) = await Task.Run(() => _chatService.CheckHealthAsync(CancellationToken.None));
-        ConnectionStateText.Text = ResourceLoader.GetString(isHealthy ? "StatusConnected" : "StatusOffline");
+        var line = ResourceLoader.GetString(isHealthy ? "StatusConnected" : "StatusOffline");
+        var toolCount = _agent.Tools.Count;
+        ConnectionStateText.Text = toolCount > 0 ? $"{line} · {toolCount} tools" : line;
+    }
+
+    private void UpdateSessionFooterCopyButton()
+    {
+        var id = _chatService.CurrentSessionId;
+        CopySessionIdButton.IsEnabled = !string.IsNullOrEmpty(id);
+    }
+
+    private void CopySessionId_Click(object sender, RoutedEventArgs e)
+    {
+        var id = _chatService.CurrentSessionId;
+        if (string.IsNullOrEmpty(id)) return;
+
+        var package = new DataPackage();
+        package.SetText(id);
+        Clipboard.SetContent(package);
     }
 
     // ── UI Helpers ──

@@ -25,6 +25,14 @@ This is a **WinUI 3** desktop application built on the **Windows App SDK**. It u
 > build if you need a newer framework. Keep `<RuntimeIdentifiers>` synchronized
 > with the framework you pick.
 
+## Hermes Desktop — product focus
+
+When choosing scope, **prefer reliability and trust over feature count.**
+
+- **Gateway (messengers):** Treat the **Python Hermes gateway as an out-of-process sidecar**. The desktop app is the **control plane**: configure tokens and **start/stop** the gateway — do **not** embed a long-running bot host in the GUI process (wrong form factor when the machine sleeps).
+- **Differentiator:** The product’s value is **native Windows UX** — soul browser, skills library, visual settings, activity log, session manager. Upstream open-source Hermes does not ship this shell; protect and improve it before chasing parity on marginal tools.
+- **Hardening first:** Invest in behaviors that prevent **silent data loss** and **runaway cost** — e.g. compression cooldown, provider fallback, atomic writes, deterministic IDs. **A smaller set of dependable tools beats a large set of flaky ones.**
+
 ## Instruction Files Index
 
 All detailed agent instructions are organized under `.github/instructions/`:

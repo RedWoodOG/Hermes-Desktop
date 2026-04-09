@@ -203,8 +203,20 @@
 
                 <!-- Session info footer -->
                 <Border Grid.Row="2" Padding="12,6" BorderBrush="{StaticResource AppStrokeBrush}" BorderThickness="0,1,0,0">
-                    <TextBlock x:Name="SessionIdLabel" FontSize="11"
-                               Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock x:Name="SessionIdLabel" Grid.Column="0" FontSize="11" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"
+                                   Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        <Button x:Name="CopySessionIdButton" Grid.Column="1" Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets"
+                                FontSize="12" MinWidth="32" Padding="6,4" CornerRadius="6"
+                                Background="Transparent" BorderBrush="{StaticResource AppSubtleStrokeBrush}"
+                                Click="CopySessionId_Click" IsEnabled="False"
+                                ToolTipService.ToolTip="Copy session ID"/>
+                    </Grid>
                 </Border>
             </Grid>
         </Border>
