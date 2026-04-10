@@ -11,7 +11,7 @@
   <Identity
     Name="EDC29F63-281C-4D34-8723-155C8122DEA2"
     Publisher="CN=AppPublisher"
-    Version="2.2.0.0" />
+    Version="2.2.1.0" />
 
   <mp:PhoneIdentity PhoneProductId="EDC29F63-281C-4D34-8723-155C8122DEA2" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 

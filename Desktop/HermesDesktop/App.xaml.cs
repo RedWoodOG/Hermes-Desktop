@@ -41,9 +41,42 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        Services = ConfigureServices();
-        _window = new MainWindow();
-        _window.Activate();
+        try
+        {
+            Services = ConfigureServices();
+            _window = new MainWindow();
+            _window.Activate();
+        }
+        catch (Exception ex)
+        {
+            // Write crash details to a file the user can find
+            try
+            {
+                var crashDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "hermes", "hermes-cs", "logs");
+                Directory.CreateDirectory(crashDir);
+                File.WriteAllText(
+                    Path.Combine(crashDir, "desktop-startup.log"),
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] STARTUP CRASH\n{ex}\n");
+            }
+            catch { /* last resort — can't even write the log */ }
+
+            // Show a visible error window so the user knows what happened
+            var errorWindow = new Window();
+            errorWindow.Title = "Hermes Desktop — Startup Error";
+            errorWindow.Content = new Microsoft.UI.Xaml.Controls.TextBlock
+            {
+                Text = $"Hermes Desktop failed to start:\n\n{ex.Message}\n\n" +
+                       $"Details written to:\n%LOCALAPPDATA%\\hermes\\hermes-cs\\logs\\desktop-startup.log\n\n" +
+                       $"Stack trace:\n{ex.StackTrace}",
+                TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap,
+                Margin = new Thickness(24),
+                IsTextSelectionEnabled = true,
+                FontSize = 13
+            };
+            errorWindow.Activate();
+        }
     }
 
     private static ServiceProvider ConfigureServices()
@@ -51,11 +84,20 @@ public partial class App : Application
         var services = new ServiceCollection();
 
         // Logging — file + debug sinks so logs are visible outside Visual Studio
-        var logsDir = Path.Combine(HermesEnvironment.HermesHomePath, "hermes-cs", "logs");
-        Directory.CreateDirectory(logsDir);
+        string logsDir;
+        try
+        {
+            logsDir = Path.Combine(HermesEnvironment.HermesHomePath, "hermes-cs", "logs");
+            Directory.CreateDirectory(logsDir);
+        }
+        catch
+        {
+            logsDir = Path.Combine(Path.GetTempPath(), "hermes-logs");
+            Directory.CreateDirectory(logsDir);
+        }
         services.AddLogging(builder =>
         {
-            builder.AddDebug();
+            try { builder.AddDebug(); } catch { /* Debug logger not available outside VS */ }
             builder.SetMinimumLevel(LogLevel.Information);
             builder.AddProvider(new FileLoggerProvider(Path.Combine(logsDir, "hermes.log")));
         });
@@ -101,16 +143,20 @@ public partial class App : Application
         {
             Directory.CreateDirectory(dir);
         }
-        // Ensure SOUL.md and USER.md exist with defaults
-        var soulPath = Path.Combine(hermesHome, "SOUL.md");
-        var userPath = Path.Combine(hermesHome, "USER.md");
-        if (!File.Exists(soulPath))
-            File.WriteAllText(soulPath, "# Agent Soul\n\nYou are a helpful AI assistant.\n");
-        if (!File.Exists(userPath))
-            File.WriteAllText(userPath, "# User Profile\n\nNo profile configured yet. Tell me about yourself.\n");
-        System.Diagnostics.Debug.WriteLine($"Hermes home: {hermesHome}");
-        System.Diagnostics.Debug.WriteLine($"SOUL.md: {soulPath} (exists: {File.Exists(soulPath)})");
-        System.Diagnostics.Debug.WriteLine($"USER.md: {userPath} (exists: {File.Exists(userPath)})");
+        // Ensure SOUL.md and USER.md exist with defaults (non-fatal if write fails)
+        try
+        {
+            var soulPath = Path.Combine(hermesHome, "SOUL.md");
+            var userPath = Path.Combine(hermesHome, "USER.md");
+            if (!File.Exists(soulPath))
+                File.WriteAllText(soulPath, "# Agent Soul\n\nYou are a helpful AI assistant.\n");
+            if (!File.Exists(userPath))
+                File.WriteAllText(userPath, "# User Profile\n\nNo profile configured yet. Tell me about yourself.\n");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Non-fatal: Could not create default soul/user files: {ex.Message}");
+        }
 
         // Transcript store
         var transcriptsDir = Path.Combine(projectDir, "transcripts");
@@ -123,17 +169,20 @@ public partial class App : Application
             sp.GetRequiredService<IChatClient>(),
             sp.GetRequiredService<ILogger<MemoryManager>>()));
 
-        // Skill manager — copy bundled skills on first run if user dir is empty
+        // Skill manager — copy bundled skills on first run if user dir is empty (non-fatal)
         var skillsDir = Path.Combine(projectDir, "skills");
-        var bundledSkillsDir = FindRepoSkillsDir();
-        if ((!Directory.Exists(skillsDir) || !Directory.EnumerateFileSystemEntries(skillsDir).Any())
-            && bundledSkillsDir is not null)
+        try
         {
-            if (Directory.Exists(bundledSkillsDir))
+            var bundledSkillsDir = FindRepoSkillsDir();
+            if ((!Directory.Exists(skillsDir) || !Directory.EnumerateFileSystemEntries(skillsDir).Any())
+                && bundledSkillsDir is not null && Directory.Exists(bundledSkillsDir))
             {
                 CopyDirectoryRecursive(bundledSkillsDir, skillsDir);
-                System.Diagnostics.Debug.WriteLine($"Copied bundled skills from {bundledSkillsDir} to {skillsDir}");
             }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Non-fatal: Could not copy bundled skills: {ex.Message}");
         }
         services.AddSingleton(sp => new SkillManager(
             skillsDir,
@@ -435,9 +484,15 @@ public partial class App : Application
     {
         Directory.CreateDirectory(destination);
         foreach (var file in Directory.EnumerateFiles(source))
-            File.Copy(file, Path.Combine(destination, Path.GetFileName(file)), overwrite: false);
+        {
+            try { File.Copy(file, Path.Combine(destination, Path.GetFileName(file)), overwrite: true); }
+            catch { /* Skip files that can't be copied — non-fatal */ }
+        }
         foreach (var dir in Directory.EnumerateDirectories(source))
-            CopyDirectoryRecursive(dir, Path.Combine(destination, Path.GetFileName(dir)));
+        {
+            try { CopyDirectoryRecursive(dir, Path.Combine(destination, Path.GetFileName(dir))); }
+            catch { /* Skip directories that can't be copied — non-fatal */ }
+        }
     }
 
     /// <summary>
