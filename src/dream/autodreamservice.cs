@@ -13,7 +13,6 @@ using System.Text.RegularExpressions;
 /// Periodically scans session transcripts and consolidates learnings into persistent memory.
 /// Runs every 10 minutes when enabled.
 /// </summary>
-
 public sealed class AutoDreamService : BackgroundService
 {
     private static readonly TimeSpan SCAN_INTERVAL = TimeSpan.FromMinutes(10);

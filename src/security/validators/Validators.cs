@@ -22,7 +22,7 @@ public sealed class MetacharacterValidator : IShellValidator
             var found = matches.Cast<Match>().Select(m => m.Value).Distinct();
             
             // Command substitution is allowed but needs review
-            if (command.Contains("$(") || command.Contains("`"))
+            if (command.Contains("$(") || command.Contains('`'))
             {
                 return SecurityResult.NeedsReview("Command substitution detected - verify input is not user-controlled");
             }
@@ -88,7 +88,7 @@ public sealed class RedirectionValidator : IShellValidator
         var warnings = new List<string>();
         
         // Check for output redirection to sensitive paths
-        if (command.Contains(">") || command.Contains(">>"))
+        if (command.Contains('>') || command.Contains(">>"))
         {
             var redirectMatch = Regex.Match(command, @">+\s*(\S+)");
             if (redirectMatch.Success)
@@ -114,7 +114,7 @@ public sealed class RedirectionValidator : IShellValidator
         }
         
         // Check for input redirection from sensitive sources
-        if (command.Contains("<"))
+        if (command.Contains('<'))
         {
             // Generally safe, but note it
         }
@@ -488,7 +488,7 @@ public sealed class WildcardValidator : IShellValidator
         
         // Check for rm with wildcards
         var normalized = command.ToLowerInvariant();
-        if (normalized.StartsWith("rm ") && (command.Contains("*") || command.Contains("?")))
+        if (normalized.StartsWith("rm ") && (command.Contains('*') || command.Contains('?')))
         {
             return SecurityResult.NeedsReview("rm with wildcards - verify target files");
         }
@@ -544,7 +544,7 @@ public sealed class EncodingValidator : IShellValidator
         // Check for base64 decoding and execution
         if (normalized.Contains("base64") && normalized.Contains("-d"))
         {
-            if (normalized.Contains("|") && (normalized.Contains("sh") || normalized.Contains("bash")))
+            if (normalized.Contains('|') && (normalized.Contains("sh") || normalized.Contains("bash")))
             {
                 return SecurityResult.Dangerous("Base64 decode and execute - potential obfuscated code");
             }
@@ -658,7 +658,7 @@ public sealed class RmValidator : IShellValidator
                     return SecurityResult.Dangerous("rm -rf on root directory");
                 }
                 
-                if (normalized.Contains("~") || normalized.Contains("$home"))
+                if (normalized.Contains('~') || normalized.Contains("$home"))
                 {
                     return SecurityResult.Dangerous("rm -rf on home directory");
                 }
@@ -691,7 +691,7 @@ public sealed class CurlValidator : IShellValidator
         if (normalized.Contains("curl "))
         {
             // Check for curl piped to shell
-            if (normalized.Contains("|") && (normalized.Contains("sh") || normalized.Contains("bash")))
+            if (normalized.Contains('|') && (normalized.Contains("sh") || normalized.Contains("bash")))
             {
                 return SecurityResult.Dangerous("curl piped to shell - remote code execution");
             }

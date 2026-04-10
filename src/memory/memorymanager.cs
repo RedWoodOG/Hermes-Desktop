@@ -8,7 +8,6 @@ using Microsoft.Extensions.Logging;
 /// Persistent memory system with file-based storage, relevance scanning, and freshness warnings.
 /// Location: ~/.hermes-cs/projects/<git-root>/memory/
 /// </summary>
-
 public sealed class MemoryManager
 {
     private readonly string _memoryDir;

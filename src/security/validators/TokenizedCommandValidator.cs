@@ -196,7 +196,7 @@ public sealed class TokenizedCommandValidator : IShellValidator
 
     private static bool LooksPathLike(string token)
     {
-        return token.StartsWith("/", StringComparison.Ordinal) ||
+        return token.StartsWith('/') ||
                token.StartsWith("./", StringComparison.Ordinal) ||
                token.StartsWith("../", StringComparison.Ordinal) ||
                token.StartsWith(".\\", StringComparison.Ordinal) ||

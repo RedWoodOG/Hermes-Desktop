@@ -8,7 +8,6 @@ using System.Text.RegularExpressions;
 /// Granular permission system with rule-based DSL.
 /// Not binary (allow/deny) - supports allow, deny, ask with patterns.
 /// </summary>
-
 public sealed class PermissionManager
 {
     private readonly PermissionContext _context;

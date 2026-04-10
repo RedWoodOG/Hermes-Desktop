@@ -8,7 +8,6 @@ using Hermes.Agent.Tasks;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
 
-
 /// <summary>
 /// Coordinator Mode - Multi-worker orchestration engine.
 /// Breaks complex tasks into subtasks, spawns workers in parallel, monitors, synthesizes.
