@@ -321,7 +321,7 @@ public sealed partial class ChatPage : Page
         }
 
         SetBusy(true);
-        ShowThinking(true, "Hermes is thinking");
+        ShowThinking(true, ResourceLoader.GetString("Chat_Status_HermesThinking"));
 
         // Dot timer declared outside try so finally can always stop it
         var dotCount = 0;
@@ -330,8 +330,10 @@ public sealed partial class ChatPage : Page
         dotTimer.Tick += (_, _) =>
         {
             dotCount = (dotCount + 1) % 4;
-            var phase = assistantItem is null ? "thinking" : "reasoning";
-            ThinkingText.Text = $"Hermes is {phase}" + new string('.', dotCount);
+            var statusText = assistantItem is null
+                ? ResourceLoader.GetString("Chat_Status_HermesThinking")
+                : ResourceLoader.GetString("Chat_Status_HermesGenerating");
+            ThinkingText.Text = statusText + new string('.', dotCount);
         };
         dotTimer.Start();
 
@@ -469,7 +471,7 @@ public sealed partial class ChatPage : Page
         {
             var invoker = App.Services.GetRequiredService<SkillInvoker>();
             SetBusy(true);
-            ShowThinking(true, "Running skill...");
+            ShowThinking(true, ResourceLoader.GetString("Chat_Status_RunningSkill"));
 
             var response = await invoker.InvokeAsync(command, args, CancellationToken.None);
             ShowThinking(false);

@@ -471,4 +471,13 @@
   <data name="ChatClearButton.AutomationProperties.Name" xml:space="preserve">
     <value>Clear the desktop chat conversation</value>
   </data>
+  <data name="Chat_Status_HermesThinking" xml:space="preserve">
+    <value>Hermes is thinking</value>
+  </data>
+  <data name="Chat_Status_HermesGenerating" xml:space="preserve">
+    <value>Hermes is generating</value>
+  </data>
+  <data name="Chat_Status_RunningSkill" xml:space="preserve">
+    <value>Running skill...</value>
+  </data>
 </root>
