@@ -83,10 +83,34 @@ public partial class App : Application
         services.AddSingleton<IChatClient>(sp =>
             new SwappableChatClient(sp.GetRequiredService<ChatClientFactory>()));
 
-        // Hermes home directory
+        // Hermes home directory — ensure all required dirs exist on startup
         var hermesHome = HermesEnvironment.HermesHomePath;
         var projectDir = Path.Combine(hermesHome, "hermes-cs");
-        Directory.CreateDirectory(projectDir);
+        foreach (var dir in new[]
+        {
+            hermesHome, projectDir,
+            Path.Combine(hermesHome, "soul"),              // mistakes.jsonl, habits.jsonl
+            Path.Combine(projectDir, "transcripts"),
+            Path.Combine(projectDir, "memory"),
+            Path.Combine(projectDir, "skills"),
+            Path.Combine(projectDir, "tasks"),
+            Path.Combine(projectDir, "buddy"),
+            Path.Combine(projectDir, "agents"),
+            Path.Combine(projectDir, "analytics"),
+        })
+        {
+            Directory.CreateDirectory(dir);
+        }
+        // Ensure SOUL.md and USER.md exist with defaults
+        var soulPath = Path.Combine(hermesHome, "SOUL.md");
+        var userPath = Path.Combine(hermesHome, "USER.md");
+        if (!File.Exists(soulPath))
+            File.WriteAllText(soulPath, "# Agent Soul\n\nYou are a helpful AI assistant.\n");
+        if (!File.Exists(userPath))
+            File.WriteAllText(userPath, "# User Profile\n\nNo profile configured yet. Tell me about yourself.\n");
+        System.Diagnostics.Debug.WriteLine($"Hermes home: {hermesHome}");
+        System.Diagnostics.Debug.WriteLine($"SOUL.md: {soulPath} (exists: {File.Exists(soulPath)})");
+        System.Diagnostics.Debug.WriteLine($"USER.md: {userPath} (exists: {File.Exists(userPath)})");
 
         // Transcript store
         var transcriptsDir = Path.Combine(projectDir, "transcripts");
@@ -101,14 +125,14 @@ public partial class App : Application
 
         // Skill manager — copy bundled skills on first run if user dir is empty
         var skillsDir = Path.Combine(projectDir, "skills");
-        var bundledSkillsDir = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "..", "skills");
-        if (!Directory.Exists(skillsDir) || !Directory.EnumerateFileSystemEntries(skillsDir).Any())
+        var bundledSkillsDir = FindRepoSkillsDir();
+        if ((!Directory.Exists(skillsDir) || !Directory.EnumerateFileSystemEntries(skillsDir).Any())
+            && bundledSkillsDir is not null)
         {
-            var resolvedBundled = Path.GetFullPath(bundledSkillsDir);
-            if (Directory.Exists(resolvedBundled))
+            if (Directory.Exists(bundledSkillsDir))
             {
-                CopyDirectoryRecursive(resolvedBundled, skillsDir);
-                System.Diagnostics.Debug.WriteLine($"Copied bundled skills from {resolvedBundled} to {skillsDir}");
+                CopyDirectoryRecursive(bundledSkillsDir, skillsDir);
+                System.Diagnostics.Debug.WriteLine($"Copied bundled skills from {bundledSkillsDir} to {skillsDir}");
             }
         }
         services.AddSingleton(sp => new SkillManager(
@@ -378,6 +402,32 @@ public partial class App : Application
     {
         agent.RegisterTool(tool);
         registry.RegisterTool(tool);
+    }
+
+    /// <summary>Find the repo's skills/ directory by walking up from the build output to find .git or skills/.</summary>
+    private static string? FindRepoSkillsDir()
+    {
+        // Walk up from build output to find the repo root (contains .git or skills/)
+        var dir = AppContext.BaseDirectory;
+        for (int i = 0; i < 10 && dir is not null; i++)
+        {
+            var skillsCandidate = Path.Combine(dir, "skills");
+            if (Directory.Exists(skillsCandidate) && Directory.Exists(Path.Combine(dir, ".git")))
+            {
+                System.Diagnostics.Debug.WriteLine($"Found repo skills at: {skillsCandidate}");
+                return skillsCandidate;
+            }
+            // Also check for skills/ without .git (user may have extracted without git)
+            if (Directory.Exists(skillsCandidate) && Directory.EnumerateDirectories(skillsCandidate).Any())
+            {
+                System.Diagnostics.Debug.WriteLine($"Found skills dir at: {skillsCandidate}");
+                return skillsCandidate;
+            }
+            dir = Path.GetDirectoryName(dir);
+        }
+
+        System.Diagnostics.Debug.WriteLine("Could not find bundled skills directory");
+        return null;
     }
 
     /// <summary>Copy a directory tree recursively (used for first-run skill bundling).</summary>

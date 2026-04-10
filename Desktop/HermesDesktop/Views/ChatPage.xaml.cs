@@ -146,39 +146,46 @@ public sealed partial class ChatPage : Page
 
         ModelSwitchCombo.Items.Clear();
 
-        // Read API keys from config.yaml provider_keys section (never hardcode keys in source)
-        var anthropicKey = HermesEnvironment.ReadConfigSetting("model", "api_key")
-            ?? HermesEnvironment.ReadConfigSetting("provider_keys", "anthropic") ?? "";
-        var openaiKey = HermesEnvironment.ReadConfigSetting("provider_keys", "openai") ?? "";
-        var qwenKey = HermesEnvironment.ReadConfigSetting("provider_keys", "qwen") ?? "";
-        var ollamaUrl = HermesEnvironment.ReadConfigSetting("provider_keys", "ollama_url")
-            ?? "http://127.0.0.1:11434/v1";
+        // Always show the user's currently-configured model first
+        var currentProvider = HermesEnvironment.ModelProvider;
+        var currentModel = HermesEnvironment.DefaultModel;
+        var currentBaseUrl = HermesEnvironment.ModelBaseUrl;
+        var currentApiKey = HermesEnvironment.ModelApiKey ?? "";
+        var currentLabel = $"{currentModel} ({currentProvider})";
 
-        var presets = new (string Label, string Provider, string Model, string BaseUrl, string ApiKey)[]
+        // Build list: current config first, then any additional configured providers
+        var items = new List<(string Label, string Provider, string Model, string BaseUrl, string ApiKey)>
         {
-            ("Claude Sonnet 4.6", "anthropic", "claude-sonnet-4-6", "https://api.anthropic.com", anthropicKey),
-            ("GPT-5.4", "openai", "gpt-5.4", "https://api.openai.com/v1", openaiKey),
-            ("GPT-5.4 Mini", "openai", "gpt-5.4-mini", "https://api.openai.com/v1", openaiKey),
-            ("Ollama (Local)", "ollama", "glm-4.7-flash:latest", ollamaUrl, ""),
-            ("Qwen", "qwen", "qwen-plus", "https://dashscope.aliyuncs.com/compatible-mode/v1", qwenKey),
+            (currentLabel, currentProvider, currentModel, currentBaseUrl, currentApiKey)
         };
 
-        int selectedIdx = 0;
-        var currentModel = _clientFactory.CurrentModel;
+        // Only add additional presets if API keys are actually configured for them
+        var anthropicKey = HermesEnvironment.ReadConfigSetting("provider_keys", "anthropic") ?? "";
+        var openaiKey = HermesEnvironment.ReadConfigSetting("provider_keys", "openai") ?? "";
+        var qwenKey = HermesEnvironment.ReadConfigSetting("provider_keys", "qwen") ?? "";
+        var ollamaUrl = HermesEnvironment.ReadConfigSetting("provider_keys", "ollama_url") ?? "";
 
-        for (int i = 0; i < presets.Length; i++)
+        // Don't duplicate the current model
+        if (!string.IsNullOrEmpty(anthropicKey) && !currentProvider.Equals("anthropic", StringComparison.OrdinalIgnoreCase))
+            items.Add(("Claude Sonnet 4.6", "anthropic", "claude-sonnet-4-6", "https://api.anthropic.com", anthropicKey));
+        if (!string.IsNullOrEmpty(openaiKey) && !currentProvider.Equals("openai", StringComparison.OrdinalIgnoreCase))
+            items.Add(("GPT-5.4", "openai", "gpt-5.4", "https://api.openai.com/v1", openaiKey));
+        if (!string.IsNullOrEmpty(ollamaUrl) && !currentProvider.Equals("ollama", StringComparison.OrdinalIgnoreCase))
+            items.Add(("Ollama (Local)", "ollama", "glm-4.7-flash:latest", ollamaUrl, ""));
+        if (!string.IsNullOrEmpty(qwenKey) && !currentProvider.Equals("qwen", StringComparison.OrdinalIgnoreCase))
+            items.Add(("Qwen", "qwen", "qwen-plus", "https://dashscope.aliyuncs.com/compatible-mode/v1", qwenKey));
+
+        for (int i = 0; i < items.Count; i++)
         {
-            var p = presets[i];
+            var p = items[i];
             ModelSwitchCombo.Items.Add(new ComboBoxItem
             {
                 Content = p.Label,
                 Tag = $"{p.Provider}|{p.Model}|{p.BaseUrl}|{p.ApiKey}"
             });
-            if (string.Equals(p.Model, currentModel, StringComparison.OrdinalIgnoreCase))
-                selectedIdx = i;
         }
 
-        ModelSwitchCombo.SelectedIndex = selectedIdx;
+        ModelSwitchCombo.SelectedIndex = 0; // Current config is always first
         _suppressModelSwitch = false;
     }
 
