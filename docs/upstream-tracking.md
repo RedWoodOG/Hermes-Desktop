@@ -4,7 +4,7 @@
 - **Upstream version:** v0.7.0 (2026.4.3)
 - **Last synced:** 2026-04-04
 - **Upstream repo:** https://github.com/NousResearch/hermes-agent
-- **Upstream install path:** `C:\Users\jwhit\AppData\Local\hermes\hermes-agent`
+- **Upstream install path:** `%LOCALAPPDATA%\hermes\hermes-agent`
 
 ## Architecture Mapping
 
@@ -92,7 +92,7 @@ hermes --version
 
 # 2. Check what changed
 # Read the release notes at:
-#   C:\Users\jwhit\AppData\Local\hermes\hermes-agent\RELEASE_v{VERSION}.md
+#   %LOCALAPPDATA%\hermes\hermes-agent\RELEASE_v{VERSION}.md
 
 # 3. Diff the Python source against our mapping table above
 # Focus on: agent/, tools/, hermes_cli/config.py, toolsets.py
