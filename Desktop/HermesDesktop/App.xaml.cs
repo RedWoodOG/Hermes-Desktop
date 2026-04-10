@@ -41,9 +41,17 @@ public partial class App : Application
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        Services = ConfigureServices();
-        _window = new MainWindow();
-        _window.Activate();
+        try
+        {
+            Services = ConfigureServices();
+            _window = new MainWindow();
+            _window.Activate();
+        }
+        catch (Exception ex)
+        {
+            StartupDiagnostics.ReportFatalStartupException(ex);
+            throw;
+        }
     }
 
     private static ServiceProvider ConfigureServices()

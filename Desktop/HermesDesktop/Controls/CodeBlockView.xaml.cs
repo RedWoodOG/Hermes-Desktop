@@ -30,17 +30,17 @@ public sealed partial class CodeBlockView : UserControl
         control.CodeBlock.Text = e.NewValue as string ?? string.Empty;
     }
     
-    public static readonly DependencyProperty LanguageProperty =
-        DependencyProperty.Register(nameof(Language), typeof(string), typeof(CodeBlockView),
-            new PropertyMetadata("code", OnLanguageChanged));
-    
-    public string Language
+    public static readonly DependencyProperty CodeLanguageProperty =
+        DependencyProperty.Register(nameof(CodeLanguage), typeof(string), typeof(CodeBlockView),
+            new PropertyMetadata("code", OnCodeLanguageChanged));
+
+    public string CodeLanguage
     {
-        get => (string)GetValue(LanguageProperty);
-        set => SetValue(LanguageProperty, value);
+        get => (string)GetValue(CodeLanguageProperty);
+        set => SetValue(CodeLanguageProperty, value);
     }
-    
-    private static void OnLanguageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+
+    private static void OnCodeLanguageChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         var control = (CodeBlockView)d;
         control.LanguageBlock.Text = e.NewValue as string ?? "code";
@@ -123,7 +123,7 @@ public sealed partial class CodeBlockView : UserControl
         
         return new CodeBlockView
         {
-            Language = language,
+            CodeLanguage = language,
             Code = code.ToString().TrimEnd()
         };
     }
