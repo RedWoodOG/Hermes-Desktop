@@ -11,7 +11,6 @@ using System.Text.Json.Serialization;
 /// Every message is written to disk BEFORE updating in-memory state.
 /// Crash-proof, resume-capable, JSONL format.
 /// </summary>
-
 public sealed class TranscriptStore
 {
     private readonly string _transcriptsDir;

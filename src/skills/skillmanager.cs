@@ -9,7 +9,6 @@ using System.Collections.Concurrent;
 /// Skills System - Markdown-based custom capabilities.
 /// Skills are .md files with YAML frontmatter that define agent behaviors.
 /// </summary>
-
 public sealed class SkillManager
 {
     private readonly string _skillsDir;

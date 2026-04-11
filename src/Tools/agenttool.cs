@@ -153,7 +153,7 @@ public sealed class AgentTool : ITool
         {
             type = "object",
             properties = new { },
-            required = new string[] { }
+            required = Array.Empty<string>()
         });
     }
 }

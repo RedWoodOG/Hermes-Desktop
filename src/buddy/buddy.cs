@@ -10,11 +10,9 @@ using Hermes.Agent.Core;
 /// Buddy - The Tamagotchi-style companion system.
 /// Deterministic gacha based on user ID hash.
 /// </summary>
-
 // =============================================
 // Core Types
 // =============================================
-
 public sealed class Buddy
 {
     // Bones (deterministic, never stored)
@@ -193,9 +191,9 @@ public sealed class BuddyGenerator
         for (var i = 0; i < 3; i++)
         {
             var maxForStat = Math.Min(100, remaining - (3 - i)); // Leave room for others
-            var minForStat = Math.Max(1, remaining - 100 * (3 - i));
+            var minForStat = Math.Max(1, remaining - (100 * (3 - i)));
             var roll = _rng();
-            stats[i] = (int)(minForStat + roll * (maxForStat - minForStat));
+            stats[i] = (int)(minForStat + (roll * (maxForStat - minForStat)));
             remaining -= stats[i];
         }
         

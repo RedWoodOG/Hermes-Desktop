@@ -137,7 +137,7 @@ public sealed class CompactionManager
             var newTokens = _tokenCounter.CountTokens(summary);
 
             _logger.LogInformation("Compaction complete: {Original} -> {New} tokens ({Percent:P0} reduction)",
-                originalTokens, newTokens, 1 - (double)newTokens / originalTokens);
+                originalTokens, newTokens, 1 - ((double)newTokens / originalTokens));
 
             // Success — reset cooldown timer
             _lastCompressionFailureTime = null;
@@ -371,7 +371,7 @@ public sealed record CompactionResult(
     CompactionType Type)
 {
     public double ReductionPercent => OriginalTokens > 0 
-        ? 1 - (double)NewTokens / OriginalTokens 
+        ? 1 - ((double)NewTokens / OriginalTokens) 
         : 0;
     public int TokensSaved => OriginalTokens - NewTokens;
 }

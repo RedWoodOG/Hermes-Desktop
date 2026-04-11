@@ -82,11 +82,11 @@ internal static class HermesEnvironment
         foreach (string rawLine in File.ReadLines(HermesConfigPath))
         {
             string line = rawLine.TrimEnd();
-            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("#", StringComparison.Ordinal))
+            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith('#'))
                 continue;
 
             // Top-level section detection
-            if (!char.IsWhiteSpace(rawLine, 0) && line.EndsWith(":", StringComparison.Ordinal))
+            if (!char.IsWhiteSpace(rawLine, 0) && line.EndsWith(':'))
             {
                 inPoolSection = string.Equals(line, "credential_pool:", StringComparison.OrdinalIgnoreCase);
                 inKeysSection = false;
@@ -221,7 +221,7 @@ internal static class HermesEnvironment
             int pid;
 
             // PID file can be JSON or plain int
-            if (raw.StartsWith("{", StringComparison.Ordinal))
+            if (raw.StartsWith('{'))
             {
                 using var doc = JsonDocument.Parse(raw);
                 if (!doc.RootElement.TryGetProperty("pid", out var pidProp))
@@ -287,7 +287,7 @@ internal static class HermesEnvironment
             string raw = File.ReadAllText(GatewayPidPath).Trim();
             int pid;
 
-            if (raw.StartsWith("{", StringComparison.Ordinal))
+            if (raw.StartsWith('{'))
             {
                 using var doc = JsonDocument.Parse(raw);
                 if (!doc.RootElement.TryGetProperty("pid", out var pidProp))
@@ -320,11 +320,11 @@ internal static class HermesEnvironment
         foreach (string rawLine in File.ReadLines(HermesConfigPath))
         {
             string line = rawLine.TrimEnd();
-            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("#", StringComparison.Ordinal))
+            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith('#'))
                 continue;
 
             // Top-level section detection
-            if (!char.IsWhiteSpace(rawLine, 0) && line.EndsWith(":", StringComparison.Ordinal))
+            if (!char.IsWhiteSpace(rawLine, 0) && line.EndsWith(':'))
             {
                 inPlatforms = string.Equals(line, "platforms:", StringComparison.OrdinalIgnoreCase);
                 inPlatform = false;
@@ -338,7 +338,7 @@ internal static class HermesEnvironment
             // Detect platform subsection (2-space indent)
             if (rawLine.StartsWith("  ", StringComparison.Ordinal) &&
                 !rawLine.StartsWith("    ", StringComparison.Ordinal) &&
-                trimmed.EndsWith(":", StringComparison.Ordinal))
+                trimmed.EndsWith(':'))
             {
                 inPlatform = trimmed.Equals(platformHeader, StringComparison.OrdinalIgnoreCase);
                 continue;
@@ -376,7 +376,7 @@ internal static class HermesEnvironment
             string trimmed = raw.TrimEnd();
             if (string.IsNullOrWhiteSpace(trimmed)) continue;
 
-            if (!char.IsWhiteSpace(raw, 0) && trimmed.EndsWith(":", StringComparison.Ordinal))
+            if (!char.IsWhiteSpace(raw, 0) && trimmed.EndsWith(':'))
             {
                 if (string.Equals(trimmed, "platforms:", StringComparison.OrdinalIgnoreCase))
                 {
@@ -413,7 +413,7 @@ internal static class HermesEnvironment
             // 2-space indent platform header
             if (raw.StartsWith("  ", StringComparison.Ordinal) &&
                 !raw.StartsWith("    ", StringComparison.Ordinal) &&
-                trimmed.Trim().EndsWith(":", StringComparison.Ordinal))
+                trimmed.Trim().EndsWith(':'))
             {
                 if (string.Equals(trimmed.TrimEnd(), platHeader, StringComparison.OrdinalIgnoreCase))
                 {
@@ -714,13 +714,13 @@ internal static class HermesEnvironment
         foreach (string rawLine in File.ReadLines(HermesConfigPath))
         {
             string line = rawLine.TrimEnd();
-            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("#", StringComparison.Ordinal))
+            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith('#'))
                 continue;
 
             // Any non-indented line is a section boundary (whether it ends with ':' or not)
             if (rawLine.Length > 0 && !char.IsWhiteSpace(rawLine, 0))
             {
-                inSection = line.EndsWith(":", StringComparison.Ordinal) &&
+                inSection = line.EndsWith(':') &&
                             string.Equals(line, sectionHeader, StringComparison.OrdinalIgnoreCase);
                 continue;
             }
@@ -775,7 +775,7 @@ internal static class HermesEnvironment
             string trimmed = raw.TrimEnd();
             if (string.IsNullOrWhiteSpace(trimmed)) continue;
 
-            if (!char.IsWhiteSpace(raw, 0) && trimmed.EndsWith(":", StringComparison.Ordinal))
+            if (!char.IsWhiteSpace(raw, 0) && trimmed.EndsWith(':'))
             {
                 if (string.Equals(trimmed, $"{sectionName}:", StringComparison.OrdinalIgnoreCase))
                 {
@@ -825,12 +825,12 @@ internal static class HermesEnvironment
         {
             string line = rawLine.TrimEnd();
 
-            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith("#", StringComparison.Ordinal))
+            if (string.IsNullOrWhiteSpace(line) || line.TrimStart().StartsWith('#'))
             {
                 continue;
             }
 
-            if (!char.IsWhiteSpace(rawLine, 0) && line.EndsWith(":", StringComparison.Ordinal))
+            if (!char.IsWhiteSpace(rawLine, 0) && line.EndsWith(':'))
             {
                 inModelSection = string.Equals(line, "model:", StringComparison.OrdinalIgnoreCase);
                 continue;

@@ -5,7 +5,7 @@ namespace HermesDesktop.Tests.Services;
 
 /// <summary>
 /// Tests for CredentialPool — the thread-safe multi-key API credential manager
-/// added in this PR to support key rotation and configurable selection strategies.
+/// supporting key rotation and configurable selection strategies.
 /// </summary>
 [TestClass]
 public class CredentialPoolTests
@@ -44,6 +44,16 @@ public class CredentialPoolTests
     {
         var pool = new CredentialPool();
         pool.Add("sk-labeled", label: "primary-key");
+        Assert.AreEqual(1, pool.Count);
+    }
+
+    [TestMethod]
+    public void Add_SameKeyAfterFailure_StillCountedOnce()
+    {
+        var pool = new CredentialPool();
+        pool.Add("sk-once");
+        pool.MarkFailed("sk-once");
+        pool.Add("sk-once"); // attempt to re-add should be no-op
         Assert.AreEqual(1, pool.Count);
     }
 
@@ -103,23 +113,6 @@ public class CredentialPoolTests
     }
 
     [TestMethod]
-    public void GetNext_LeastUsedStrategy_PrefersMostUnusedKey()
-    {
-        var pool = new CredentialPool { Strategy = PoolStrategy.LeastUsed };
-        pool.Add("sk-a");
-        pool.Add("sk-b");
-
-        // Exhaust sk-a by calling GetNext several times then manually track expected behavior
-        // First call returns least used (either, but one gets incremented)
-        pool.GetNext(); // sk-a count becomes 1
-        var second = pool.GetNext(); // sk-b should be least used now
-
-        // After first pick, the second pick should be from the other key
-        // Because LeastUsed picks by RequestCount — after first call one key has count=1
-        Assert.IsNotNull(second);
-    }
-
-    [TestMethod]
     public void GetNext_LeastUsed_BalancesRequestsAcrossKeys()
     {
         var pool = new CredentialPool { Strategy = PoolStrategy.LeastUsed };
@@ -133,10 +126,25 @@ public class CredentialPoolTests
             counts[key] = counts.GetValueOrDefault(key) + 1;
         }
 
-        // With 2 keys and LeastUsed, distribution should be roughly equal (5-5)
         Assert.IsTrue(counts.ContainsKey("sk-1"), "sk-1 should be used");
         Assert.IsTrue(counts.ContainsKey("sk-2"), "sk-2 should be used");
         Assert.AreEqual(10, counts.Values.Sum(), "All requests should be accounted for");
+    }
+
+    [TestMethod]
+    public void GetNext_LeastUsedStrategy_PrefersMostUnusedKey()
+    {
+        var pool = new CredentialPool { Strategy = PoolStrategy.LeastUsed };
+        pool.Add("sk-a");
+        pool.Add("sk-b");
+
+        // First call — pick one (any), second call should pick the other
+        var first = pool.GetNext();
+        var second = pool.GetNext();
+
+        Assert.IsNotNull(first);
+        Assert.IsNotNull(second);
+        Assert.AreNotEqual(first, second, "Second call should pick the other (least-used) key");
     }
 
     [TestMethod]
@@ -171,14 +179,12 @@ public class CredentialPoolTests
         var third = pool.GetNext();
         var fourth = pool.GetNext(); // Should wrap around
 
-        // All three keys should appear in first three calls
         var firstThree = new[] { first, second, third };
         CollectionAssert.Contains(firstThree, "sk-1");
         CollectionAssert.Contains(firstThree, "sk-2");
         CollectionAssert.Contains(firstThree, "sk-3");
 
-        // Fourth call should return same key as first (round-robin wrap)
-        Assert.AreEqual(first, fourth);
+        Assert.AreEqual(first, fourth, "Fourth call should wrap around to the first key");
     }
 
     [TestMethod]
@@ -192,6 +198,18 @@ public class CredentialPoolTests
         Assert.AreEqual("sk-only", pool.GetNext());
     }
 
+    [TestMethod]
+    public void GetNext_RoundRobin_SkipsFailedKeys()
+    {
+        var pool = new CredentialPool { Strategy = PoolStrategy.RoundRobin };
+        pool.Add("sk-good");
+        pool.Add("sk-bad");
+        pool.MarkFailed("sk-bad");
+
+        for (int i = 0; i < 5; i++)
+            Assert.AreEqual("sk-good", pool.GetNext(), "Round-robin should skip failed keys");
+    }
+
     // ── GetNext — FillFirst strategy ──
 
     [TestMethod]
@@ -201,7 +219,6 @@ public class CredentialPoolTests
         pool.Add("sk-primary");
         pool.Add("sk-secondary");
 
-        // All calls should return sk-primary until it fails
         Assert.AreEqual("sk-primary", pool.GetNext());
         Assert.AreEqual("sk-primary", pool.GetNext());
         Assert.AreEqual("sk-primary", pool.GetNext());
@@ -217,6 +234,13 @@ public class CredentialPoolTests
         pool.MarkFailed("sk-primary");
 
         Assert.AreEqual("sk-secondary", pool.GetNext());
+    }
+
+    [TestMethod]
+    public void GetNext_FillFirst_EmptyPool_ReturnsNull()
+    {
+        var pool = new CredentialPool { Strategy = PoolStrategy.FillFirst };
+        Assert.IsNull(pool.GetNext());
     }
 
     // ── GetNext — Random strategy ──
@@ -243,6 +267,18 @@ public class CredentialPoolTests
         Assert.AreEqual("sk-only", pool.GetNext());
     }
 
+    [TestMethod]
+    public void GetNext_RandomStrategy_NeverReturnsFailedKey()
+    {
+        var pool = new CredentialPool { Strategy = PoolStrategy.Random };
+        pool.Add("sk-alive");
+        pool.Add("sk-dead");
+        pool.MarkFailed("sk-dead");
+
+        for (int i = 0; i < 20; i++)
+            Assert.AreEqual("sk-alive", pool.GetNext(), "Random should never return a failed key");
+    }
+
     // ── MarkFailed / ResetAll ──
 
     [TestMethod]
@@ -254,7 +290,6 @@ public class CredentialPoolTests
 
         pool.MarkFailed("sk-bad");
 
-        // Multiple calls should always return sk-good
         for (int i = 0; i < 5; i++)
             Assert.AreEqual("sk-good", pool.GetNext());
     }
@@ -267,8 +302,18 @@ public class CredentialPoolTests
 
         pool.MarkFailed("sk-failed", statusCode: 401, reason: "Unauthorized");
 
-        // After marking, the key should be unavailable
-        Assert.IsNull(pool.GetNext());
+        Assert.IsNull(pool.GetNext(), "Key marked failed with 401 should be unavailable");
+    }
+
+    [TestMethod]
+    public void MarkFailed_With429StatusCode_UsesRateLimitCooldown()
+    {
+        var pool = new CredentialPool { RateLimitCooldown = TimeSpan.FromMilliseconds(1) };
+        pool.Add("sk-rate-limited");
+
+        pool.MarkFailed("sk-rate-limited", statusCode: 429, reason: "Rate limited");
+
+        Assert.IsNull(pool.GetNext(), "Key should be failed immediately after marking with 429");
     }
 
     [TestMethod]
@@ -277,11 +322,24 @@ public class CredentialPoolTests
         var pool = new CredentialPool();
         pool.Add("sk-real");
 
-        // Should not throw
         pool.MarkFailed("sk-nonexistent");
 
-        // Real key still healthy
-        Assert.IsTrue(pool.HasHealthyCredentials);
+        Assert.IsTrue(pool.HasHealthyCredentials, "Real key should remain healthy");
+    }
+
+    [TestMethod]
+    public void MarkFailed_AllKeys_HasHealthyCredentialsFalse()
+    {
+        var pool = new CredentialPool();
+        pool.Add("sk-1");
+        pool.Add("sk-2");
+        pool.Add("sk-3");
+
+        pool.MarkFailed("sk-1");
+        pool.MarkFailed("sk-2");
+        pool.MarkFailed("sk-3");
+
+        Assert.IsFalse(pool.HasHealthyCredentials);
     }
 
     [TestMethod]
@@ -302,11 +360,33 @@ public class CredentialPoolTests
     }
 
     [TestMethod]
+    public void ResetAll_MakesKeysAvailableInGetNext()
+    {
+        var pool = new CredentialPool();
+        pool.Add("sk-recover");
+        pool.MarkFailed("sk-recover");
+
+        Assert.IsNull(pool.GetNext(), "Should be unavailable before reset");
+
+        pool.ResetAll();
+
+        Assert.AreEqual("sk-recover", pool.GetNext(), "Should be available after reset");
+    }
+
+    [TestMethod]
     public void ResetAll_EmptyPool_DoesNotThrow()
     {
         var pool = new CredentialPool();
-        // Should not throw
         pool.ResetAll();
+    }
+
+    [TestMethod]
+    public void ResetAll_NeverFailed_DoesNotThrow()
+    {
+        var pool = new CredentialPool();
+        pool.Add("sk-fine");
+        pool.ResetAll(); // idempotent — no-op on healthy pool
+        Assert.IsTrue(pool.HasHealthyCredentials);
     }
 
     // ── Lease System ──
@@ -351,6 +431,48 @@ public class CredentialPoolTests
     }
 
     [TestMethod]
+    public void AcquireLease_MultipleAcquire_IncreasesCount()
+    {
+        var pool = new CredentialPool { MaxConcurrentLeases = 10 };
+        pool.Add("sk-only");
+
+        pool.AcquireLease();
+        pool.AcquireLease();
+        pool.AcquireLease();
+
+        Assert.AreEqual(3, pool.GetLeaseCount("sk-only"));
+    }
+
+    [TestMethod]
+    public void AcquireLease_PrefersKeysBelowSoftCap()
+    {
+        var pool = new CredentialPool { MaxConcurrentLeases = 1 };
+        pool.Add("sk-a");
+        pool.Add("sk-b");
+
+        pool.AcquireLease(); // sk-a gets lease (index 0, least used)
+
+        // Next lease should prefer sk-b (below cap)
+        var second = pool.AcquireLease();
+        Assert.AreEqual("sk-b", second);
+    }
+
+    [TestMethod]
+    public void AcquireLease_WhenAllAtCap_StillReturnsKey()
+    {
+        var pool = new CredentialPool { MaxConcurrentLeases = 1 };
+        pool.Add("sk-capped");
+
+        pool.AcquireLease(); // fills cap
+        var second = pool.AcquireLease(); // above cap — still returns key
+
+        Assert.AreEqual("sk-capped", second,
+            "AcquireLease should still return a key when all credentials are at cap");
+    }
+
+    // ── ReleaseLease ──
+
+    [TestMethod]
     public void ReleaseLease_DecrementsLeaseCount()
     {
         var pool = new CredentialPool();
@@ -369,8 +491,7 @@ public class CredentialPoolTests
         var pool = new CredentialPool();
         pool.Add("sk-safe");
 
-        // Release without acquiring — should not go negative
-        pool.ReleaseLease("sk-safe");
+        pool.ReleaseLease("sk-safe"); // release without acquiring
 
         Assert.AreEqual(0, pool.GetLeaseCount("sk-safe"));
     }
@@ -379,9 +500,26 @@ public class CredentialPoolTests
     public void ReleaseLease_NonExistentKey_DoesNotThrow()
     {
         var pool = new CredentialPool();
-        // Should not throw even for an unknown key
         pool.ReleaseLease("sk-ghost");
     }
+
+    [TestMethod]
+    public void ReleaseLease_MultipleAcquireThenRelease_CountMatchesExpected()
+    {
+        var pool = new CredentialPool { MaxConcurrentLeases = 5 };
+        pool.Add("sk-multi");
+
+        pool.AcquireLease();
+        pool.AcquireLease();
+        pool.AcquireLease();
+
+        pool.ReleaseLease("sk-multi");
+        pool.ReleaseLease("sk-multi");
+
+        Assert.AreEqual(1, pool.GetLeaseCount("sk-multi"));
+    }
+
+    // ── GetLeaseCount ──
 
     [TestMethod]
     public void GetLeaseCount_NonExistentKey_ReturnsZero()
@@ -391,52 +529,29 @@ public class CredentialPoolTests
     }
 
     [TestMethod]
-    public void AcquireLease_PrefersKeysBelowSoftCap()
+    public void GetLeaseCount_BeforeAcquire_IsZero()
     {
-        var pool = new CredentialPool { MaxConcurrentLeases = 1 };
-        pool.Add("sk-a");
-        pool.Add("sk-b");
-
-        // Lease sk-a up to the soft cap
-        pool.AcquireLease(); // sk-a gets lease
-
-        // Next lease should prefer sk-b (below cap)
-        var second = pool.AcquireLease();
-        Assert.AreEqual("sk-b", second);
-    }
-
-    [TestMethod]
-    public void AcquireLease_MultipleAcquire_IncreasesCount()
-    {
-        var pool = new CredentialPool { MaxConcurrentLeases = 10 };
-        pool.Add("sk-only");
-
-        pool.AcquireLease();
-        pool.AcquireLease();
-        pool.AcquireLease();
-
-        Assert.AreEqual(3, pool.GetLeaseCount("sk-only"));
+        var pool = new CredentialPool();
+        pool.Add("sk-new");
+        Assert.AreEqual(0, pool.GetLeaseCount("sk-new"));
     }
 
     // ── Cooldown / Recovery ──
 
     [TestMethod]
-    public void MarkFailed_RateLimitError_UsesRateLimitCooldown()
+    public void MarkFailed_RateLimitError_KeyUnavailableImmediately()
     {
-        // With very short cooldown, key should recover quickly
         var pool = new CredentialPool { RateLimitCooldown = TimeSpan.FromMilliseconds(1) };
         pool.Add("sk-rate-limited");
 
         pool.MarkFailed("sk-rate-limited", statusCode: 429, reason: "Rate limited");
 
-        // Immediately after — should be failed
         Assert.IsNull(pool.GetNext(), "Key should be failed immediately after marking");
     }
 
     [TestMethod]
     public void HasHealthyCredentials_AfterCooldownExpires_ReturnsTrue()
     {
-        // Use a very short cooldown for testing recovery
         var pool = new CredentialPool
         {
             DefaultCooldown = TimeSpan.FromMilliseconds(1)
@@ -445,10 +560,8 @@ public class CredentialPoolTests
 
         pool.MarkFailed("sk-recovering", statusCode: 500);
 
-        // Wait for cooldown to expire
         Thread.Sleep(50);
 
-        // Should now be healthy (recovered)
         Assert.IsTrue(pool.HasHealthyCredentials, "Key should recover after cooldown");
     }
 
@@ -472,11 +585,10 @@ public class CredentialPoolTests
     [TestMethod]
     public void MarkFailed_RateLimitVsOther_DifferentCooldowns()
     {
-        // Rate limit (429) uses RateLimitCooldown; others use DefaultCooldown
         var pool = new CredentialPool
         {
-            RateLimitCooldown = TimeSpan.FromMilliseconds(1),   // short
-            DefaultCooldown = TimeSpan.FromHours(24)            // long
+            RateLimitCooldown = TimeSpan.FromMilliseconds(1),
+            DefaultCooldown = TimeSpan.FromHours(24)
         };
         pool.Add("sk-rate");
         pool.Add("sk-auth");
@@ -484,11 +596,26 @@ public class CredentialPoolTests
         pool.MarkFailed("sk-rate", statusCode: 429);
         pool.MarkFailed("sk-auth", statusCode: 401);
 
-        Thread.Sleep(50); // Rate limit cooldown expires; auth cooldown hasn't
+        Thread.Sleep(50);
 
-        // sk-rate should recover; sk-auth still failed
         var next = pool.GetNext();
         Assert.AreEqual("sk-rate", next, "Rate-limited key should recover after short cooldown");
+    }
+
+    [TestMethod]
+    public void MarkFailed_DefaultCooldown_KeyStillFailedBeforeExpiry()
+    {
+        // Very long cooldown — key should not recover
+        var pool = new CredentialPool
+        {
+            DefaultCooldown = TimeSpan.FromHours(24)
+        };
+        pool.Add("sk-stuck");
+
+        pool.MarkFailed("sk-stuck", statusCode: 500);
+
+        // No sleep — cooldown has not expired
+        Assert.IsNull(pool.GetNext(), "Key should remain failed within cooldown window");
     }
 
     // ── Strategy enum values ──
@@ -496,7 +623,6 @@ public class CredentialPoolTests
     [TestMethod]
     public void PoolStrategy_AllValuesExist()
     {
-        // Verify all expected strategy enum values exist
         var values = Enum.GetValues<PoolStrategy>();
         CollectionAssert.Contains(values, PoolStrategy.LeastUsed);
         CollectionAssert.Contains(values, PoolStrategy.RoundRobin);
@@ -532,5 +658,60 @@ public class CredentialPoolTests
     {
         var pool = new CredentialPool();
         Assert.AreEqual(TimeSpan.FromHours(1), pool.RateLimitCooldown);
+    }
+
+    [TestMethod]
+    public void NewPool_Count_IsZero()
+    {
+        var pool = new CredentialPool();
+        Assert.AreEqual(0, pool.Count);
+    }
+
+    // ── Thread safety boundary test ──
+
+    [TestMethod]
+    public void GetNext_ConcurrentCalls_DoNotThrow()
+    {
+        var pool = new CredentialPool { Strategy = PoolStrategy.LeastUsed };
+        pool.Add("sk-concurrent-1");
+        pool.Add("sk-concurrent-2");
+
+        var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+
+        var threads = Enumerable.Range(0, 20).Select(_ => new Thread(() =>
+        {
+            try { pool.GetNext(); }
+            catch (Exception ex) { exceptions.Add(ex); }
+        })).ToList();
+
+        threads.ForEach(t => t.Start());
+        threads.ForEach(t => t.Join());
+
+        Assert.AreEqual(0, exceptions.Count, "Concurrent GetNext calls should not throw");
+    }
+
+    [TestMethod]
+    public void AcquireAndReleaseLease_ConcurrentCalls_DoNotThrow()
+    {
+        var pool = new CredentialPool { MaxConcurrentLeases = 10 };
+        pool.Add("sk-thread-safe");
+
+        var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+
+        var threads = Enumerable.Range(0, 10).Select(_ => new Thread(() =>
+        {
+            try
+            {
+                var key = pool.AcquireLease();
+                if (key is not null)
+                    pool.ReleaseLease(key);
+            }
+            catch (Exception ex) { exceptions.Add(ex); }
+        })).ToList();
+
+        threads.ForEach(t => t.Start());
+        threads.ForEach(t => t.Join());
+
+        Assert.AreEqual(0, exceptions.Count, "Concurrent acquire/release should not throw");
     }
 }

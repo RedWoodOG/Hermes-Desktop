@@ -98,7 +98,7 @@ public sealed class SessionSearchTool : ITool
         var idx = text.IndexOf(query, StringComparison.OrdinalIgnoreCase);
         if (idx < 0) idx = 0;
 
-        var start = Math.Max(0, idx - maxLen / 2);
+        var start = Math.Max(0, idx - (maxLen / 2));
         var end = Math.Min(text.Length, start + maxLen);
         start = Math.Max(0, end - maxLen);
 
