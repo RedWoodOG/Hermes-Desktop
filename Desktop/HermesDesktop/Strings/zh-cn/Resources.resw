@@ -1,0 +1,474 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="WindowTitle" xml:space="preserve">
+    <value>Hermes 桌面</value>
+  </data>
+  <data name="ChatHeaderTitle.Text" xml:space="preserve">
+    <value>Hermes 聊天</value>
+  </data>
+  <data name="ChatHeaderStatusFormat" xml:space="preserve">
+    <value>{0} 至 {1}</value>
+  </data>
+  <data name="ChatConversationTitle.Text" xml:space="preserve">
+    <value>对话</value>
+  </data>
+  <data name="ChatNewChatButton.Content" xml:space="preserve">
+    <value>新对话</value>
+  </data>
+  <data name="ChatNewChatButton.AutomationProperties.Name" xml:space="preserve">
+    <value>开始新的 Hermes 桌面会话</value>
+  </data>
+  <data name="ChatSessionNew" xml:space="preserve">
+    <value>新对话。会话连续性从您的第一条消息开始。</value>
+  </data>
+  <data name="ChatSessionExistingFormat" xml:space="preserve">
+    <value>正在继续 Hermes 会话 {0}</value>
+  </data>
+  <data name="ChatInputBox.PlaceholderText" xml:space="preserve">
+    <value>请向 Hermes 下达任务。按 Ctrl+Enter 发送。</value>
+  </data>
+  <data name="ChatOpenCliButton.Content" xml:space="preserve">
+    <value>打开终端聊天</value>
+  </data>
+  <data name="ChatOpenCliButton.AutomationProperties.Name" xml:space="preserve">
+    <value>打开 Hermes 终端聊天</value>
+  </data>
+  <data name="ChatSendButton.Content" xml:space="preserve">
+    <value>发送</value>
+  </data>
+  <data name="ChatSendButton.AutomationProperties.Name" xml:space="preserve">
+    <value>发送当前消息</value>
+  </data>
+  <data name="ChatInitialAssistantMessage" xml:space="preserve">
+    <value>就绪。输入消息或 /help 查看命令。</value>
+  </data>
+  <data name="ChatComposerHint" xml:space="preserve">
+    <value>桌面聊天已就绪。</value>
+  </data>
+  <data name="ChatComposerReady" xml:space="preserve">
+    <value>可以发送下一条消息。</value>
+  </data>
+  <data name="ChatComposerWaiting" xml:space="preserve">
+    <value>Hermes 正在思考…</value>
+  </data>
+  <data name="ChatComposerOffline" xml:space="preserve">
+    <value>Hermes 当前不可用。</value>
+  </data>
+  <data name="ChatStatusChecking" xml:space="preserve">
+    <value>正在检查连接…</value>
+  </data>
+  <data name="ChatErrorMessageFormat" xml:space="preserve">
+    <value>Hermes 请求失败：{0}</value>
+  </data>
+  <data name="ChatUserLabel" xml:space="preserve">
+    <value>您</value>
+  </data>
+  <data name="ChatAssistantLabel" xml:space="preserve">
+    <value>Hermes</value>
+  </data>
+  <data name="ChatSystemLabel" xml:space="preserve">
+    <value>系统</value>
+  </data>
+  <data name="ChatInspectorTabSession.Text" xml:space="preserve">
+    <value>会话</value>
+  </data>
+  <data name="ChatInspectorTabContext.Text" xml:space="preserve">
+    <value>上下文</value>
+  </data>
+  <data name="ChatInspectorTabFiles.Text" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="ChatInspectorSessionTitle.Text" xml:space="preserve">
+    <value>活动会话</value>
+  </data>
+  <data name="ChatInspectorModelTitle.Text" xml:space="preserve">
+    <value>模型上下文</value>
+  </data>
+  <data name="ChatInspectorWorkspaceTitle.Text" xml:space="preserve">
+    <value>工作区</value>
+  </data>
+  <data name="ChatInspectorSessionEmpty" xml:space="preserve">
+    <value>尚无活动的 Hermes 会话。</value>
+  </data>
+  <data name="ChatInspectorMessageCountFormat" xml:space="preserve">
+    <value>此桌面线程中有 {0} 条消息。</value>
+  </data>
+  <data name="ChatInspectorOpenWorkspaceButton.Content" xml:space="preserve">
+    <value>打开工作区</value>
+  </data>
+  <data name="ChatInspectorOpenLogsButton.Content" xml:space="preserve">
+    <value>打开日志</value>
+  </data>
+  <data name="ChatInspectorOpenConfigButton.Content" xml:space="preserve">
+    <value>打开配置</value>
+  </data>
+  <data name="ShellNavigation.PaneTitle" xml:space="preserve">
+    <value>Hermes 桌面</value>
+  </data>
+  <data name="DashboardNavItem.Content" xml:space="preserve">
+    <value>概览</value>
+  </data>
+  <data name="ChatNavItem.Content" xml:space="preserve">
+    <value>聊天</value>
+  </data>
+  <data name="AgentNavItem.Content" xml:space="preserve">
+    <value>智能体</value>
+  </data>
+  <data name="SkillsNavItem.Content" xml:space="preserve">
+    <value>技能</value>
+  </data>
+  <data name="MemoryNavItem.Content" xml:space="preserve">
+    <value>记忆</value>
+  </data>
+  <data name="BuddyNavItem.Content" xml:space="preserve">
+    <value>伙伴</value>
+  </data>
+  <data name="IntegrationsNavItem.Content" xml:space="preserve">
+    <value>集成</value>
+  </data>
+  <data name="SettingsNavItem.Content" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="DashboardHeroEyebrow.Text" xml:space="preserve">
+    <value>原生控制室</value>
+  </data>
+  <data name="DashboardHeroTitle.Text" xml:space="preserve">
+    <value>将 Hermes、本地模型与消息收发统一在一个桌面外壳中。</value>
+  </data>
+  <data name="DashboardHeroSubtitle.Text" xml:space="preserve">
+    <value>第一版在您已安装的智能体周围提供 Windows 原生工作区，可快速打开 CLI、配置、日志与机器人集成。</value>
+  </data>
+  <data name="DashboardLaunchChatButton.Content" xml:space="preserve">
+    <value>启动 CLI</value>
+  </data>
+  <data name="DashboardLaunchChatButton.AutomationProperties.Name" xml:space="preserve">
+    <value>启动 Hermes CLI</value>
+  </data>
+  <data name="DashboardOpenLogsButton.Content" xml:space="preserve">
+    <value>打开日志</value>
+  </data>
+  <data name="DashboardOpenLogsButton.AutomationProperties.Name" xml:space="preserve">
+    <value>打开 Hermes 日志文件夹</value>
+  </data>
+  <data name="DashboardOpenConfigButton.Content" xml:space="preserve">
+    <value>打开配置</value>
+  </data>
+  <data name="DashboardOpenConfigButton.AutomationProperties.Name" xml:space="preserve">
+    <value>打开 Hermes 配置文件</value>
+  </data>
+  <data name="DashboardProviderLabel.Text" xml:space="preserve">
+    <value>提供商</value>
+  </data>
+  <data name="DashboardModelLabel.Text" xml:space="preserve">
+    <value>默认模型</value>
+  </data>
+  <data name="DashboardGatewayLabel.Text" xml:space="preserve">
+    <value>消息收发</value>
+  </data>
+  <data name="DashboardPathsSectionTitle.Text" xml:space="preserve">
+    <value>实时路径</value>
+  </data>
+  <data name="DashboardHermesHomeLabel.Text" xml:space="preserve">
+    <value>Hermes 主目录</value>
+  </data>
+  <data name="DashboardConfigLabel.Text" xml:space="preserve">
+    <value>配置文件</value>
+  </data>
+  <data name="DashboardLogsLabel.Text" xml:space="preserve">
+    <value>日志文件夹</value>
+  </data>
+  <data name="DashboardWorkspaceLabel.Text" xml:space="preserve">
+    <value>智能体仓库</value>
+  </data>
+  <data name="DashboardStatusSectionTitle.Text" xml:space="preserve">
+    <value>当前运行时</value>
+  </data>
+  <data name="DashboardCliLabel.Text" xml:space="preserve">
+    <value>CLI</value>
+  </data>
+  <data name="DashboardEndpointLabel.Text" xml:space="preserve">
+    <value>基础 URL</value>
+  </data>
+  <data name="DashboardPortLabel.Text" xml:space="preserve">
+    <value>端口</value>
+  </data>
+  <data name="DashboardQuickNotesTitle.Text" xml:space="preserve">
+    <value>此外壳的用途</value>
+  </data>
+  <data name="DashboardQuickNotesLine1.Text" xml:space="preserve">
+    <value>无需重新打开安装脚本即可快速启动智能体。</value>
+  </data>
+  <data name="DashboardQuickNotesLine2.Text" xml:space="preserve">
+    <value>一眼查看当前模型目标与机器人就绪状态。</value>
+  </data>
+  <data name="DashboardQuickNotesLine3.Text" xml:space="preserve">
+    <value>将 Windows 原生控制界面与 OpenClaw 分开维护。</value>
+  </data>
+  <data name="ChatPageEyebrow.Text" xml:space="preserve">
+    <value>聊天界面</value>
+  </data>
+  <data name="ChatPageTitle.Text" xml:space="preserve">
+    <value>在桌面外壳内直接与已配置的本地模型对话。</value>
+  </data>
+  <data name="ChatPageSubtitle.Text" xml:space="preserve">
+    <value>此桌面视图使用与 Hermes 相同的已配置模型端点。在将更多流程迁入应用的同时，可继续使用左侧 CLI 按钮获得完整工具链智能体循环。</value>
+  </data>
+  <data name="ChatLaunchButton.Content" xml:space="preserve">
+    <value>启动 Hermes 聊天</value>
+  </data>
+  <data name="ChatLaunchButton.AutomationProperties.Name" xml:space="preserve">
+    <value>从桌面外壳启动 Hermes 聊天</value>
+  </data>
+  <data name="ChatConfigButton.Content" xml:space="preserve">
+    <value>打开配置</value>
+  </data>
+  <data name="ChatConfigButton.AutomationProperties.Name" xml:space="preserve">
+    <value>从聊天页打开 Hermes 配置</value>
+  </data>
+  <data name="ChatSessionsTitle.Text" xml:space="preserve">
+    <value>近期会话示例</value>
+  </data>
+  <data name="ChatSessionsItem1Header.Text" xml:space="preserve">
+    <value>本地智能体工作</value>
+  </data>
+  <data name="ChatSessionsItem1Body.Text" xml:space="preserve">
+    <value>针对您已验证的本地模型端点运行编码与运维任务。</value>
+  </data>
+  <data name="ChatSessionsItem2Header.Text" xml:space="preserve">
+    <value>消息升级路径</value>
+  </data>
+  <data name="ChatSessionsItem2Body.Text" xml:space="preserve">
+    <value>将 Discord 或 Telegram 作为轻量入口，同时 Hermes 保持本地运行。</value>
+  </data>
+  <data name="ChatSessionsItem3Header.Text" xml:space="preserve">
+    <value>桌面优先工作流</value>
+  </data>
+  <data name="ChatSessionsItem3Body.Text" xml:space="preserve">
+    <value>将此外壳作为运维中心，仅在需要完整智能体控制时再进入 CLI。</value>
+  </data>
+  <data name="ChatWorkspaceTitle.Text" xml:space="preserve">
+    <value>规划中的桌面流程</value>
+  </data>
+  <data name="ChatWorkspaceLine1.Text" xml:space="preserve">
+    <value>左侧为原生对话列表。</value>
+  </data>
+  <data name="ChatWorkspaceLine2.Text" xml:space="preserve">
+    <value>右侧为任务与工具活动。</value>
+  </data>
+  <data name="ChatWorkspaceLine3.Text" xml:space="preserve">
+    <value>需要原始智能体循环时可随时跳入 Hermes 聊天。</value>
+  </data>
+  <data name="ChatComposerLabel.Text" xml:space="preserve">
+    <value>桌面撰写区预览</value>
+  </data>
+  <data name="ChatComposerTextBox.PlaceholderText" xml:space="preserve">
+    <value>原生消息撰写区与任务队列将随后提供。</value>
+  </data>
+  <data name="IntegrationsEyebrow.Text" xml:space="preserve">
+    <value>消息网关</value>
+  </data>
+  <data name="IntegrationsTitle.Text" xml:space="preserve">
+    <value>Telegram、Discord、Slack、WhatsApp、Matrix 与 Webhook 共用同一 Hermes 网关。</value>
+  </data>
+  <data name="IntegrationsSubtitle.Text" xml:space="preserve">
+    <value>在下方配置各平台令牌。网关从环境变量与 config.yaml 读取配置。</value>
+  </data>
+  <data name="IntegrationsTelegramTitle.Text" xml:space="preserve">
+    <value>Telegram</value>
+  </data>
+  <data name="IntegrationsTelegramDetail.Text" xml:space="preserve">
+    <value>最适合直接、轻量、移动友好的智能体访问。</value>
+  </data>
+  <data name="IntegrationsDiscordTitle.Text" xml:space="preserve">
+    <value>Discord</value>
+  </data>
+  <data name="IntegrationsDiscordDetail.Text" xml:space="preserve">
+    <value>更适合频道工作流、共享机器人与团队运维。</value>
+  </data>
+  <data name="IntegrationsGatewayTitle.Text" xml:space="preserve">
+    <value>网关运维</value>
+  </data>
+  <data name="IntegrationsGatewayLine1.Text" xml:space="preserve">
+    <value>目前将网关作为普通 Windows 后台进程运行。</value>
+  </data>
+  <data name="IntegrationsGatewayLine2.Text" xml:space="preserve">
+    <value>确保 Hermes 指向您已测试过的本地模型端点。</value>
+  </data>
+  <data name="IntegrationsGatewayLine3.Text" xml:space="preserve">
+    <value>在开放公共消息入口之前先添加机器人令牌。</value>
+  </data>
+  <data name="IntegrationsOpenLogsButton.Content" xml:space="preserve">
+    <value>打开日志</value>
+  </data>
+  <data name="IntegrationsOpenLogsButton.AutomationProperties.Name" xml:space="preserve">
+    <value>从集成页打开 Hermes 日志</value>
+  </data>
+  <data name="IntegrationsOpenConfigButton.Content" xml:space="preserve">
+    <value>打开配置</value>
+  </data>
+  <data name="IntegrationsOpenConfigButton.AutomationProperties.Name" xml:space="preserve">
+    <value>从集成页打开 Hermes 配置</value>
+  </data>
+  <data name="SettingsEyebrow.Text" xml:space="preserve">
+    <value>本地设置</value>
+  </data>
+  <data name="SettingsTitle.Text" xml:space="preserve">
+    <value>以下为桌面外壳当前读取的运行时值。</value>
+  </data>
+  <data name="SettingsSubtitle.Text" xml:space="preserve">
+    <value>设置页将承载模型选择、网关控制与工作区管理等能力。</value>
+  </data>
+  <data name="SettingsRuntimeTitle.Text" xml:space="preserve">
+    <value>模型与运行时</value>
+  </data>
+  <data name="SettingsProviderLabel.Text" xml:space="preserve">
+    <value>提供商</value>
+  </data>
+  <data name="SettingsBaseUrlLabel.Text" xml:space="preserve">
+    <value>基础 URL</value>
+  </data>
+  <data name="SettingsModelLabel.Text" xml:space="preserve">
+    <value>默认模型</value>
+  </data>
+  <data name="SettingsGatewayTitle.Text" xml:space="preserve">
+    <value>网关就绪状态</value>
+  </data>
+  <data name="SettingsGatewayLine1.Text" xml:space="preserve">
+    <value>Telegram 令牌</value>
+  </data>
+  <data name="SettingsGatewayLine2.Text" xml:space="preserve">
+    <value>Discord 令牌</value>
+  </data>
+  <data name="SettingsPathsTitle.Text" xml:space="preserve">
+    <value>文件与文件夹</value>
+  </data>
+  <data name="SettingsHomeButton.Content" xml:space="preserve">
+    <value>打开 Hermes 主目录</value>
+  </data>
+  <data name="SettingsHomeButton.AutomationProperties.Name" xml:space="preserve">
+    <value>打开 Hermes 主目录文件夹</value>
+  </data>
+  <data name="SettingsConfigButton.Content" xml:space="preserve">
+    <value>打开配置</value>
+  </data>
+  <data name="SettingsConfigButton.AutomationProperties.Name" xml:space="preserve">
+    <value>从设置打开 Hermes 配置文件</value>
+  </data>
+  <data name="SettingsLogsButton.Content" xml:space="preserve">
+    <value>打开日志</value>
+  </data>
+  <data name="SettingsLogsButton.AutomationProperties.Name" xml:space="preserve">
+    <value>从设置打开 Hermes 日志文件夹</value>
+  </data>
+  <data name="SettingsWorkspaceButton.Content" xml:space="preserve">
+    <value>打开智能体仓库</value>
+  </data>
+  <data name="SettingsWorkspaceButton.AutomationProperties.Name" xml:space="preserve">
+    <value>从设置打开 Hermes 智能体仓库</value>
+  </data>
+  <data name="StatusInstalled" xml:space="preserve">
+    <value>已安装</value>
+  </data>
+  <data name="StatusMissing" xml:space="preserve">
+    <value>缺失</value>
+  </data>
+  <data name="StatusConfigured" xml:space="preserve">
+    <value>已配置</value>
+  </data>
+  <data name="StatusNeedsSetup" xml:space="preserve">
+    <value>需要设置</value>
+  </data>
+  <data name="StatusReady" xml:space="preserve">
+    <value>就绪</value>
+  </data>
+  <data name="StatusConnected" xml:space="preserve">
+    <value>已连接</value>
+  </data>
+  <data name="StatusOffline" xml:space="preserve">
+    <value>离线</value>
+  </data>
+  <data name="StatusDetected" xml:space="preserve">
+    <value>已检测到</value>
+  </data>
+  <data name="StatusNotDetected" xml:space="preserve">
+    <value>未检测到</value>
+  </data>
+  <data name="CliReadySummary" xml:space="preserve">
+    <value>已检测到原生安装</value>
+  </data>
+  <data name="CliMissingSummary" xml:space="preserve">
+    <value>未找到安装</value>
+  </data>
+  <data name="MessagingReadySummary" xml:space="preserve">
+    <value>至少有一个机器人令牌可用</value>
+  </data>
+  <data name="MessagingSetupSummary" xml:space="preserve">
+    <value>请接下来添加 Telegram 或 Discord 令牌</value>
+  </data>
+  <data name="ChatConnectionCardTitle.Text" xml:space="preserve">
+    <value>实时端点</value>
+  </data>
+  <data name="ChatRuntimeTitle.Text" xml:space="preserve">
+    <value>运行时详情</value>
+  </data>
+  <data name="ChatConnectionStatusLabel.Text" xml:space="preserve">
+    <value>状态</value>
+  </data>
+  <data name="ChatConnectionEndpointLabel.Text" xml:space="preserve">
+    <value>端点</value>
+  </data>
+  <data name="ChatConnectionProviderLabel.Text" xml:space="preserve">
+    <value>提供商</value>
+  </data>
+  <data name="ChatConnectionModelLabel.Text" xml:space="preserve">
+    <value>模型</value>
+  </data>
+  <data name="ChatRefreshButton.Content" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="ChatRefreshButton.AutomationProperties.Name" xml:space="preserve">
+    <value>刷新模型端点状态</value>
+  </data>
+  <data name="ChatOpenConfigButton.Content" xml:space="preserve">
+    <value>打开配置</value>
+  </data>
+  <data name="ChatOpenConfigButton.AutomationProperties.Name" xml:space="preserve">
+    <value>从桌面聊天页打开 Hermes 配置文件</value>
+  </data>
+  <data name="ChatGuideTitle.Text" xml:space="preserve">
+    <value>如何使用此视图</value>
+  </data>
+  <data name="ChatGuideLine1.Text" xml:space="preserve">
+    <value>在此页面进行应用内的常规模型对话。</value>
+  </data>
+  <data name="ChatGuideLine2.Text" xml:space="preserve">
+    <value>运行时卡片显示本页使用的端点、提供商与模型。</value>
+  </data>
+  <data name="ChatGuideLine3.Text" xml:space="preserve">
+    <value>若需 Hermes CLI 工具与完整终端工作流，请使用左侧 CLI 按钮。</value>
+  </data>
+  <data name="ChatConversationSubtitle.Text" xml:space="preserve">
+    <value>在您清除之前，消息将保留在此桌面会话中。</value>
+  </data>
+  <data name="ChatInputLabel.Text" xml:space="preserve">
+    <value>消息</value>
+  </data>
+  <data name="ChatClearButton.Content" xml:space="preserve">
+    <value>清除</value>
+  </data>
+  <data name="ChatClearButton.AutomationProperties.Name" xml:space="preserve">
+    <value>清除桌面聊天对话</value>
+  </data>
+</root>
