@@ -69,6 +69,9 @@ public sealed class SignalScorer
         if (m.Success)
             buildSlug = m.Groups[1].Value.ToLowerInvariant();
 
+        // Strip BUILD metadata to prevent false commit signal
+        walkText = Regex.Replace(walkText, @"\[BUILD:\s*[a-zA-Z0-9_-]+\]", "", RegexOptions.IgnoreCase);
+
         var board = LoadBoard();
         ApplyDecay(board);
 

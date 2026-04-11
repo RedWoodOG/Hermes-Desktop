@@ -42,10 +42,6 @@ public sealed class EchoDetector
         {
             throw;
         }
-        catch (TaskCanceledException)
-        {
-            throw;
-        }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Echo detection failed; using neutral score");

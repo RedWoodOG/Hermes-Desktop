@@ -334,15 +334,16 @@ public partial class App : Application
             room.EnsureLayout();
 
             var lf = provider.GetRequiredService<ILoggerFactory>();
-            var cfg0 = DreamerConfig.Load(cfgPath);
 
             // Create long-lived HttpClient instances once
             _dreamerWalkHttpClient ??= new HttpClient { Timeout = TimeSpan.FromMinutes(4) };
             _dreamerEchoHttpClient ??= new HttpClient { Timeout = TimeSpan.FromMinutes(3) };
             _dreamerRssHttpClient ??= new HttpClient { Timeout = TimeSpan.FromMinutes(2) };
 
-            var walkClient = new OpenAiClient(cfg0.ToWalkLlmConfig(), _dreamerWalkHttpClient);
-            var echoClient = new OpenAiClient(cfg0.ToEchoLlmConfig(), _dreamerEchoHttpClient);
+            // Factory methods to create fresh clients from current config
+            IChatClient CreateWalkClient(DreamerConfig cfg) => new OpenAiClient(cfg.ToWalkLlmConfig(), _dreamerWalkHttpClient);
+            IChatClient CreateEchoClient(DreamerConfig cfg) => new OpenAiClient(cfg.ToEchoLlmConfig(), _dreamerEchoHttpClient);
+
             var rss = new RssFetcher(_dreamerRssHttpClient, room, lf.CreateLogger<RssFetcher>());
             var transcriptsDir = Path.Combine(projectDir, "transcripts");
             var dreamer = new DreamerService(
@@ -350,8 +351,8 @@ public partial class App : Application
                 cfgPath,
                 transcriptsDir,
                 room,
-                walkClient,
-                echoClient,
+                CreateWalkClient,
+                CreateEchoClient,
                 provider.GetRequiredService<TranscriptStore>(),
                 provider.GetRequiredService<GatewayService>(),
                 provider.GetRequiredService<InsightsService>(),

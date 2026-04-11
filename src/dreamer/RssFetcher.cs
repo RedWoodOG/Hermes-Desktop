@@ -1,6 +1,8 @@
 namespace Hermes.Agent.Dreamer;
 
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
 using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 
@@ -45,8 +47,11 @@ public sealed class RssFetcher
                     lines.Add($"- **{title}** — {link}");
                 }
 
-                var safe = string.Join("_", url.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
-                var path = Path.Combine(_room.InboxRssDir, $"rss-{safe[..Math.Min(48, safe.Length)]}-{DateTime.UtcNow:yyyyMMdd}.md");
+                // Compute stable hashed feed ID to avoid leaking sensitive tokens
+                var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(url));
+                var feedHash = Convert.ToHexString(hashBytes)[..16].ToLowerInvariant();
+                var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+                var path = Path.Combine(_room.InboxRssDir, $"rss-{feedHash}-{timestamp}.md");
                 await File.WriteAllTextAsync(path, string.Join("\n", lines), ct);
                 anySuccess = true;
             }

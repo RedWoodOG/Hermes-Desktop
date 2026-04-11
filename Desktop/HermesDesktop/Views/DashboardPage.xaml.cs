@@ -36,12 +36,17 @@ public sealed partial class DashboardPage : Page
         this.Unloaded += OnPageUnloaded;
     }
 
+    private void OnDreamerTimerTick(object? sender, object e)
+    {
+        RefreshDreamerStatus();
+    }
+
     private void OnPageUnloaded(object sender, RoutedEventArgs e)
     {
         if (_dreamerTimer is not null)
         {
             _dreamerTimer.Stop();
-            _dreamerTimer.Tick -= (_, _) => RefreshDreamerStatus();
+            _dreamerTimer.Tick -= OnDreamerTimerTick;
             _dreamerTimer = null;
         }
     }
@@ -71,7 +76,7 @@ public sealed partial class DashboardPage : Page
         RefreshDreamerStatus();
         _dreamerTimer = DispatcherQueue.CreateTimer();
         _dreamerTimer.Interval = TimeSpan.FromSeconds(4);
-        _dreamerTimer.Tick += (_, _) => RefreshDreamerStatus();
+        _dreamerTimer.Tick += OnDreamerTimerTick;
         _dreamerTimer.Start();
     }
 

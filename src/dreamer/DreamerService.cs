@@ -16,15 +16,14 @@ public sealed class DreamerService
     private readonly string _configPath;
     private readonly string _transcriptsDir;
     private readonly DreamerRoom _room;
-    private readonly IChatClient _walkClient;
-    private readonly IChatClient _echoClient;
+    private readonly Func<DreamerConfig, IChatClient> _walkClientFactory;
+    private readonly Func<DreamerConfig, IChatClient> _echoClientFactory;
     private readonly TranscriptStore _transcripts;
     private readonly GatewayService _gateway;
     private readonly InsightsService _insights;
     private readonly DreamerStatus _status;
     private readonly ILogger<DreamerService> _logger;
-    private readonly DreamWalk _walk;
-    private readonly EchoDetector _echo;
+    private readonly ILoggerFactory _loggerFactory;
     private readonly SignalScorer _signals;
     private readonly BuildSprint _build;
     private readonly RssFetcher? _rss;
@@ -35,8 +34,8 @@ public sealed class DreamerService
         string configPath,
         string transcriptsDir,
         DreamerRoom room,
-        IChatClient walkClient,
-        IChatClient echoClient,
+        Func<DreamerConfig, IChatClient> walkClientFactory,
+        Func<DreamerConfig, IChatClient> echoClientFactory,
         TranscriptStore transcripts,
         GatewayService gateway,
         InsightsService insights,
@@ -48,16 +47,15 @@ public sealed class DreamerService
         _configPath = configPath;
         _transcriptsDir = transcriptsDir;
         _room = room;
-        _walkClient = walkClient;
-        _echoClient = echoClient;
+        _walkClientFactory = walkClientFactory;
+        _echoClientFactory = echoClientFactory;
         _transcripts = transcripts;
         _gateway = gateway;
         _insights = insights;
         _status = status;
         _rss = rssFetcher;
         _logger = logger;
-        _walk = new DreamWalk(room, walkClient, loggerFactory.CreateLogger<DreamWalk>());
-        _echo = new EchoDetector(echoClient, loggerFactory.CreateLogger<EchoDetector>());
+        _loggerFactory = loggerFactory;
         _signals = new SignalScorer(room, loggerFactory.CreateLogger<SignalScorer>());
         _build = new BuildSprint(room, loggerFactory.CreateLogger<BuildSprint>());
     }
@@ -92,7 +90,7 @@ public sealed class DreamerService
             {
                 _logger.LogError(ex, "Dreamer cycle error");
                 _status.SetPhase("error");
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                try { await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken); } catch (OperationCanceledException) { /* graceful stop */ }
             }
         }
 
@@ -105,14 +103,20 @@ public sealed class DreamerService
         if (_rss is not null)
             await _rss.RunIfDueAsync(config.RssFeeds, ct);
 
+        // Create fresh clients from current config
+        var walkClient = _walkClientFactory(config);
+        var echoClient = _echoClientFactory(config);
+        var walk = new DreamWalk(_room, walkClient, _loggerFactory.CreateLogger<DreamWalk>());
+        var echo = new EchoDetector(echoClient, _loggerFactory.CreateLogger<EchoDetector>());
+
         var research = await BuildResearchContextAsync(config, ct);
         var prior = ReadLatestWalkExcerpt();
-        var walkText = await _walk.RunAsync(config, research, prior, ct);
+        var walkText = await walk.RunAsync(config, research, prior, ct);
         _walkNumber++;
         _insights.RecordDreamerWalk();
 
-        var echo = await _echo.ScoreEchoAsync(walkText, prior, ct);
-        _signals.ProcessWalk(walkText, echo, config, out var slug);
+        var echoScore = await echo.ScoreEchoAsync(walkText, prior, ct);
+        _signals.ProcessWalk(walkText, echoScore, config, out var slug);
         _insights.RecordDreamerSignal();
 
         var board = _signals.LoadBoard();
@@ -149,6 +153,10 @@ public sealed class DreamerService
             if (parts.Length < 2 ||
                 !int.TryParse(parts[0], out var h) ||
                 !int.TryParse(parts[1], out var m))
+                continue;
+
+            // Validate hour and minute ranges
+            if (h < 0 || h > 23 || m < 0 || m > 59)
                 continue;
 
             var target = new TimeSpan(h, m, 0);
@@ -215,8 +223,19 @@ public sealed class DreamerService
             {
                 foreach (var md in Directory.EnumerateFiles(_room.InboxDir, "*.md").Take(6))
                 {
-                    var txt = await File.ReadAllTextAsync(md, ct);
-                    chunks.Add($"### Inbox {Path.GetFileName(md)}\n{txt[..Math.Min(4000, txt.Length)]}");
+                    try
+                    {
+                        var txt = await File.ReadAllTextAsync(md, ct);
+                        chunks.Add($"### Inbox {Path.GetFileName(md)}\n{txt[..Math.Min(4000, txt.Length)]}");
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex) when (ex is FileNotFoundException || ex is IOException || ex is UnauthorizedAccessException)
+                    {
+                        _logger.LogWarning(ex, "Skipping unreadable inbox file: {Path}", md);
+                    }
                 }
             }
 
@@ -224,8 +243,19 @@ public sealed class DreamerService
             {
                 foreach (var md in Directory.EnumerateFiles(_room.InboxRssDir, "*.md").Take(6))
                 {
-                    var txt = await File.ReadAllTextAsync(md, ct);
-                    chunks.Add($"### RSS Inbox {Path.GetFileName(md)}\n{txt[..Math.Min(4000, txt.Length)]}");
+                    try
+                    {
+                        var txt = await File.ReadAllTextAsync(md, ct);
+                        chunks.Add($"### RSS Inbox {Path.GetFileName(md)}\n{txt[..Math.Min(4000, txt.Length)]}");
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        throw;
+                    }
+                    catch (Exception ex) when (ex is FileNotFoundException || ex is IOException || ex is UnauthorizedAccessException)
+                    {
+                        _logger.LogWarning(ex, "Skipping unreadable RSS inbox file: {Path}", md);
+                    }
                 }
             }
         }
