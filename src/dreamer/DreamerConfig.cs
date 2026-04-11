@@ -64,7 +64,22 @@ public sealed class DreamerConfig
             c.WalkIntervalMinutes = Math.Clamp(wim, 1, 24 * 60);
         var digest = Get(kv, "digest_times");
         if (!string.IsNullOrWhiteSpace(digest))
-            c.DigestTimes = digest.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
+        {
+            var parts = digest.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var validated = new List<string>();
+            foreach (var part in parts)
+            {
+                var timeParts = part.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                if (timeParts.Length == 2 &&
+                    int.TryParse(timeParts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var h) &&
+                    int.TryParse(timeParts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var m) &&
+                    h >= 0 && h <= 23 && m >= 0 && m <= 59)
+                {
+                    validated.Add(part);
+                }
+            }
+            c.DigestTimes = validated;
+        }
         c.DiscordChannelId = Get(kv, "discord_channel_id") ?? "";
         if (double.TryParse(Get(kv, "trigger_threshold"), NumberStyles.Float, CultureInfo.InvariantCulture, out var th))
             c.TriggerThreshold = th;

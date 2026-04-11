@@ -20,7 +20,11 @@ public sealed class BuildSprint
     /// </summary>
     public async Task RunAsync(string slug, string walkExcerpt, string autonomy, CancellationToken ct)
     {
-        var dir = Path.Combine(_room.ProjectsDir, slug);
+        var sanitized = SanitizeSlug(slug);
+        if (string.IsNullOrEmpty(sanitized))
+            throw new ArgumentException("Invalid or dangerous project slug", nameof(slug));
+
+        var dir = Path.Combine(_room.ProjectsDir, sanitized);
         Directory.CreateDirectory(dir);
 
         var readme = $"""
@@ -49,5 +53,27 @@ public sealed class BuildSprint
         }
 
         _logger.LogInformation("Dreamer build sprint scaffolded at {Dir}", dir);
+    }
+
+    /// <summary>Sanitize slug to prevent path traversal attacks.</summary>
+    private static string SanitizeSlug(string slug)
+    {
+        if (string.IsNullOrWhiteSpace(slug))
+            return "";
+
+        // Remove dangerous path sequences
+        var result = slug.Replace("..", "")
+                         .Replace("/", "-")
+                         .Replace("\\", "-");
+
+        // Remove invalid filename chars
+        foreach (var c in Path.GetInvalidFileNameChars())
+            result = result.Replace(c.ToString(), "");
+
+        // Ensure not rooted
+        if (Path.IsPathRooted(result))
+            return "";
+
+        return result.Trim();
     }
 }

@@ -69,13 +69,21 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="Dreamer" FontSize="16" FontWeight="SemiBold"/>
                     <TextBlock x:Name="DreamerPhaseText" Text="Phase: —" FontSize="13"
-                               Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                               Foreground="{StaticResource AppTextSecondaryBrush}"
+                               AutomationProperties.Name="{Binding Text, ElementName=DreamerPhaseText}"
+                               AutomationProperties.LiveSetting="Polite"/>
                     <TextBlock x:Name="DreamerWalkCountText" Text="Walks: —" FontSize="13"
-                               Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                               Foreground="{StaticResource AppTextSecondaryBrush}"
+                               AutomationProperties.Name="{Binding Text, ElementName=DreamerWalkCountText}"
+                               AutomationProperties.LiveSetting="Polite"/>
                     <TextBlock x:Name="DreamerSignalText" Text="Top signal: —" FontSize="13"
-                               Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"/>
+                               Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"
+                               AutomationProperties.Name="{Binding Text, ElementName=DreamerSignalText}"
+                               AutomationProperties.LiveSetting="Polite"/>
                     <TextBlock x:Name="DreamerPostcardText" Text="" FontSize="12"
-                               Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap" MaxHeight="80"/>
+                               Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap" MaxHeight="80"
+                               AutomationProperties.Name="{Binding Text, ElementName=DreamerPostcardText}"
+                               AutomationProperties.LiveSetting="Polite"/>
                 </StackPanel>
             </Border>
 

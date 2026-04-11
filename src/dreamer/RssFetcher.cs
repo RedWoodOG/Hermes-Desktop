@@ -25,7 +25,7 @@ public sealed class RssFetcher
         if (feeds.Count == 0) return;
         if ((DateTime.UtcNow - _lastRunUtc).TotalHours < 6) return;
 
-        _lastRunUtc = DateTime.UtcNow;
+        bool anySuccess = false;
         foreach (var url in feeds)
         {
             try
@@ -48,11 +48,22 @@ public sealed class RssFetcher
                 var safe = string.Join("_", url.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
                 var path = Path.Combine(_room.InboxRssDir, $"rss-{safe[..Math.Min(48, safe.Length)]}-{DateTime.UtcNow:yyyyMMdd}.md");
                 await File.WriteAllTextAsync(path, string.Join("\n", lines), ct);
+                anySuccess = true;
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "RSS fetch failed for {Url}", url);
             }
+        }
+
+        // Only update timestamp if at least one feed succeeded
+        if (anySuccess)
+        {
+            _lastRunUtc = DateTime.UtcNow;
         }
     }
 }

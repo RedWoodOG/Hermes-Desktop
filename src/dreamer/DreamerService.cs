@@ -198,16 +198,35 @@ public sealed class DreamerService
                     var tail = msgs.TakeLast(24).Select(m => $"{m.Role}: {m.Content}");
                     chunks.Add($"### Session {id}\n" + string.Join("\n", tail));
                 }
-                catch { /* skip */ }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch
+                {
+                    /* skip other exceptions */
+                }
             }
         }
 
-        if (config.InputInbox && Directory.Exists(_room.InboxDir))
+        if (config.InputInbox)
         {
-            foreach (var md in Directory.EnumerateFiles(_room.InboxDir, "*.md").Take(6))
+            if (Directory.Exists(_room.InboxDir))
             {
-                var txt = await File.ReadAllTextAsync(md, ct);
-                chunks.Add($"### Inbox {Path.GetFileName(md)}\n{txt[..Math.Min(4000, txt.Length)]}");
+                foreach (var md in Directory.EnumerateFiles(_room.InboxDir, "*.md").Take(6))
+                {
+                    var txt = await File.ReadAllTextAsync(md, ct);
+                    chunks.Add($"### Inbox {Path.GetFileName(md)}\n{txt[..Math.Min(4000, txt.Length)]}");
+                }
+            }
+
+            if (Directory.Exists(_room.InboxRssDir))
+            {
+                foreach (var md in Directory.EnumerateFiles(_room.InboxRssDir, "*.md").Take(6))
+                {
+                    var txt = await File.ReadAllTextAsync(md, ct);
+                    chunks.Add($"### RSS Inbox {Path.GetFileName(md)}\n{txt[..Math.Min(4000, txt.Length)]}");
+                }
             }
         }
 

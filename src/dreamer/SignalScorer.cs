@@ -16,6 +16,12 @@ public sealed class SignalScorer
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
+    private readonly JsonSerializerOptions _jsonLogOptions = new()
+    {
+        WriteIndented = false,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
     public SignalScorer(DreamerRoom room, ILogger<SignalScorer> logger)
     {
@@ -47,7 +53,7 @@ public sealed class SignalScorer
 
     public void AppendSignalLog(SignalEvent evt)
     {
-        var line = JsonSerializer.Serialize(evt, _json) + "\n";
+        var line = JsonSerializer.Serialize(evt, _jsonLogOptions) + "\n";
         File.AppendAllText(_room.SignalLogPath, line);
     }
 
@@ -75,7 +81,7 @@ public sealed class SignalScorer
                 board.Projects[key] = ps;
             }
 
-            var echoFactor = echoScore / 5.0;
+            var echoFactor = (6.0 - echoScore) / 5.0;
             if (echoFactor < 0.2) echoFactor = 0.2;
             var delta = weight * echoFactor;
             ps.Score += delta;
@@ -161,7 +167,7 @@ public sealed class SignalScorer
         {
             try
             {
-                var evt = JsonSerializer.Deserialize<SignalEvent>(line, _json);
+                var evt = JsonSerializer.Deserialize<SignalEvent>(line, _jsonLogOptions);
                 if (evt is null || !string.Equals(evt.ProjectKey, slug, StringComparison.OrdinalIgnoreCase))
                     continue;
                 types.Add(evt.Type);

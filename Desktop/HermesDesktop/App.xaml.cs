@@ -31,6 +31,10 @@ namespace HermesDesktop;
 public partial class App : Application
 {
     private Window? _window;
+    private static System.Threading.CancellationTokenSource? _dreamerCts;
+    private static HttpClient? _dreamerWalkHttpClient;
+    private static HttpClient? _dreamerEchoHttpClient;
+    private static HttpClient? _dreamerRssHttpClient;
 
     /// <summary>Global service provider for DI — accessed by pages via App.Services.</summary>
     public static IServiceProvider Services { get; private set; } = null!;
@@ -38,6 +42,13 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
+        this.UnhandledException += OnAppUnhandledException;
+    }
+
+    private void OnAppUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+    {
+        // Cancel dreamer on unhandled exception
+        _dreamerCts?.Cancel();
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
@@ -324,9 +335,15 @@ public partial class App : Application
 
             var lf = provider.GetRequiredService<ILoggerFactory>();
             var cfg0 = DreamerConfig.Load(cfgPath);
-            var walkClient = new OpenAiClient(cfg0.ToWalkLlmConfig(), new HttpClient { Timeout = TimeSpan.FromMinutes(4) });
-            var echoClient = new OpenAiClient(cfg0.ToEchoLlmConfig(), new HttpClient { Timeout = TimeSpan.FromMinutes(3) });
-            var rss = new RssFetcher(new HttpClient { Timeout = TimeSpan.FromMinutes(2) }, room, lf.CreateLogger<RssFetcher>());
+
+            // Create long-lived HttpClient instances once
+            _dreamerWalkHttpClient ??= new HttpClient { Timeout = TimeSpan.FromMinutes(4) };
+            _dreamerEchoHttpClient ??= new HttpClient { Timeout = TimeSpan.FromMinutes(3) };
+            _dreamerRssHttpClient ??= new HttpClient { Timeout = TimeSpan.FromMinutes(2) };
+
+            var walkClient = new OpenAiClient(cfg0.ToWalkLlmConfig(), _dreamerWalkHttpClient);
+            var echoClient = new OpenAiClient(cfg0.ToEchoLlmConfig(), _dreamerEchoHttpClient);
+            var rss = new RssFetcher(_dreamerRssHttpClient, room, lf.CreateLogger<RssFetcher>());
             var transcriptsDir = Path.Combine(projectDir, "transcripts");
             var dreamer = new DreamerService(
                 hermesHome,
@@ -343,7 +360,8 @@ public partial class App : Application
                 lf.CreateLogger<DreamerService>(),
                 lf);
 
-            _ = Task.Run(() => dreamer.RunForeverAsync(CancellationToken.None));
+            _dreamerCts = new System.Threading.CancellationTokenSource();
+            _ = Task.Run(() => dreamer.RunForeverAsync(_dreamerCts.Token));
         }
         catch (Exception ex)
         {

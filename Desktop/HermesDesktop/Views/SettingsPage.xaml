@@ -694,33 +694,38 @@
                         <TextBlock Text="Background free-association on a local model (Ollama). Off by default. Room: %LOCALAPPDATA%\\hermes\\dreamer\\"
                                    FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"/>
                         <StackPanel Spacing="4">
-                            <TextBlock Text="ENABLE DREAMER" Style="{StaticResource LabelTextStyle}"/>
-                            <ToggleSwitch x:Name="DreamerEnabledToggle"/>
+                            <TextBlock x:Name="DreamerEnabledLabel" Text="ENABLE DREAMER" Style="{StaticResource LabelTextStyle}"/>
+                            <ToggleSwitch x:Name="DreamerEnabledToggle"
+                                          AutomationProperties.LabeledBy="{Binding ElementName=DreamerEnabledLabel}"/>
                         </StackPanel>
                         <StackPanel Spacing="4">
-                            <TextBlock Text="WALK INTERVAL (MINUTES)" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Name="DreamerWalkIntervalLabel" Text="WALK INTERVAL (MINUTES)" Style="{StaticResource LabelTextStyle}"/>
                             <NumberBox x:Name="DreamerWalkIntervalBox" Value="30" Minimum="1" Maximum="120"
                                        SpinButtonPlacementMode="Inline"
                                        Background="{StaticResource AppInsetBrush}"
-                                       BorderBrush="{StaticResource AppStrokeBrush}"/>
+                                       BorderBrush="{StaticResource AppStrokeBrush}"
+                                       AutomationProperties.LabeledBy="{Binding ElementName=DreamerWalkIntervalLabel}"/>
                         </StackPanel>
                         <StackPanel Spacing="4">
-                            <TextBlock Text="WALK MODEL" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Name="DreamerWalkModelLabel" Text="WALK MODEL" Style="{StaticResource LabelTextStyle}"/>
                             <TextBox x:Name="DreamerWalkModelBox" PlaceholderText="qwen3.5:latest"
                                      Background="{StaticResource AppInsetBrush}"
-                                     BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                                     BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"
+                                     AutomationProperties.LabeledBy="{Binding ElementName=DreamerWalkModelLabel}"/>
                         </StackPanel>
                         <StackPanel Spacing="4">
-                            <TextBlock Text="WALK BASE URL" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Name="DreamerWalkBaseUrlLabel" Text="WALK BASE URL" Style="{StaticResource LabelTextStyle}"/>
                             <TextBox x:Name="DreamerWalkBaseUrlBox" PlaceholderText="http://127.0.0.1:11434/v1"
                                      Background="{StaticResource AppInsetBrush}"
-                                     BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                                     BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"
+                                     AutomationProperties.LabeledBy="{Binding ElementName=DreamerWalkBaseUrlLabel}"/>
                         </StackPanel>
                         <StackPanel Spacing="4">
-                            <TextBlock Text="DISCORD CHANNEL ID (postcards)" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Name="DreamerDiscordChannelLabel" Text="DISCORD CHANNEL ID (postcards)" Style="{StaticResource LabelTextStyle}"/>
                             <TextBox x:Name="DreamerDiscordChannelBox" PlaceholderText="optional numeric channel id"
                                      Background="{StaticResource AppInsetBrush}"
-                                     BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                                     BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"
+                                     AutomationProperties.LabeledBy="{Binding ElementName=DreamerDiscordChannelLabel}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button Content="Save Dreamer Config" Click="SaveDreamerConfig_Click"
@@ -731,7 +736,9 @@
                                     Background="{StaticResource AppInsetBrush}"
                                     BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White" Padding="12,6"/>
                             <TextBlock x:Name="DreamerSaveStatus" VerticalAlignment="Center"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
+                                       Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"
+                                       AutomationProperties.Name="Dreamer save status"
+                                       AutomationProperties.LiveSetting="Polite"/>
                         </StackPanel>
                     </StackPanel>
                 </Expander.Content>

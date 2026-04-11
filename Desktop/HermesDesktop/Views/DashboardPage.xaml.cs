@@ -33,6 +33,17 @@ public sealed partial class DashboardPage : Page
     public DashboardPage()
     {
         InitializeComponent();
+        this.Unloaded += OnPageUnloaded;
+    }
+
+    private void OnPageUnloaded(object sender, RoutedEventArgs e)
+    {
+        if (_dreamerTimer is not null)
+        {
+            _dreamerTimer.Stop();
+            _dreamerTimer.Tick -= (_, _) => RefreshDreamerStatus();
+            _dreamerTimer = null;
+        }
     }
 
     // ── Data Properties (for x:Bind) ──
@@ -53,6 +64,10 @@ public sealed partial class DashboardPage : Page
 
     private void StartDreamerStatusRefresh()
     {
+        // Guard against duplicate timers
+        if (_dreamerTimer is not null && _dreamerTimer.IsEnabled)
+            return;
+
         RefreshDreamerStatus();
         _dreamerTimer = DispatcherQueue.CreateTimer();
         _dreamerTimer.Interval = TimeSpan.FromSeconds(4);
