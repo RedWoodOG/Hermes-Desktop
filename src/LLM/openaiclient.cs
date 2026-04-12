@@ -283,9 +283,12 @@ public sealed class OpenAiClient : IChatClient
                 response.EnsureSuccessStatusCode();
                 return response;
             }
+
+            // All credentials exhausted — fail explicitly, don't fall through to unauthenticated request
+            throw new HttpRequestException("All API credentials are exhausted or in cooldown. Check your credential pool configuration.");
         }
 
-        // Fallback: use default header auth
+        // Fallback: use default header auth (only when no credential pool is configured)
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         var fallbackResponse = await _httpClient.PostAsync(url, content, ct);
         fallbackResponse.EnsureSuccessStatusCode();

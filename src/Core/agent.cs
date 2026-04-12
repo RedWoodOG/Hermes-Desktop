@@ -170,19 +170,14 @@ public sealed class Agent : IAgent
         }
 
         // ── Plugin system prompt blocks (includes memory via BuiltinMemoryPlugin) ──
+        // Uses ReplaceOrInsertSystemMessage to prevent accumulation across turns.
         if (_pluginManager is not null)
         {
             try
             {
                 var pluginBlocks = await _pluginManager.GetSystemPromptBlocksAsync(ct);
                 if (!string.IsNullOrWhiteSpace(pluginBlocks))
-                {
-                    session.Messages.Insert(0, new Message
-                    {
-                        Role = "system",
-                        Content = pluginBlocks
-                    });
-                }
+                    ReplaceOrInsertSystemMessage(session, "[Plugin Context]", pluginBlocks);
             }
             catch (Exception ex)
             {
@@ -200,11 +195,7 @@ public sealed class Agent : IAgent
                 {
                     var memoryBlock = string.Join("\n---\n",
                         relevantMemories.Select(m => $"[{m.Type}] {m.Filename}:\n{m.Content}"));
-                    session.Messages.Insert(0, new Message
-                    {
-                        Role = "system",
-                        Content = $"[Relevant Memories]\n{memoryBlock}"
-                    });
+                    ReplaceOrInsertSystemMessage(session, "[Relevant Memories]", $"[Relevant Memories]\n{memoryBlock}");
                 }
             }
             catch (Exception ex)
@@ -353,28 +344,57 @@ public sealed class Agent : IAgent
             if (ShouldParallelize(toolCallsList))
             {
                 // ── Parallel execution path (read-only tools only) ──
+                // Permission gate: filter out denied tools before parallel execution
+                if (_permissions is not null)
+                {
+                    var allowed = new List<ToolCall>();
+                    foreach (var tc in toolCallsList)
+                    {
+                        try
+                        {
+                            var decision = await _permissions.CheckPermissionsAsync(tc.Name, tc.Arguments, ct);
+                            if (decision.Decision == PermissionDecision.Deny)
+                            {
+                                _logger.LogInformation("Parallel tool {Tool} denied by permissions", tc.Name);
+                                session.AddMessage(new Message { Role = "tool", Content = $"Permission denied: {tc.Name}", ToolCallId = tc.Id, ToolName = tc.Name });
+                                continue;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // Fail-closed: deny on permission check error
+                            _logger.LogWarning(ex, "Permission check failed for parallel tool {Tool}, denying", tc.Name);
+                            session.AddMessage(new Message { Role = "tool", Content = $"Permission check failed: {tc.Name}", ToolCallId = tc.Id, ToolName = tc.Name });
+                            continue;
+                        }
+                        allowed.Add(tc);
+                    }
+                    toolCallsList = allowed;
+                }
+
                 _logger.LogInformation("Executing {Count} tool calls in parallel", toolCallsList.Count);
                 var parallelResults = await ExecuteToolCallsParallelAsync(toolCallsList, ct);
 
                 foreach (var (toolCall, result, durationMs) in parallelResults)
                 {
+                    // Redact BEFORE activity log to prevent secret leakage in UI
+                    var resultContent = result.Content;
+                    if (SecretScanner.ContainsSecrets(resultContent))
+                        resultContent = SecretScanner.RedactSecrets(resultContent);
+
                     var entry = new ActivityEntry
                     {
                         ToolName = toolCall.Name,
                         ToolCallId = toolCall.Id,
                         InputSummary = Truncate(toolCall.Arguments, 200),
                         Status = result.Success ? ActivityStatus.Success : ActivityStatus.Failed,
-                        OutputSummary = Truncate(result.Content, 200),
+                        OutputSummary = Truncate(resultContent, 200),
                         DurationMs = durationMs
                     };
                     ActivityLog.Add(entry);
                     ActivityEntryAdded?.Invoke(entry);
                     if (_transcripts is not null)
                         await _transcripts.SaveActivityAsync(session.Id, entry, ct);
-
-                    var resultContent = result.Content;
-                    if (SecretScanner.ContainsSecrets(resultContent))
-                        resultContent = SecretScanner.RedactSecrets(resultContent);
 
                     var toolResultMsg = new Message
                     {
@@ -480,7 +500,19 @@ public sealed class Agent : IAgent
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Permission check failed for {ToolName}, allowing execution", toolCall.Name);
+                        // Fail-closed: deny execution when permission system is broken
+                        _logger.LogWarning(ex, "Permission check failed for {ToolName}, denying execution", toolCall.Name);
+                        var denyMsg = new Message
+                        {
+                            Role = "tool",
+                            Content = $"Permission check error for {toolCall.Name}: {ex.Message}",
+                            ToolCallId = toolCall.Id,
+                            ToolName = toolCall.Name
+                        };
+                        session.AddMessage(denyMsg);
+                        if (_transcripts is not null)
+                            await _transcripts.SaveMessageAsync(session.Id, denyMsg, ct);
+                        continue;
                     }
                 }
 
@@ -501,9 +533,17 @@ public sealed class Agent : IAgent
                 sw.Stop();
 
                 // ── Activity tracking: AFTER execution ──
+                // ── Secret scan FIRST (before activity log to prevent leakage) ──
+                var resultContent = result.Content;
+                if (SecretScanner.ContainsSecrets(resultContent))
+                {
+                    _logger.LogWarning("Secrets detected in tool result from {ToolName}, redacting", toolCall.Name);
+                    resultContent = SecretScanner.RedactSecrets(resultContent);
+                }
+
                 activityEntry.DurationMs = sw.ElapsedMilliseconds;
                 activityEntry.Status = result.Success ? ActivityStatus.Success : ActivityStatus.Failed;
-                activityEntry.OutputSummary = Truncate(result.Content, 200);
+                activityEntry.OutputSummary = Truncate(resultContent, 200);
 
                 // ── Soul: record mistakes on tool failure ──
                 if (!result.Success && _soulService is not null)
@@ -534,13 +574,7 @@ public sealed class Agent : IAgent
                 if (_transcripts is not null)
                     await _transcripts.SaveActivityAsync(session.Id, activityEntry, ct);
 
-                // ── Secret exfiltration scan ──
-                var resultContent = result.Content;
-                if (SecretScanner.ContainsSecrets(resultContent))
-                {
-                    _logger.LogWarning("Secrets detected in tool result from {ToolName}, redacting", toolCall.Name);
-                    resultContent = SecretScanner.RedactSecrets(resultContent);
-                }
+                // resultContent already redacted above (before activity log)
 
                 var toolResultMsg = new Message
                 {
@@ -574,8 +608,28 @@ public sealed class Agent : IAgent
         string message, Session session,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        // ── Memory injection ──
-        if (_memories is not null)
+        // ── Plugin turn start (matches ChatAsync) ──
+        if (_pluginManager is not null)
+        {
+            try { await _pluginManager.OnTurnStartAsync(session.Messages.Count, message, ct); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Plugin OnTurnStart failed"); }
+        }
+
+        // ── Plugin system prompt blocks / memory injection (matches ChatAsync) ──
+        if (_pluginManager is not null)
+        {
+            try
+            {
+                var pluginBlocks = await _pluginManager.GetSystemPromptBlocksAsync(ct);
+                if (!string.IsNullOrWhiteSpace(pluginBlocks))
+                    ReplaceOrInsertSystemMessage(session, "[Plugin Context]", pluginBlocks);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Plugin system prompt blocks failed");
+            }
+        }
+        else if (_memories is not null)
         {
             try
             {
@@ -585,11 +639,7 @@ public sealed class Agent : IAgent
                 {
                     var memoryBlock = string.Join("\n---\n",
                         relevantMemories.Select(m => $"[{m.Type}] {m.Filename}:\n{m.Content}"));
-                    session.Messages.Insert(0, new Message
-                    {
-                        Role = "system",
-                        Content = $"[Relevant Memories]\n{memoryBlock}"
-                    });
+                    ReplaceOrInsertSystemMessage(session, "[Relevant Memories]", $"[Relevant Memories]\n{memoryBlock}");
                 }
             }
             catch (Exception ex)
@@ -797,7 +847,19 @@ public sealed class Agent : IAgent
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Permission check failed for {ToolName}, allowing execution", toolCall.Name);
+                        // Fail-closed: deny execution when permission system is broken
+                        _logger.LogWarning(ex, "Permission check failed for {ToolName}, denying execution", toolCall.Name);
+                        var denyMsg = new Message
+                        {
+                            Role = "tool",
+                            Content = $"Permission check error for {toolCall.Name}: {ex.Message}",
+                            ToolCallId = toolCall.Id,
+                            ToolName = toolCall.Name
+                        };
+                        session.AddMessage(denyMsg);
+                        if (_transcripts is not null)
+                            await _transcripts.SaveMessageAsync(session.Id, denyMsg, ct);
+                        continue;
                     }
                 }
 
@@ -821,9 +883,17 @@ public sealed class Agent : IAgent
                 sw.Stop();
 
                 // ── Activity tracking: AFTER execution ──
+                // ── Secret scan FIRST (before activity log to prevent leakage) ──
+                var resultContent = result.Content;
+                if (SecretScanner.ContainsSecrets(resultContent))
+                {
+                    _logger.LogWarning("Secrets detected in tool result from {ToolName}, redacting", toolCall.Name);
+                    resultContent = SecretScanner.RedactSecrets(resultContent);
+                }
+
                 activityEntry.DurationMs = sw.ElapsedMilliseconds;
                 activityEntry.Status = result.Success ? ActivityStatus.Success : ActivityStatus.Failed;
-                activityEntry.OutputSummary = Truncate(result.Content, 200);
+                activityEntry.OutputSummary = Truncate(resultContent, 200);
 
                 // ── Soul: record mistakes on tool failure ──
                 if (!result.Success && _soulService is not null)
@@ -853,13 +923,7 @@ public sealed class Agent : IAgent
                 if (_transcripts is not null)
                     await _transcripts.SaveActivityAsync(session.Id, activityEntry, ct);
 
-                // ── Secret exfiltration scan ──
-                var resultContent = result.Content;
-                if (SecretScanner.ContainsSecrets(resultContent))
-                {
-                    _logger.LogWarning("Secrets detected in tool result from {ToolName}, redacting", toolCall.Name);
-                    resultContent = SecretScanner.RedactSecrets(resultContent);
-                }
+                // resultContent already redacted above (before activity log)
 
                 var toolResultMsg = new Message
                 {
@@ -897,6 +961,9 @@ public sealed class Agent : IAgent
         IReadOnlyList<ToolCall> toolCalls, CancellationToken ct)
     {
         using var semaphore = new SemaphoreSlim(MaxParallelWorkers);
+        var results = new List<(ToolCall Call, ToolResult Result, long DurationMs)>();
+        var lockObj = new object();
+
         var tasks = toolCalls.Select(async toolCall =>
         {
             await semaphore.WaitAsync(ct);
@@ -905,7 +972,12 @@ public sealed class Agent : IAgent
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 var result = await ExecuteToolCallAsync(toolCall, ct);
                 sw.Stop();
-                return (Call: toolCall, Result: result, DurationMs: sw.ElapsedMilliseconds);
+                lock (lockObj) { results.Add((toolCall, result, sw.ElapsedMilliseconds)); }
+            }
+            catch (Exception ex)
+            {
+                // Capture partial results — don't lose completed work if one task fails
+                lock (lockObj) { results.Add((toolCall, ToolResult.Fail($"Parallel execution failed: {ex.Message}"), 0)); }
             }
             finally
             {
@@ -913,8 +985,10 @@ public sealed class Agent : IAgent
             }
         }).ToList();
 
-        var results = await Task.WhenAll(tasks);
-        return results.ToList();
+        try { await Task.WhenAll(tasks); }
+        catch { /* Individual failures already captured above */ }
+
+        return results;
     }
 
     private async Task<ToolResult> ExecuteToolCallAsync(ToolCall toolCall, CancellationToken ct)
@@ -934,7 +1008,11 @@ public sealed class Agent : IAgent
         catch (Exception ex)
         {
             _logger.LogError(ex, "Tool {ToolName} failed", toolCall.Name);
-            return ToolResult.Fail($"Tool execution failed: {ex.Message}", ex);
+            // Redact secrets from exception messages — tool errors can contain connection strings, API keys, etc.
+            var errorMsg = SecretScanner.ContainsSecrets(ex.Message)
+                ? SecretScanner.RedactSecrets($"Tool execution failed: {ex.Message}")
+                : $"Tool execution failed: {ex.Message}";
+            return ToolResult.Fail(errorMsg, ex);
         }
     }
 
@@ -992,6 +1070,23 @@ public sealed class Agent : IAgent
 
     private static string ToCamelCase(string name) =>
         string.IsNullOrEmpty(name) ? name : char.ToLowerInvariant(name[0]) + name[1..];
+
+    /// <summary>
+    /// Replace an existing system message with matching prefix, or insert at position 0.
+    /// Prevents system message accumulation across turns.
+    /// </summary>
+    private static void ReplaceOrInsertSystemMessage(Session session, string prefix, string content)
+    {
+        for (var i = 0; i < session.Messages.Count; i++)
+        {
+            if (session.Messages[i].Role == "system" && session.Messages[i].Content.StartsWith(prefix))
+            {
+                session.Messages[i] = new Message { Role = "system", Content = content };
+                return;
+            }
+        }
+        session.Messages.Insert(0, new Message { Role = "system", Content = content });
+    }
 
     private static string Truncate(string value, int maxLength) =>
         string.IsNullOrEmpty(value) ? "" :
