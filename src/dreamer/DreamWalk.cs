@@ -37,8 +37,8 @@ public sealed class DreamWalk
         CancellationToken ct)
     {
         var mode = PickMode();
-        var soul = File.Exists(_room.SoulPath) ? await File.ReadAllTextAsync(_room.SoulPath, ct) : "";
-        var fasc = File.Exists(_room.FascinationsPath) ? await File.ReadAllTextAsync(_room.FascinationsPath, ct) : "";
+        var soul = await ReadOptionalFileAsync(_room.SoulPath, ct);
+        var fasc = await ReadOptionalFileAsync(_room.FascinationsPath, ct);
 
         var prompt = $"""
             ## Dreamer walk mode: {mode}
@@ -61,11 +61,22 @@ public sealed class DreamWalk
             ct);
 
         var path = _room.NewWalkPath();
-        await File.WriteAllTextAsync(path,
-            $"# Walk {DateTime.UtcNow:O}\n\n## Mode: {mode}\n\n{text}\n",
-            ct);
+        try
+        {
+            await File.WriteAllTextAsync(path,
+                $"# Walk {DateTime.UtcNow:O}\n\n## Mode: {mode}\n\n{text}\n",
+                ct);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (IsRecoverableFileException(ex))
+        {
+            _logger.LogWarning(ex, "Dreamer walk completed but journal write failed for {Path}", path);
+        }
 
-        _logger.LogInformation("Dreamer walk completed → {Path}", path);
+        _logger.LogInformation("Dreamer walk completed -> {Path}", path);
         return text;
     }
 
@@ -81,4 +92,24 @@ public sealed class DreamWalk
         if (r < 0.90) return "tangent";
         return "tend";
     }
+
+    private async Task<string> ReadOptionalFileAsync(string path, CancellationToken ct)
+    {
+        try
+        {
+            return File.Exists(path) ? await File.ReadAllTextAsync(path, ct) : "";
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex) when (IsRecoverableFileException(ex))
+        {
+            _logger.LogWarning(ex, "Dreamer walk skipped unreadable file {Path}", path);
+            return "";
+        }
+    }
+
+    private static bool IsRecoverableFileException(Exception ex) =>
+        ex is IOException or UnauthorizedAccessException;
 }

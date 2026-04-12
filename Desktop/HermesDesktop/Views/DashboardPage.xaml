@@ -24,40 +24,40 @@
                 <!-- Sessions -->
                 <Border Style="{StaticResource SurfaceCardStyle}">
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Sessions" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        <TextBlock x:Uid="DashOverviewKpiSessionsTitle" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                         <TextBlock x:Name="SessionCountText" Text="0" FontSize="28" FontWeight="Bold"
                                    Foreground="{StaticResource AppAccentTextBrush}"/>
-                        <TextBlock Text="total conversations" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
+                        <TextBlock x:Uid="DashOverviewKpiSessionsSub" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Tools -->
                 <Border Grid.Column="1" Style="{StaticResource SurfaceCardStyle}">
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Tools" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        <TextBlock x:Uid="DashOverviewKpiToolsTitle" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                         <TextBlock x:Name="ToolCountText" Text="0" FontSize="28" FontWeight="Bold"
                                    Foreground="#6BCB77"/>
-                        <TextBlock Text="registered" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
+                        <TextBlock x:Uid="DashOverviewKpiToolsSub" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
                     </StackPanel>
                 </Border>
 
                 <!-- Skills -->
                 <Border Grid.Column="2" Style="{StaticResource SurfaceCardStyle}">
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Skills" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        <TextBlock x:Uid="DashOverviewKpiSkillsTitle" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                         <TextBlock x:Name="SkillCountText" Text="0" FontSize="28" FontWeight="Bold"
                                    Foreground="#818CF8"/>
-                        <TextBlock Text="available" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
+                        <TextBlock x:Uid="DashOverviewKpiSkillsSub" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
                     </StackPanel>
                 </Border>
 
                 <!-- LLM Status -->
                 <Border Grid.Column="3" Style="{StaticResource SurfaceCardStyle}">
                     <StackPanel Spacing="4">
-                        <TextBlock Text="LLM Status" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        <TextBlock x:Uid="DashOverviewKpiLlmTitle" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <Ellipse x:Name="LlmStatusDot" Width="10" Height="10" Fill="#6BCB77" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="LlmStatusText" Text="Checking..." FontSize="20" FontWeight="Bold"/>
+                            <TextBlock x:Name="LlmStatusText" x:Uid="DashOverviewLlmStatusInitial" FontSize="20" FontWeight="Bold"/>
                         </StackPanel>
                         <TextBlock x:Name="LlmModelText" Text="" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
                     </StackPanel>
@@ -67,20 +67,24 @@
             <!-- Dreamer status -->
             <Border Style="{StaticResource SurfaceCardStyle}">
                 <StackPanel Spacing="8">
-                    <TextBlock Text="Dreamer" FontSize="16" FontWeight="SemiBold"/>
-                    <TextBlock x:Name="DreamerPhaseText" Text="Phase: —" FontSize="13"
+                    <TextBlock x:Uid="DashDreamerCardTitle" FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="DreamerPhaseText" x:Uid="DashDreamerPhaseInitial" FontSize="13"
                                Foreground="{StaticResource AppTextSecondaryBrush}"
                                AutomationProperties.Name="{Binding Text, ElementName=DreamerPhaseText}"
                                AutomationProperties.LiveSetting="Polite"/>
-                    <TextBlock x:Name="DreamerWalkCountText" Text="Walks: —" FontSize="13"
+                    <TextBlock x:Name="DreamerWalkCountText" x:Uid="DashDreamerWalksInitial" FontSize="13"
                                Foreground="{StaticResource AppTextSecondaryBrush}"
                                AutomationProperties.Name="{Binding Text, ElementName=DreamerWalkCountText}"
                                AutomationProperties.LiveSetting="Polite"/>
-                    <TextBlock x:Name="DreamerSignalText" Text="Top signal: —" FontSize="13"
+                    <TextBlock x:Name="DreamerSignalText" x:Uid="DashDreamerSignalInitial" FontSize="13"
                                Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"
                                AutomationProperties.Name="{Binding Text, ElementName=DreamerSignalText}"
                                AutomationProperties.LiveSetting="Polite"/>
-                    <TextBlock x:Name="DreamerPostcardText" Text="" FontSize="12"
+                    <TextBlock x:Name="DreamerLocalDigestText" x:Uid="DashDreamerLocalDigestInitial" FontSize="13"
+                               Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"
+                               AutomationProperties.Name="{Binding Text, ElementName=DreamerLocalDigestText}"
+                               AutomationProperties.LiveSetting="Polite"/>
+                    <TextBlock x:Name="DreamerPostcardText" x:Uid="DashDreamerPostcardInitial" FontSize="12"
                                Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap" MaxHeight="80"
                                AutomationProperties.Name="{Binding Text, ElementName=DreamerPostcardText}"
                                AutomationProperties.LiveSetting="Polite"/>
@@ -97,11 +101,11 @@
                 <!-- Platforms & Services -->
                 <Border Style="{StaticResource SurfaceCardStyle}">
                     <StackPanel Spacing="14">
-                        <TextBlock Text="Platforms &amp; Services" FontSize="16" FontWeight="SemiBold"/>
+                        <TextBlock x:Uid="DashPlatformsCardTitle" FontSize="16" FontWeight="SemiBold"/>
 
                         <!-- Platform badges -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="Messaging" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Uid="DashPlatformsMessaging" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <StackPanel x:Name="PlatformBadges" Orientation="Horizontal" Spacing="8">
                                 <!-- Populated in code-behind -->
                             </StackPanel>
@@ -109,7 +113,7 @@
 
                         <!-- Services -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="Services" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Uid="DashPlatformsServices" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <StackPanel x:Name="ServiceBadges" Orientation="Horizontal" Spacing="8">
                                 <!-- Populated in code-behind -->
                             </StackPanel>
@@ -120,26 +124,26 @@
                 <!-- Model Info -->
                 <Border Grid.Column="1" Style="{StaticResource SurfaceCardStyle}">
                     <StackPanel Spacing="12">
-                        <TextBlock Text="Model Configuration" FontSize="16" FontWeight="SemiBold"/>
+                        <TextBlock x:Uid="DashModelCardTitle" FontSize="16" FontWeight="SemiBold"/>
 
                         <StackPanel Spacing="4">
-                            <TextBlock Text="Provider" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Uid="DashboardProviderLabel" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <TextBlock x:Name="ProviderText" FontSize="14" FontWeight="SemiBold"
                                        Foreground="{StaticResource AppAccentTextBrush}"/>
                         </StackPanel>
 
                         <StackPanel Spacing="4">
-                            <TextBlock Text="Model" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Uid="ChatConnectionModelLabel" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <TextBlock x:Name="ModelNameText" FontSize="14" FontWeight="SemiBold"/>
                         </StackPanel>
 
                         <StackPanel Spacing="4">
-                            <TextBlock Text="Endpoint" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Uid="DashOverviewEndpointField" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <TextBlock x:Name="EndpointText" FontSize="12" TextWrapping="Wrap"
                                        Foreground="{StaticResource AppTextSecondaryBrush}"/>
                         </StackPanel>
 
-                        <Button Content="Test Connection" Click="TestConnection_Click"
+                        <Button x:Uid="DashTestConnectionButton" Click="TestConnection_Click"
                                 Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D"
                                 Padding="16,8" FontSize="12"/>
                         <TextBlock x:Name="TestConnectionResult" FontSize="11" TextWrapping="Wrap"
@@ -159,8 +163,8 @@
                 <Border Style="{StaticResource SurfaceCardStyle}">
                     <StackPanel Spacing="8">
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <TextBlock Text="Recent Activity" FontSize="16" FontWeight="SemiBold"/>
-                            <Button Content="Open Chat" Click="LaunchHermesChat_Click" FontSize="11" Padding="10,4"
+                            <TextBlock x:Uid="DashRecentActivityTitle" FontSize="16" FontWeight="SemiBold"/>
+                            <Button x:Uid="DashOpenChatButton" Click="LaunchHermesChat_Click" FontSize="11" Padding="10,4"
                                     Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D" VerticalAlignment="Center"/>
                         </StackPanel>
                         <ListView x:Name="RecentSessionsList" Background="Transparent" SelectionMode="None" MaxHeight="250">
@@ -178,7 +182,7 @@
                                 </DataTemplate>
                             </ListView.ItemTemplate>
                         </ListView>
-                        <TextBlock x:Name="NoSessionsText" Text="No sessions yet. Start a conversation in Chat."
+                        <TextBlock x:Name="NoSessionsText" x:Uid="DashNoSessionsText"
                                    FontSize="12" Opacity="0.5" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                     </StackPanel>
                 </Border>
@@ -186,28 +190,28 @@
                 <!-- System Paths -->
                 <Border Grid.Column="1" Style="{StaticResource SurfaceCardStyle}">
                     <StackPanel Spacing="12">
-                        <TextBlock Text="System" FontSize="16" FontWeight="SemiBold"/>
+                        <TextBlock x:Uid="DashSystemCardTitle" FontSize="16" FontWeight="SemiBold"/>
 
                         <StackPanel Spacing="4">
-                            <TextBlock Text="Hermes Home" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Uid="DashboardHermesHomeLabel" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <TextBlock Text="{x:Bind HermesHomePath, Mode=OneTime}" FontSize="12" TextWrapping="Wrap" FontFamily="Consolas"/>
                         </StackPanel>
 
                         <StackPanel Spacing="4">
-                            <TextBlock Text="Config" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Uid="DashboardConfigLabel" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <TextBlock Text="{x:Bind HermesConfigPath, Mode=OneTime}" FontSize="12" TextWrapping="Wrap" FontFamily="Consolas"/>
                         </StackPanel>
 
                         <StackPanel Spacing="4">
-                            <TextBlock Text="Souls" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Uid="DashSystemSoulsLabel" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <TextBlock x:Name="ActiveSoulText" FontSize="12" FontFamily="Consolas"
                                        Foreground="{StaticResource AppAccentTextBrush}"/>
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Content="Open Logs" Click="OpenLogs_Click" FontSize="11" Padding="10,4"
+                            <Button x:Uid="DashOpenLogsSmallButton" Click="OpenLogs_Click" FontSize="11" Padding="10,4"
                                     Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
-                            <Button Content="Open Config" Click="OpenConfig_Click" FontSize="11" Padding="10,4"
+                            <Button x:Uid="DashOpenConfigSmallButton" Click="OpenConfig_Click" FontSize="11" Padding="10,4"
                                     Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
                         </StackPanel>
                     </StackPanel>
@@ -216,7 +220,7 @@
             <!-- ═══ Usage Insights ═══ -->
             <Border x:Name="InsightsPanel" Style="{StaticResource SurfaceCardStyle}" Visibility="Collapsed">
                 <StackPanel Spacing="14">
-                    <TextBlock Text="Usage Insights" FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock x:Uid="DashInsightsTitle" FontSize="16" FontWeight="SemiBold"/>
 
                     <Grid ColumnSpacing="16">
                         <Grid.ColumnDefinitions>
@@ -227,21 +231,21 @@
 
                         <!-- Total Messages -->
                         <StackPanel Spacing="2">
-                            <TextBlock Text="Total Turns" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Uid="DashInsightsTotalTurns" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <TextBlock x:Name="InsightsTurnsText" Text="0" FontSize="22" FontWeight="Bold"
                                        Foreground="{StaticResource AppAccentTextBrush}"/>
                         </StackPanel>
 
                         <!-- Total Tool Calls -->
                         <StackPanel Grid.Column="1" Spacing="2">
-                            <TextBlock Text="Tool Calls" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Uid="DashInsightsToolCalls" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <TextBlock x:Name="InsightsToolCallsText" Text="0" FontSize="22" FontWeight="Bold"
                                        Foreground="#6BCB77"/>
                         </StackPanel>
 
                         <!-- Avg Response Time -->
                         <StackPanel Grid.Column="2" Spacing="2">
-                            <TextBlock Text="Est. Cost" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                            <TextBlock x:Uid="DashInsightsEstCost" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <TextBlock x:Name="InsightsCostText" Text="$0.00" FontSize="22" FontWeight="Bold"
                                        Foreground="#818CF8"/>
                         </StackPanel>
@@ -249,7 +253,7 @@
 
                     <!-- Top Tools -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="Top Tools" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        <TextBlock x:Uid="DashInsightsTopTools" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                         <StackPanel x:Name="TopToolsList" Spacing="2"/>
                     </StackPanel>
                 </StackPanel>

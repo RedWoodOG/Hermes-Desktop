@@ -1,5 +1,6 @@
 namespace Hermes.Agent.Soul;
 
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
@@ -219,9 +220,9 @@ public sealed class SoulService
                 var entry = JsonSerializer.Deserialize<T>(line);
                 if (entry is not null) entries.Add(entry);
             }
-            catch
+            catch (Exception ex)
             {
-                // Skip malformed lines — journal is append-only, don't break on bad data
+                Debug.WriteLine($"SoulService: skipping malformed journal line in {path}: {ex.Message}");
             }
         }
 

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Hermes.Agent.Core;
+using Hermes.Agent.Diagnostics;
 using Hermes.Agent.LLM;
 using Microsoft.Extensions.Logging;
 
@@ -228,14 +229,22 @@ public sealed class AgentService
         return string.Join(" ", parts);
     }
 
-    private static async Task<string?> GetGitRemoteUrlAsync(CancellationToken ct)
+    private async Task<string?> GetGitRemoteUrlAsync(CancellationToken ct)
     {
         try
         {
             var result = await RunProcessAsync("git", "remote get-url origin", ct);
             return result.ExitCode == 0 ? result.StdOut.Trim() : null;
         }
-        catch { return null; }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            BestEffort.LogFailure(_logger, ex, "reading git remote URL", "remote=origin");
+            return null;
+        }
     }
 
     private static async Task<ProcessResult> RunProcessAsync(string fileName, string args, CancellationToken ct)
@@ -399,7 +408,7 @@ public sealed class TeamManager
             TeamName = teamName,
             Description = description,
             LeadAgentId = AgentTracker.CurrentAgentId ?? "main-thread",
-            Members = [],
+            Members = new List<TeamMember>(),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -451,7 +460,7 @@ public sealed class TeamManager
 
     public async Task<List<string>> ListTeamsAsync(CancellationToken ct)
     {
-        if (!Directory.Exists(_teamsDir)) return [];
+        if (!Directory.Exists(_teamsDir)) return new List<string>();
         return Directory.EnumerateFiles(_teamsDir, "*.json")
             .Select(f => Path.GetFileNameWithoutExtension(f))
             .ToList();
@@ -469,7 +478,7 @@ public sealed class TeamManager
         {
             var fullPath = Path.GetFullPath(m.WorktreePath!);
             var segments = fullPath.Split(
-                [Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+                new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
                 StringSplitOptions.RemoveEmptyEntries);
             if (!segments.Contains(".claude", StringComparer.OrdinalIgnoreCase) ||
                 !segments.Contains("worktrees", StringComparer.OrdinalIgnoreCase))
@@ -521,7 +530,7 @@ public sealed class MailboxService
     public async Task<List<MailboxMessage>> ReadMessagesAsync(string agentName, CancellationToken ct)
     {
         var path = GetMailboxPath(agentName);
-        if (!File.Exists(path)) return [];
+        if (!File.Exists(path)) return new List<MailboxMessage>();
 
         var mailbox = await LoadMailboxAsync(path, ct);
         foreach (var msg in mailbox.Messages.Where(m => !m.Read))
@@ -652,7 +661,7 @@ public sealed class Team
     public required string TeamName { get; init; }
     public string? Description { get; init; }
     public required string LeadAgentId { get; init; }
-    public List<TeamMember> Members { get; init; } = [];
+    public List<TeamMember> Members { get; init; } = new List<TeamMember>();
     public DateTime CreatedAt { get; init; }
 }
 
@@ -672,7 +681,7 @@ public sealed class TeamResult
     public required string LeadAgentId { get; init; }
 }
 
-public sealed class Mailbox { public List<MailboxMessage> Messages { get; init; } = []; }
+public sealed class Mailbox { public List<MailboxMessage> Messages { get; init; } = new List<MailboxMessage>(); }
 
 public sealed class MailboxMessage
 {

@@ -2,6 +2,7 @@ namespace Hermes.Agent.Dreamer;
 
 using System.Globalization;
 using Hermes.Agent.LLM;
+using Microsoft.Extensions.Logging;
 
 /// <summary>Configuration for the Dreamer background worker (dreamer: section in config.yaml).</summary>
 public sealed class DreamerConfig
@@ -16,14 +17,14 @@ public sealed class DreamerConfig
     public string BuildModel { get; set; } = "gpt-5.4-mini";
     public string? BuildBaseUrl { get; set; }
     public int WalkIntervalMinutes { get; set; } = 30;
-    public IReadOnlyList<string> DigestTimes { get; set; } = ["08:00", "12:00", "20:00"];
+    public IReadOnlyList<string> DigestTimes { get; set; } = new[] { "08:00", "12:00", "20:00" };
     public string DiscordChannelId { get; set; } = "";
     public double TriggerThreshold { get; set; } = 7.0;
     public int MinWalksToTrigger { get; set; } = 4;
     public string Autonomy { get; set; } = "full"; // full | drafts | ideas
     public bool InputTranscripts { get; set; } = true;
     public bool InputInbox { get; set; } = true;
-    public IReadOnlyList<string> RssFeeds { get; set; } = [];
+    public IReadOnlyList<string> RssFeeds { get; set; } = Array.Empty<string>();
 
     /// <summary>
             /// Resolves the base directory for Hermes configuration and data.
@@ -34,20 +35,24 @@ public sealed class DreamerConfig
             ? h
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "hermes");
 
-    /// <summary>
-    /// Creates a DreamerConfig populated from the "dreamer:" section of the specified config file.
-    /// </summary>
-    /// <param name="configPath">Filesystem path to the configuration file to read.</param>
-    /// <returns>
-    /// A DreamerConfig populated from flat keys under the `dreamer:` section of the file. If the file does not exist or the section is absent, returns a DreamerConfig with default values. Numeric and boolean fields are parsed with culture-invariant rules; invalid numeric values leave defaults unchanged. Digest times and RSS feeds are parsed from comma-separated lists; invalid digest entries are ignored. 
-    /// </returns>
-    public static DreamerConfig Load(string configPath)
+    /// <summary>Load dreamer: section from config.yaml (flat keys under dreamer:).</summary>
+    public static DreamerConfig Load(string configPath, ILogger? logger = null)
     {
         var c = new DreamerConfig();
-        if (!File.Exists(configPath))
-            return c;
+        Dictionary<string, string> kv;
+        try
+        {
+            if (!File.Exists(configPath))
+                return c;
 
-        var kv = ReadDreamerSection(configPath);
+            kv = ReadDreamerSection(configPath);
+        }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+        {
+            logger?.LogWarning(ex, "Failed to load Dreamer config from {Path}; using defaults", configPath);
+            return c;
+        }
+
         if (kv.Count == 0)
             return c;
 
@@ -106,12 +111,12 @@ public sealed class DreamerConfig
     }
 
     /// <summary>
-        /// Retrieve the trimmed value associated with a key from the dictionary.
-        /// </summary>
-        /// <param name="kv">The dictionary of key/value pairs to search.</param>
-        /// <param name="key">The key to look up.</param>
-        /// <returns>The trimmed value if the key exists; otherwise <c>null</c>.</returns>
-        private static string? Get(Dictionary<string, string> kv, string key) =>
+    /// Retrieve the trimmed value associated with a key from the dictionary.
+    /// </summary>
+    /// <param name="kv">The dictionary of key/value pairs to search.</param>
+    /// <param name="key">The key to look up.</param>
+    /// <returns>The trimmed value if the key exists; otherwise <c>null</c>.</returns>
+    private static string? Get(Dictionary<string, string> kv, string key) =>
         kv.TryGetValue(key, out var v) ? v.Trim() : null;
 
     /// <summary>

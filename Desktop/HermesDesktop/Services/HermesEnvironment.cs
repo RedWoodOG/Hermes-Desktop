@@ -178,8 +178,9 @@ internal static class HermesEnvironment
                 typeof(Hermes.Agent.Gateway.GatewayService)) as Hermes.Agent.Gateway.GatewayService;
             return gateway?.IsRunning == true;
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"HermesEnvironment.IsNativeGatewayRunning failed: {ex}");
             return false;
         }
     }
@@ -199,7 +200,10 @@ internal static class HermesEnvironment
                 status[platform.ToString()] = adapter.IsConnected;
             }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"HermesEnvironment.GetNativeAdapterStatus failed: {ex}");
+        }
         return status;
     }
 
@@ -239,8 +243,9 @@ internal static class HermesEnvironment
             string name = proc.ProcessName.ToLowerInvariant();
             return name.Contains("python") || name.Contains("hermes") || name.Contains("gateway");
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"HermesEnvironment.IsGatewayRunning failed: {ex}");
             return false;
         }
     }
@@ -258,7 +263,10 @@ internal static class HermesEnvironment
             if (doc.RootElement.TryGetProperty("gateway_state", out var state))
                 return state.GetString() ?? "unknown";
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"HermesEnvironment.ReadGatewayState failed: {ex}");
+        }
         return "unknown";
     }
 
@@ -303,7 +311,10 @@ internal static class HermesEnvironment
             var proc = Process.GetProcessById(pid);
             proc.Kill();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"HermesEnvironment.StopGateway failed: {ex}");
+        }
     }
 
     /// <summary>Read a setting from a platform sub-section of config.yaml (platforms.{platform}.{key}).</summary>

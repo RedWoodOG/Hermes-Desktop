@@ -132,7 +132,10 @@ public sealed partial class MemoryPanel : UserControl
                              : new SolidColorBrush(ColorHelper.FromArgb(255, 100, 200, 100))
                 });
             }
-            catch { /* skip unreadable */ }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"MemoryPanel skipping unreadable memory file {file}: {ex}");
+            }
         }
         MemoryList.ItemsSource = Memories;
         EmptyState.Visibility = Memories.Count == 0 ? Visibility.Visible : Visibility.Collapsed;

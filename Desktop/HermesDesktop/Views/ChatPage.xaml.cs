@@ -74,7 +74,7 @@ public sealed partial class ChatPage : Page
         _initialized = true;
 
         ApplyConnectionStatusSnapshot(_runtimeStatusService.GetConfiguredSnapshot());
-        SessionIdLabel.Text = "New Session";
+        UpdateSessionFooterLabel();
         UpdateSessionFooterCopyButton();
         SetPermissionModeUi(_chatService.CurrentPermissionMode, applyToService: false);
 
@@ -113,7 +113,10 @@ public sealed partial class ChatPage : Page
                         });
                     }
                 }
-                catch { /* Screenshot capture is best-effort */ }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"ChatPage screenshot capture failed for {entry.ToolName}: {ex}");
+                }
             }
         };
 
@@ -258,7 +261,7 @@ public sealed partial class ChatPage : Page
             }
 
             ScrollToBottom();
-            SessionIdLabel.Text = $"Session: {sessionId}";
+            UpdateSessionFooterLabel();
             UpdateSessionFooterCopyButton();
             ApplyConnectionState(RuntimeConnectionState.Connected);
 
@@ -268,9 +271,10 @@ public sealed partial class ChatPage : Page
                 var activityEntries = await _transcriptStore.LoadActivityAsync(sessionId, CancellationToken.None);
                 ReplayPanelView.LoadSession(activityEntries);
             }
-            catch
+            catch (Exception ex)
             {
                 // Activity log is optional — don't fail the session load
+                System.Diagnostics.Debug.WriteLine($"ChatPage activity replay load failed for {sessionId}: {ex}");
                 ReplayPanelView.Clear();
             }
         }
@@ -330,7 +334,7 @@ public sealed partial class ChatPage : Page
         }
 
         SetBusy(true);
-        ShowThinking(true, "Hermes is thinking");
+        ShowThinking(true, ResourceLoader.GetString("ChatThinkingShort"));
 
         // Dot timer declared outside try so finally can always stop it
         var dotCount = 0;
@@ -339,8 +343,10 @@ public sealed partial class ChatPage : Page
         dotTimer.Tick += (_, _) =>
         {
             dotCount = (dotCount + 1) % 4;
-            var phase = assistantItem is null ? "thinking" : "reasoning";
-            ThinkingText.Text = $"Hermes is {phase}" + new string('.', dotCount);
+            var line = assistantItem is null
+                ? ResourceLoader.GetString("ChatThinkingLineThinking")
+                : ResourceLoader.GetString("ChatThinkingLineReasoning");
+            ThinkingText.Text = line + new string('.', dotCount);
         };
         dotTimer.Start();
 
@@ -429,8 +435,7 @@ public sealed partial class ChatPage : Page
                 assistantItem.IsStreaming = false;
             dotTimer.Stop();
             SetBusy(false);
-            SessionIdLabel.Text = string.IsNullOrEmpty(_chatService.CurrentSessionId)
-                ? "New Session" : $"Session: {_chatService.CurrentSessionId}";
+            UpdateSessionFooterLabel();
             UpdateSessionFooterCopyButton();
             PromptTextBox.Focus(FocusState.Programmatic);
         }
@@ -478,7 +483,7 @@ public sealed partial class ChatPage : Page
         {
             var invoker = App.Services.GetRequiredService<SkillInvoker>();
             SetBusy(true);
-            ShowThinking(true, "Running skill...");
+            ShowThinking(true, ResourceLoader.GetString("ChatThinkingRunningSkill"));
 
             var response = await invoker.InvokeAsync(command, args, CancellationToken.None);
             ShowThinking(false);
@@ -520,7 +525,7 @@ public sealed partial class ChatPage : Page
         ReplayPanelView.Clear();
         _sessionRecorder.StopRecording();
         Messages.Clear();
-        SessionIdLabel.Text = "New Session";
+        UpdateSessionFooterLabel();
         UpdateSessionFooterCopyButton();
         _onboarding = OnboardingState.None;
 
@@ -534,19 +539,26 @@ public sealed partial class ChatPage : Page
 
     // ── Permission Mode ──
 
-    private string _permissionMode = "Default";
+    private static readonly PermissionMode[] PermissionModeMenuOrder =
+    [
+        PermissionMode.Default,
+        PermissionMode.Plan,
+        PermissionMode.Auto,
+        PermissionMode.AcceptEdits,
+        PermissionMode.BypassPermissions,
+    ];
 
     private void PermissionModeToggle_Click(object sender, RoutedEventArgs e)
     {
         var flyout = new MenuFlyout();
-        string[] modes = ["Default", "Plan", "Auto", "Accept Edits", "Bypass"];
-        foreach (var mode in modes)
+        var current = _chatService.CurrentPermissionMode;
+        foreach (var pm in PermissionModeMenuOrder)
         {
-            var item = new MenuFlyoutItem { Text = mode };
-            if (mode == _permissionMode)
+            var item = new MenuFlyoutItem { Text = GetPermissionModeDisplayName(pm), Tag = pm };
+            if (pm == current)
                 item.Icon = new FontIcon { Glyph = "\uE73E" }; // checkmark
-            var captured = mode;
-            item.Click += (_, _) => SetPermissionModeUi(ParsePermissionModeText(captured));
+            var captured = pm;
+            item.Click += (_, _) => SetPermissionModeUi(captured);
             flyout.Items.Add(item);
         }
         flyout.ShowAt((FrameworkElement)sender);
@@ -554,28 +566,29 @@ public sealed partial class ChatPage : Page
 
     private void SetPermissionModeUi(PermissionMode mode, bool applyToService = true)
     {
-        _permissionMode = mode switch
-        {
-            PermissionMode.Plan => "Plan",
-            PermissionMode.Auto => "Auto",
-            PermissionMode.AcceptEdits => "Accept Edits",
-            PermissionMode.BypassPermissions => "Bypass",
-            _ => "Default",
-        };
-
-        PermissionModeLabel.Text = $"{_permissionMode} mode";
+        PermissionModeLabel.Text = string.Format(
+            CultureInfo.CurrentCulture,
+            ResourceLoader.GetString("ChatPermissionModeFormat"),
+            GetPermissionModeDisplayName(mode));
         if (applyToService)
             _chatService.SetPermissionMode(mode);
     }
 
-    private static PermissionMode ParsePermissionModeText(string mode) => mode switch
+    private string GetPermissionModeDisplayName(PermissionMode mode) => mode switch
     {
-        "Plan" => PermissionMode.Plan,
-        "Auto" => PermissionMode.Auto,
-        "Accept Edits" => PermissionMode.AcceptEdits,
-        "Bypass" => PermissionMode.BypassPermissions,
-        _ => PermissionMode.Default,
+        PermissionMode.Plan => ResourceLoader.GetString("ChatPermissionModeNamePlan"),
+        PermissionMode.Auto => ResourceLoader.GetString("ChatPermissionModeNameAuto"),
+        PermissionMode.AcceptEdits => ResourceLoader.GetString("ChatPermissionModeNameAcceptEdits"),
+        PermissionMode.BypassPermissions => ResourceLoader.GetString("ChatPermissionModeNameBypass"),
+        _ => ResourceLoader.GetString("ChatPermissionModeNameDefault"),
     };
+
+    private void UpdateSessionFooterLabel()
+    {
+        SessionIdLabel.Text = string.IsNullOrEmpty(_chatService.CurrentSessionId)
+            ? ResourceLoader.GetString("ChatSessionFooterNew")
+            : string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("ChatSessionFooterFormat"), _chatService.CurrentSessionId);
+    }
 
     // ── Connection Check ──
 
@@ -707,7 +720,10 @@ public sealed partial class ChatPage : Page
             if (userCurrent.Contains("<!-- UNCONFIGURED -->"))
                 await _soulService.SaveFileAsync(SoulFileType.User, userCurrent.Replace("<!-- UNCONFIGURED -->\n", ""));
         }
-        catch { /* non-critical */ }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"ChatPage onboarding configuration marker update failed: {ex}");
+        }
     }
 
     private async Task HandleOnboardingInputAsync(string input)

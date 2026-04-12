@@ -1,0 +1,35 @@
+Hermes Desktop — MSIX + App Installer (sideload updates)
+=========================================================
+
+0) Dev / first-time (self-signed PFX on this PC)
+   From repo root:
+     .\scripts\new-msix-dev-cert.ps1 -UpdateManifests
+     .\scripts\publish-msix.ps1 -CertificatePath "Desktop\HermesDesktop\packaging\dev-msix.pfx" -CertificatePassword dev
+   Password default is "dev". PFX path is gitignored.
+
+1) Code signing
+   - Create or obtain a code-signing certificate whose subject matches Package.appxmanifest
+     <Identity ... Publisher="CN=..." /> EXACTLY (e.g. CN=VyreVault Studios).
+   - Export a .pfx and keep it private; pass the path to publish-msix.ps1 -CertificatePath.
+
+2) Publish MSIX (from repo root)
+   .\scripts\publish-msix.ps1 -CertificatePath C:\secure\HermesDesktop.pfx -CertificatePassword (Read-Host -AsSecureString)
+
+   Output: Desktop\HermesDesktop\bin\<Configuration>\net10.0-windows10.0.26100.0\win-x64\AppPackages\*.msix
+
+3) Match App Installer to the MSIX
+   - Edit Desktop\HermesDesktop\packaging\HermesDesktop.appinstaller:
+     - Set all URIs to HTTPS locations where you host the .msix and this .appinstaller file.
+     - Set MainPackage Version / Name / Publisher / Uri to match the built package (same as manifest Identity + msix filename).
+   - Bump <AppInstaller Version="..."> when you change the XML (installer metadata version).
+
+4) First install on a PC
+   - Users install the .appinstaller (double-click) or the .msix once; Windows registers the update URL.
+   - For dev/test only: you may need to trust your cert (Import-Certificate to LocalMachine\TrustedPeople for enterprise sideload).
+
+5) Each release
+   - Bump Package.appxmanifest Identity Version (four parts, monotonically increasing).
+   - Rebuild MSIX, upload new .msix + updated .appinstaller to the SAME HTTPS base paths (or bump paths consistently).
+   - Optional: add <RelatedPackages> or dependencies per Microsoft docs if you add bundles.
+
+Store submission: use Partner Center instead of App Installer; this file is for sideload / private HTTPS.

@@ -2,6 +2,7 @@ namespace Hermes.Agent.Tools;
 
 using Hermes.Agent.Core;
 using Hermes.Agent.LLM;
+using Microsoft.Extensions.Logging;
 
 // ══════════════════════════════════════════════
 // Mixture of Agents Tool
@@ -20,11 +21,16 @@ public sealed class MixtureOfAgentsTool : ITool
 {
     private readonly IChatClient _primaryClient;
     private readonly List<MixtureModel> _models;
+    private readonly ILogger<MixtureOfAgentsTool> _logger;
 
-    public MixtureOfAgentsTool(IChatClient primaryClient, List<MixtureModel>? models = null)
+    public MixtureOfAgentsTool(
+        IChatClient primaryClient,
+        List<MixtureModel>? models = null,
+        ILogger<MixtureOfAgentsTool>? logger = null)
     {
         _primaryClient = primaryClient;
         _models = models ?? DefaultModels();
+        _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<MixtureOfAgentsTool>.Instance;
     }
 
     public string Name => "mixture_of_agents";
@@ -104,9 +110,10 @@ public sealed class MixtureOfAgentsTool : ITool
         }
         catch (Exception ex)
         {
-            // Fallback: just return the best individual response
+            _logger.LogError(ex, "Mixture-of-agents synthesis failed; returning best single-model response.");
             var best = successful.First();
-            return ToolResult.Ok($"(Synthesis failed, returning {best.Name} response)\n\n{best.Response}");
+            return ToolResult.Ok(
+                $"(Synthesis failed; returning {best.Name} response.)\n\n{best.Response}");
         }
     }
 

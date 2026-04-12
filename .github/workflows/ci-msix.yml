@@ -1,0 +1,57 @@
+# MSIX signing: uses an ephemeral PFX generated in the job (see Generate test signing certificate).
+# Do not commit dev-msix.pfx; see Desktop/HermesDesktop/packaging/README.md.
+name: CI - Build and Package MSIX
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build-msix:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore HermesDesktop.sln
+
+      # NETSDK1134: do not pass RuntimeIdentifier at solution level; RID is applied by the packaging publish step.
+      - name: Build solution
+        run: dotnet build HermesDesktop.sln -c Release --no-restore
+
+      - name: Generate test signing certificate (PowerShell)
+        shell: pwsh
+        run: |
+          $bytes = New-Object byte[] 32
+          [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+          $plainPwd = [Convert]::ToBase64String($bytes)
+          Write-Output "::add-mask::$plainPwd"
+          $pwd = ConvertTo-SecureString -String $plainPwd -AsPlainText -Force
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=LocalTest" -KeyExportPolicy Exportable -CertStoreLocation Cert:\CurrentUser\My -NotAfter (Get-Date).AddYears(2)
+          $pfxPath = Join-Path $env:GITHUB_WORKSPACE 'tempCert.pfx'
+          Export-PfxCertificate -Cert "Cert:\CurrentUser\My\$($cert.Thumbprint)" -FilePath $pfxPath -Password $pwd
+          Add-Content -Path $env:GITHUB_ENV -Value "MSIX_PFX_PASSWORD=$plainPwd"
+          Add-Content -Path $env:GITHUB_ENV -Value "thumbprint=$($cert.Thumbprint)"
+          Add-Content -Path $env:GITHUB_ENV -Value "pfxPath=$pfxPath"
+
+      - name: Publish packaging project to create MSIX
+        shell: pwsh
+        run: |
+          msbuild Desktop\HermesDesktop.Package\HermesDesktop.Package.csproj /t:Restore;Publish /p:Configuration=Release /p:Platform=x64 /p:PackageCertificateThumbprint=$env:thumbprint /p:PackageCertificateKeyFile=$env:pfxPath /p:PackageCertificatePassword="$($env:MSIX_PFX_PASSWORD)"
+
+      - name: Upload packaged artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: msix-artifacts
+          path: |
+            Desktop/HermesDesktop.Package/bin/**/AppPackages/**
+            Desktop/HermesDesktop.Package/bin/**/Publish/**
+            Desktop/HermesDesktop.Package/bin/**/Release/**

@@ -24,9 +24,9 @@ using System.Text;
 public sealed class PluginManager
 {
     private readonly ILogger<PluginManager> _logger;
-    private readonly List<IPlugin> _plugins = [];
+    private readonly List<IPlugin> _plugins = new List<IPlugin>();
     private readonly ConcurrentDictionary<string, IPlugin> _toolToPlugin = new();
-    private readonly HashSet<string> _externalCategories = [];
+    private readonly HashSet<string> _externalCategories = new HashSet<string>();
     private bool _initialized;
 
     public PluginManager(ILogger<PluginManager> logger)

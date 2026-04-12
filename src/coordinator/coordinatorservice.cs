@@ -76,7 +76,7 @@ public sealed class CoordinatorService
                     CoordinationId = coordinationId,
                     Status = "completed",
                     Output = "Task is simple enough to handle directly without decomposition.",
-                    SubtaskResults = []
+                    SubtaskResults = new Dictionary<string, string>()
                 };
             }
 
@@ -199,10 +199,8 @@ public sealed class CoordinatorService
 
         try
         {
-            // Mark brief as in-progress
             await _briefService.UpdateBriefAsync(brief.Id, b => b.Status = BriefStatus.InProgress, ct);
 
-            // Create linked task in TaskManager
             taskResult = await _taskManager.CreateTaskAsync(new TaskCreateRequest
             {
                 Description = $"[{brief.Id}] {brief.Title}",
@@ -221,77 +219,13 @@ public sealed class CoordinatorService
                 StartedAt = DateTime.UtcNow
             };
             await SaveStateAsync(state, ct);
-            // Spawn agents per brief configuration (no LLM decomposition needed)
-            var workerResults = new Dictionary<int, string>();
 
-            for (var i = 0; i < brief.AgentCount; i++)
-            {
-                var role = i < brief.AgentRoles.Count ? brief.AgentRoles[i] : $"worker-{i + 1}";
-                var agentPrompt = _briefService.BuildAgentPrompt(brief, role, i);
+            var workerResults = await RunBriefAgentWorkersAsync(brief, state, ct);
+            var finalOutput = await ResolveBriefFinalOutputAsync(brief, workerResults, ct);
 
-                // Pass prior agent results as context for sequential dependencies
-                var contextFromPrior = "";
-                if (workerResults.Count > 0)
-                {
-                    contextFromPrior = "\n\n## CONTEXT FROM PRIOR AGENTS:\n" +
-                        string.Join("\n---\n", workerResults.Select(kv =>
-                            $"Agent {kv.Key + 1} output:\n{kv.Value}"));
-                }
-
-                _logger.LogInformation("Spawning agent {Index}/{Total} role={Role} for brief {BriefId}",
-                    i + 1, brief.AgentCount, role, brief.Id);
-
-                var result = await _agentService.SpawnAgentAsync(new AgentRequest
-                {
-                    Description = $"[{brief.Id}] {role}",
-                    Prompt = agentPrompt + contextFromPrior,
-                    RunInBackground = false
-                }, ct);
-
-                workerResults[i] = result.Output ?? result.Error ?? "No output";
-                state.WorkerResults[i] = result;
-                await SaveStateAsync(state, ct);
-            }
-
-            // Synthesize results — use AgentCount (not AgentRoles) to include fallback workers
-            var finalOutput = workerResults.Count == 1
-                ? workerResults[0]
-                : await SynthesizeResultsAsync(brief.Objective,
-                    Enumerable.Range(0, brief.AgentCount).Select(i =>
-                    {
-                        var role = i < brief.AgentRoles.Count ? brief.AgentRoles[i] : $"worker-{i + 1}";
-                        return new Subtask
-                        {
-                            Index = i,
-                            Description = role,
-                            SuccessCriteria = brief.Objective
-                        };
-                    }).ToList(),
-                    workerResults, ct);
-
-            // Verify output against brief's criteria
             state.Phase = TaskWorkflowPhase.Verification;
             var verification = await _briefService.VerifyOutputAsync(brief, finalOutput, ct);
-
-            if (verification.RequiresManualReview)
-            {
-                // Manual review — mark brief as blocked (pending review), don't fail the task
-                await _briefService.UpdateBriefAsync(brief.Id, b => b.Status = BriefStatus.Blocked, ct);
-                _logger.LogInformation("Brief {BriefId} awaiting manual review by {EscalateTo}",
-                    brief.Id, brief.EscalateTo ?? "user");
-            }
-            else if (verification.Passed)
-            {
-                await _briefService.UpdateBriefAsync(brief.Id, b => b.Status = BriefStatus.Completed, ct);
-                await _taskManager.CompleteTaskAsync(taskResult.TaskId, ct);
-                _logger.LogInformation("Brief {BriefId} completed and verified: {Details}", brief.Id, verification.Details);
-            }
-            else
-            {
-                await _briefService.UpdateBriefAsync(brief.Id, b => b.Status = BriefStatus.Failed, ct);
-                await _taskManager.FailTaskAsync(taskResult.TaskId, $"Verification failed: {verification.Details}", ct);
-                _logger.LogWarning("Brief {BriefId} verification failed: {Details}", brief.Id, verification.Details);
-            }
+            await ApplyBriefVerificationOutcomeAsync(brief, verification, taskResult.TaskId, ct);
 
             state.CompletedAt = DateTime.UtcNow;
             await SaveStateAsync(state, ct);
@@ -299,8 +233,7 @@ public sealed class CoordinatorService
             return new CoordinationResult
             {
                 CoordinationId = coordinationId,
-                Status = verification.RequiresManualReview ? "awaiting_review"
-                    : verification.Passed ? "completed" : "verification_failed",
+                Status = MapBriefVerificationCoordinationStatus(verification),
                 Output = finalOutput,
                 SubtaskResults = workerResults.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value)
             };
@@ -334,6 +267,103 @@ public sealed class CoordinatorService
         }
     }
 
+    private async Task<Dictionary<int, string>> RunBriefAgentWorkersAsync(
+        TaskBrief brief,
+        CoordinationState state,
+        CancellationToken ct)
+    {
+        var workerResults = new Dictionary<int, string>();
+        for (var i = 0; i < brief.AgentCount; i++)
+        {
+            var role = GetBriefAgentRole(brief, i);
+            var contextFromPrior = BuildPriorAgentOutputsContext(workerResults);
+            var agentPrompt = _briefService!.BuildAgentPrompt(brief, role, i);
+
+            _logger.LogInformation("Spawning agent {Index}/{Total} role={Role} for brief {BriefId}",
+                i + 1, brief.AgentCount, role, brief.Id);
+
+            var result = await _agentService.SpawnAgentAsync(new AgentRequest
+            {
+                Description = $"[{brief.Id}] {role}",
+                Prompt = agentPrompt + contextFromPrior,
+                RunInBackground = false
+            }, ct);
+
+            workerResults[i] = result.Output ?? result.Error ?? "No output";
+            state.WorkerResults[i] = result;
+            await SaveStateAsync(state, ct);
+        }
+
+        return workerResults;
+    }
+
+    private static string GetBriefAgentRole(TaskBrief brief, int index) =>
+        index < brief.AgentRoles.Count ? brief.AgentRoles[index] : $"worker-{index + 1}";
+
+    private static string BuildPriorAgentOutputsContext(Dictionary<int, string> workerResults)
+    {
+        if (workerResults.Count == 0)
+            return "";
+
+        return "\n\n## CONTEXT FROM PRIOR AGENTS:\n" +
+            string.Join("\n---\n", workerResults.Select(kv =>
+                $"Agent {kv.Key + 1} output:\n{kv.Value}"));
+    }
+
+    private async Task<string> ResolveBriefFinalOutputAsync(
+        TaskBrief brief,
+        Dictionary<int, string> workerResults,
+        CancellationToken ct)
+    {
+        if (workerResults.Count == 1)
+            return workerResults[0];
+
+        return await SynthesizeResultsAsync(
+            brief.Objective,
+            BuildSubtasksFromBriefRoles(brief),
+            workerResults,
+            ct);
+    }
+
+    private static List<Subtask> BuildSubtasksFromBriefRoles(TaskBrief brief) =>
+        Enumerable.Range(0, brief.AgentCount).Select(i => new Subtask
+        {
+            Index = i,
+            Description = GetBriefAgentRole(brief, i),
+            SuccessCriteria = brief.Objective
+        }).ToList();
+
+    private async Task ApplyBriefVerificationOutcomeAsync(
+        TaskBrief brief,
+        BriefVerifyResult verification,
+        string taskId,
+        CancellationToken ct)
+    {
+        if (verification.RequiresManualReview)
+        {
+            await _briefService!.UpdateBriefAsync(brief.Id, b => b.Status = BriefStatus.Blocked, ct);
+            _logger.LogInformation("Brief {BriefId} awaiting manual review by {EscalateTo}",
+                brief.Id, brief.EscalateTo ?? "user");
+            return;
+        }
+
+        if (verification.Passed)
+        {
+            await _briefService!.UpdateBriefAsync(brief.Id, b => b.Status = BriefStatus.Completed, ct);
+            await _taskManager.CompleteTaskAsync(taskId, ct);
+            _logger.LogInformation("Brief {BriefId} completed and verified: {Details}", brief.Id, verification.Details);
+            return;
+        }
+
+        await _briefService!.UpdateBriefAsync(brief.Id, b => b.Status = BriefStatus.Failed, ct);
+        await _taskManager.FailTaskAsync(taskId, $"Verification failed: {verification.Details}", ct);
+        _logger.LogWarning("Brief {BriefId} verification failed: {Details}", brief.Id, verification.Details);
+    }
+
+    private static string MapBriefVerificationCoordinationStatus(BriefVerifyResult verification) =>
+        verification.RequiresManualReview ? "awaiting_review"
+            : verification.Passed ? "completed" : "verification_failed";
+
     // ── Decompose Task via LLM ──
 
     private async Task<List<Subtask>> DecomposeTaskAsync(string task, CancellationToken ct)
@@ -362,8 +392,11 @@ Rules:
 - Each subtask should be a focused, achievable unit of work";
 
         var response = await _chatClient.CompleteAsync(
-            [new Message { Role = "system", Content = GetCoordinatorSystemPrompt() },
-             new Message { Role = "user", Content = prompt }], ct);
+            new[]
+            {
+                new Message { Role = "system", Content = GetCoordinatorSystemPrompt() },
+                new Message { Role = "user", Content = prompt }
+            }, ct);
 
         return ParseSubtasks(response);
     }
@@ -426,7 +459,7 @@ WORKER RESULTS:
 Provide a unified, coherent summary of everything that was accomplished. Highlight any issues or incomplete items.";
 
         return await _chatClient.CompleteAsync(
-            [new Message { Role = "user", Content = prompt }], ct);
+            new[] { new Message { Role = "user", Content = prompt } }, ct);
     }
 
     // ── System Prompt ──
@@ -539,7 +572,7 @@ Provide a unified, coherent summary of everything that was accomplished. Highlig
                     try
                     {
                         return JsonSerializer.Deserialize<List<Subtask>>(candidate,
-                            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? [];
+                            new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }) ?? new List<Subtask>();
                     }
                     catch (JsonException)
                     {
@@ -549,7 +582,7 @@ Provide a unified, coherent summary of everything that was accomplished. Highlig
             }
         }
 
-        return [];
+        return new List<Subtask>();
     }
 }
 

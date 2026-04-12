@@ -509,5 +509,5 @@ public sealed class MemoryContext
 public sealed class DreamSession
 {
     public required string Id { get; init; }
-    public List<Message> Messages { get; init; } = [];
+    public List<Message> Messages { get; init; } = new List<Message>();
 }

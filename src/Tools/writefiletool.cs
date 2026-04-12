@@ -32,7 +32,14 @@ public sealed class WriteFileTool : ITool
             if (exists)
             {
                 try { oldContent = await File.ReadAllTextAsync(filePath, ct); }
-                catch { /* best-effort */ }
+                catch (OperationCanceledException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"WriteFileTool old-content read failed for {filePath}: {ex}");
+                }
             }
 
             // Create directory if needed

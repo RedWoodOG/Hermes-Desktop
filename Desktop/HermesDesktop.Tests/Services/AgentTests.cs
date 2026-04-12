@@ -285,10 +285,10 @@ public class AgentTests
         {
             Content = "",
             FinishReason = "tool_calls",
-            ToolCalls =
-            [
+            ToolCalls = new List<ToolCall>
+            {
                 new ToolCall { Id = "call_1", Name = "e2e_tool", Arguments = "{}" }
-            ]
+            }
         };
         var turn2 = new ChatResponse
         {
@@ -297,7 +297,7 @@ public class AgentTests
             ToolCalls = null
         };
 
-        var responses = new Queue<ChatResponse>([turn1, turn2]);
+        var responses = new Queue<ChatResponse>(new[] { turn1, turn2 });
         _mockChatClient
             .Setup(c => c.CompleteWithToolsAsync(
                 It.IsAny<IEnumerable<Message>>(),
@@ -788,7 +788,7 @@ public class AgentActivityLogTests
         var toolCall = new ToolCall { Id = "call-1", Name = "event_tool", Arguments = "{}" };
         var callSequence = new Queue<ChatResponse>(new[]
         {
-            new ChatResponse { Content = null, ToolCalls = [toolCall], FinishReason = "tool_calls" },
+            new ChatResponse { Content = null, ToolCalls = new List<ToolCall> { toolCall }, FinishReason = "tool_calls" },
             new ChatResponse { Content = "finished", FinishReason = "stop" }
         });
 
@@ -835,7 +835,7 @@ public class AgentActivityLogTests
         var toolCall = new ToolCall { Id = "call-probe", Name = "status_probe_tool", Arguments = "{}" };
         var callSequence = new Queue<ChatResponse>(new[]
         {
-            new ChatResponse { Content = null, ToolCalls = [toolCall], FinishReason = "tool_calls" },
+            new ChatResponse { Content = null, ToolCalls = new List<ToolCall> { toolCall }, FinishReason = "tool_calls" },
             new ChatResponse { Content = "done", FinishReason = "stop" }
         });
 
@@ -871,7 +871,7 @@ public class AgentActivityLogTests
 
         var callSequence = new Queue<ChatResponse>(new[]
         {
-            new ChatResponse { Content = null, ToolCalls = [toolCall], FinishReason = "tool_calls" },
+            new ChatResponse { Content = null, ToolCalls = new List<ToolCall> { toolCall }, FinishReason = "tool_calls" },
             new ChatResponse { Content = "done", FinishReason = "stop" }
         });
 
@@ -905,7 +905,7 @@ public class AgentActivityLogTests
 
         var callSequence = new Queue<ChatResponse>(new[]
         {
-            new ChatResponse { Content = null, ToolCalls = [toolCall], FinishReason = "tool_calls" },
+            new ChatResponse { Content = null, ToolCalls = new List<ToolCall> { toolCall }, FinishReason = "tool_calls" },
             new ChatResponse { Content = "done", FinishReason = "stop" }
         });
 
@@ -939,7 +939,7 @@ public class AgentActivityLogTests
 
         var callSequence = new Queue<ChatResponse>(new[]
         {
-            new ChatResponse { Content = null, ToolCalls = [toolCall], FinishReason = "tool_calls" },
+            new ChatResponse { Content = null, ToolCalls = new List<ToolCall> { toolCall }, FinishReason = "tool_calls" },
             new ChatResponse { Content = "done despite failure", FinishReason = "stop" }
         });
 
@@ -973,7 +973,7 @@ public class AgentActivityLogTests
 
         var callSequence = new Queue<ChatResponse>(new[]
         {
-            new ChatResponse { Content = null, ToolCalls = [toolCall], FinishReason = "tool_calls" },
+            new ChatResponse { Content = null, ToolCalls = new List<ToolCall> { toolCall }, FinishReason = "tool_calls" },
             new ChatResponse { Content = "done", FinishReason = "stop" }
         });
 
@@ -1017,7 +1017,7 @@ public class AgentActivityLogTests
 
         var callSequence = new Queue<ChatResponse>(new[]
         {
-            new ChatResponse { Content = null, ToolCalls = [call1, call2], FinishReason = "tool_calls" },
+            new ChatResponse { Content = null, ToolCalls = new List<ToolCall> { call1, call2 }, FinishReason = "tool_calls" },
             new ChatResponse { Content = "all done", FinishReason = "stop" }
         });
 
@@ -1060,10 +1060,11 @@ public class AgentStreamChatTests
     [TestMethod]
     public async Task StreamChatAsync_NoTools_YieldsTokens()
     {
-        _stubClient.StreamEvents = [
+        _stubClient.StreamEvents = new StreamEvent[]
+        {
             new StreamEvent.TokenDelta("Hello"),
             new StreamEvent.TokenDelta(" world")
-        ];
+        };
 
         var session = new Session { Id = "stream-1" };
         var events = new List<StreamEvent>();
@@ -1079,7 +1080,7 @@ public class AgentStreamChatTests
     [TestMethod]
     public async Task StreamChatAsync_NoTools_AddsUserMessageToSession()
     {
-        _stubClient.StreamEvents = [new StreamEvent.TokenDelta("response")];
+        _stubClient.StreamEvents = new StreamEvent[] { new StreamEvent.TokenDelta("response") };
 
         var session = new Session { Id = "stream-2" };
 
@@ -1092,10 +1093,11 @@ public class AgentStreamChatTests
     [TestMethod]
     public async Task StreamChatAsync_NoTools_AddsAssistantMessageToSession()
     {
-        _stubClient.StreamEvents = [
+        _stubClient.StreamEvents = new StreamEvent[]
+        {
             new StreamEvent.TokenDelta("assistant"),
             new StreamEvent.TokenDelta(" reply")
-        ];
+        };
 
         var session = new Session { Id = "stream-3" };
 
@@ -1108,7 +1110,7 @@ public class AgentStreamChatTests
     [TestMethod]
     public async Task StreamChatAsync_NoTools_EmptyResponse_SavesEmptyAssistantMessage()
     {
-        _stubClient.StreamEvents = [];
+        _stubClient.StreamEvents = Array.Empty<StreamEvent>();
 
         var session = new Session { Id = "stream-5" };
 
@@ -1121,7 +1123,7 @@ public class AgentStreamChatTests
     [TestMethod]
     public async Task StreamChatAsync_NoTools_AssistantMessageIsEmptyString_WhenNoTokens()
     {
-        _stubClient.StreamEvents = [];
+        _stubClient.StreamEvents = Array.Empty<StreamEvent>();
 
         var session = new Session { Id = "stream-empty-content" };
 
@@ -1135,10 +1137,11 @@ public class AgentStreamChatTests
     [TestMethod]
     public async Task StreamChatAsync_NoTools_NonTokenEvents_ArePassedThrough()
     {
-        _stubClient.StreamEvents = [
+        _stubClient.StreamEvents = new StreamEvent[]
+        {
             new StreamEvent.TokenDelta("text"),
             new StreamEvent.MessageComplete("stop")
-        ];
+        };
 
         var session = new Session { Id = "stream-events" };
         var events = new List<StreamEvent>();
@@ -1171,7 +1174,7 @@ public class AgentStreamChatTests
         {
             callCount++;
             if (callCount == 1)
-                return Task.FromResult(new ChatResponse { ToolCalls = [toolCall], FinishReason = "tool_calls" });
+                return Task.FromResult(new ChatResponse { ToolCalls = new List<ToolCall> { toolCall }, FinishReason = "tool_calls" });
             return Task.FromResult(new ChatResponse { Content = "stream final", FinishReason = "stop" });
         };
 
@@ -1230,7 +1233,7 @@ public class AgentStreamChatTests
         {
             callCount++;
             return callCount == 1
-                ? Task.FromResult(new ChatResponse { ToolCalls = [toolCall], FinishReason = "tool_calls" })
+                ? Task.FromResult(new ChatResponse { ToolCalls = new List<ToolCall> { toolCall }, FinishReason = "tool_calls" })
                 : Task.FromResult(new ChatResponse { Content = "done", FinishReason = "stop" });
         };
 
@@ -1265,7 +1268,7 @@ public class AgentStreamChatTests
     /// <summary>Stub IChatClient with configurable streaming behavior.</summary>
     private sealed class StubStreamingChatClient : IChatClient
     {
-        public IReadOnlyList<StreamEvent> StreamEvents { get; set; } = [];
+        public IReadOnlyList<StreamEvent> StreamEvents { get; set; } = Array.Empty<StreamEvent>();
         public Exception? ThrowOnStream { get; set; }
         public Func<IEnumerable<Message>, IEnumerable<ToolDefinition>, CancellationToken, Task<ChatResponse>>? OnCompleteWithTools { get; set; }
 

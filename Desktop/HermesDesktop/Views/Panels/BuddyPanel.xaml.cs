@@ -40,8 +40,9 @@ public sealed partial class BuddyPanel : UserControl
 
             SoulText.Text = buddy.Personality ?? "This buddy hasn't found its soul yet.";
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"BuddyPanel failed to load buddy: {ex}");
             BuddyNameText.Text = "Buddy unavailable";
             SoulText.Text = "Could not load buddy. Check LLM connection.";
         }

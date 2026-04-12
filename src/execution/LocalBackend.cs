@@ -82,7 +82,11 @@ public sealed partial class LocalBackend : IExecutionBackend
         }
         catch (OperationCanceledException)
         {
-            try { process.Kill(entireProcessTree: true); } catch { }
+            try { process.Kill(entireProcessTree: true); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"LocalBackend timed-out process kill failed: {ex}");
+            }
             sw.Stop();
             return new ExecutionResult
             {

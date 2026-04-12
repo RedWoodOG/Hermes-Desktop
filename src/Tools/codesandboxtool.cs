@@ -108,7 +108,11 @@ public sealed class CodeSandboxTool : ITool
         }
         catch (OperationCanceledException)
         {
-            try { process.Kill(entireProcessTree: true); } catch { }
+            try { process.Kill(entireProcessTree: true); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"CodeSandboxTool timed-out process kill failed: {ex}");
+            }
             return ToolResult.Fail($"Execution timed out after {timeoutSeconds}s.");
         }
     }

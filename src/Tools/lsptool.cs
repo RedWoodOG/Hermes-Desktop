@@ -492,7 +492,10 @@ public sealed class LspClient : IAsyncDisposable
         {
             _process.Kill();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"LspTool process kill failed during dispose: {ex}");
+        }
         _process.Dispose();
     }
 }

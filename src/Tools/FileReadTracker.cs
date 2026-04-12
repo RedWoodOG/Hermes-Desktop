@@ -24,9 +24,9 @@ public static class FileReadTracker
                 _readTimestamps[resolved] = File.GetLastWriteTimeUtc(resolved);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore errors - tracking is best-effort
+            System.Diagnostics.Debug.WriteLine($"FileReadTracker.RecordRead failed for {filePath}: {ex}");
         }
     }
 
@@ -53,9 +53,9 @@ public static class FileReadTracker
                        "stale. Consider re-reading the file to verify before writing.";
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Can't stat - not an error
+            System.Diagnostics.Debug.WriteLine($"FileReadTracker.CheckStaleness failed for {filePath}: {ex}");
         }
 
         return null;
@@ -75,9 +75,9 @@ public static class FileReadTracker
                 _readTimestamps[resolved] = File.GetLastWriteTimeUtc(resolved);
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignore errors
+            System.Diagnostics.Debug.WriteLine($"FileReadTracker.UpdateAfterWrite failed for {filePath}: {ex}");
         }
     }
 

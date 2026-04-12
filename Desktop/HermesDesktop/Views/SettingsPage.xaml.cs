@@ -44,11 +44,11 @@ public sealed partial class SettingsPage : Page
 
     // ═══════════════════════════════════════════
     //  Page Loaded — populate all sections
+    // ═══════════════════════════════════════════
+
     /// <summary>
     /// Initializes the settings UI by loading all configuration sections and then refreshes the runtime status.
     /// </summary>
-    /// <param name="sender">The source of the Loaded event.</param>
-    /// <param name="e">Event data for the Loaded event.</param>
     private async void OnPageLoaded(object sender, RoutedEventArgs e)
     {
         LoadUserProfile();
@@ -69,7 +69,7 @@ public sealed partial class SettingsPage : Page
     private void LoadUserProfile()
     {
         var userMdPath = Path.Combine(HermesEnvironment.HermesHomePath, "USER.md");
-        UserProfilePathLabel.Text = $"Stored at: {userMdPath}";
+        UserProfilePathLabel.Text = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsUserProfilePathFormat"), userMdPath);
 
         if (!File.Exists(userMdPath)) return;
 
@@ -151,12 +151,12 @@ This file is a living document about the human I work with. It helps me provide 
                 Environment.SetEnvironmentVariable("HERMES_DESKTOP_WORKSPACE", projectDir, EnvironmentVariableTarget.User);
             }
 
-            UserProfileSaveStatus.Text = "Profile saved.";
+            UserProfileSaveStatus.Text = ResourceLoader.GetString("SettingsProfileSaved");
             UserProfileSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOnlineBrush"];
         }
         catch (Exception ex)
         {
-            UserProfileSaveStatus.Text = $"Error: {ex.Message}";
+            UserProfileSaveStatus.Text = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsErrorFormat"), ex.Message);
             UserProfileSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
         }
     }
@@ -244,8 +244,12 @@ This file is a living document about the human I work with. It helps me provide 
     private void RefreshGatewayStatus()
     {
         bool running = HermesEnvironment.IsGatewayRunning();
-        GatewayStatusText.Text = running ? "Running" : "Stopped";
-        GatewayToggleBtn.Content = running ? "Stop" : "Start";
+        GatewayStatusText.Text = running
+            ? ResourceLoader.GetString("SettingsGatewayStatusRunning")
+            : ResourceLoader.GetString("SettingsGatewayStatusStopped");
+        GatewayToggleBtn.Content = running
+            ? ResourceLoader.GetString("SettingsGatewayStop")
+            : ResourceLoader.GetString("SettingsGatewayStart");
     }
 
     // ── Platforms ──
@@ -349,7 +353,8 @@ This file is a living document about the human I work with. It helps me provide 
         {
             ModelCombo.Items.Add(new ComboBoxItem
             {
-                Content = $"{m.DisplayName}  ({ModelCatalog.FormatContextLength(m.ContextLength)})",
+                Content = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsModelComboItemFormat"),
+                    m.DisplayName, ModelCatalog.FormatContextLength(m.ContextLength)),
                 Tag = m.Id
             });
         }
@@ -360,9 +365,10 @@ This file is a living document about the human I work with. It helps me provide 
         _suppressModelComboEvent = false;
 
         if (models.Count > 0)
-            ContextLengthLabel.Text = $"Context: {ModelCatalog.FormatContextLength(models[0].ContextLength)}";
+            ContextLengthLabel.Text = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsModelContextFormat"),
+                ModelCatalog.FormatContextLength(models[0].ContextLength));
         else
-            ContextLengthLabel.Text = "Context: --";
+            ContextLengthLabel.Text = ResourceLoader.GetString("SettingsModelContextUnknown");
     }
 
     private void SelectCurrentModel(string modelId)
@@ -377,7 +383,8 @@ This file is a living document about the human I work with. It helps me provide 
                 _suppressModelComboEvent = false;
 
                 var ctx = ModelCatalog.GetContextLength(modelId);
-                ContextLengthLabel.Text = $"Context: {ModelCatalog.FormatContextLength(ctx)}";
+                ContextLengthLabel.Text = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsModelContextFormat"),
+                    ModelCatalog.FormatContextLength(ctx));
                 return;
             }
         }
@@ -391,7 +398,8 @@ This file is a living document about the human I work with. It helps me provide 
             var modelId = selected.Tag?.ToString() ?? "";
             ModelBox.Text = modelId;
             var ctx = ModelCatalog.GetContextLength(modelId);
-            ContextLengthLabel.Text = $"Context: {ModelCatalog.FormatContextLength(ctx)}";
+            ContextLengthLabel.Text = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsModelContextFormat"),
+                ModelCatalog.FormatContextLength(ctx));
         }
     }
 
@@ -434,7 +442,7 @@ This file is a living document about the human I work with. It helps me provide 
 
             if (string.IsNullOrEmpty(model))
             {
-                ModelSaveStatus.Text = "Model name is required.";
+                ModelSaveStatus.Text = ResourceLoader.GetString("SettingsModelRequired");
                 ModelSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
                 await RefreshRuntimeStatusAsync();
                 return;
@@ -442,21 +450,21 @@ This file is a living document about the human I work with. It helps me provide 
 
             if (authMode == "api_key_env" && string.IsNullOrWhiteSpace(apiKeyEnv))
             {
-                ModelSaveStatus.Text = "API key env var is required for API Key (Env Var).";
+                ModelSaveStatus.Text = ResourceLoader.GetString("SettingsModelApiKeyEnvRequired");
                 ModelSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
                 return;
             }
 
             if (authMode == "oauth_proxy_env" && string.IsNullOrWhiteSpace(authTokenEnv))
             {
-                ModelSaveStatus.Text = "Token env var is required for OAuth Proxy (Env Token).";
+                ModelSaveStatus.Text = ResourceLoader.GetString("SettingsModelOAuthEnvRequired");
                 ModelSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
                 return;
             }
 
             if (authMode == "oauth_proxy_command" && string.IsNullOrWhiteSpace(authTokenCommand))
             {
-                ModelSaveStatus.Text = "Token command is required for OAuth Proxy (Command Token).";
+                ModelSaveStatus.Text = ResourceLoader.GetString("SettingsModelOAuthCommandRequired");
                 ModelSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
                 return;
             }
@@ -474,13 +482,13 @@ This file is a living document about the human I work with. It helps me provide 
                 authTokenCommand,
                 TemperatureSlider.Value.ToString("F1", CultureInfo.InvariantCulture),
                 ((int)MaxTokensBox.Value).ToString(CultureInfo.InvariantCulture));
-            ModelSaveStatus.Text = "Saved successfully. Restart to apply.";
+            ModelSaveStatus.Text = ResourceLoader.GetString("SettingsSaveSuccessRestart");
             ModelSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOnlineBrush"];
             await RefreshRuntimeStatusAsync();
         }
         catch (Exception ex)
         {
-            ModelSaveStatus.Text = $"Error: {ex.Message}";
+            ModelSaveStatus.Text = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsErrorFormat"), ex.Message);
             ModelSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
             await RefreshRuntimeStatusAsync();
         }
@@ -527,12 +535,12 @@ This file is a living document about the human I work with. It helps me provide 
 
             await HermesEnvironment.SaveConfigSectionAsync("agent", settings);
 
-            AgentSaveStatus.Text = "Saved successfully. Restart to apply.";
+            AgentSaveStatus.Text = ResourceLoader.GetString("SettingsSaveSuccessRestart");
             AgentSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOnlineBrush"];
         }
         catch (Exception ex)
         {
-            AgentSaveStatus.Text = $"Error: {ex.Message}";
+            AgentSaveStatus.Text = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsErrorFormat"), ex.Message);
             AgentSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
         }
     }
@@ -571,12 +579,12 @@ This file is a living document about the human I work with. It helps me provide 
             await HermesEnvironment.SavePlatformSettingAsync("email", "smtp_host", EmailSmtpHostBox.Text.Trim());
             await HermesEnvironment.SavePlatformSettingAsync("email", "smtp_port", ((int)EmailSmtpPortBox.Value).ToString(CultureInfo.InvariantCulture));
 
-            PlatformSaveStatus.Text = "All platforms saved. Restart gateway to apply.";
+            PlatformSaveStatus.Text = ResourceLoader.GetString("SettingsSaveAllPlatformsSuccess");
             PlatformSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOnlineBrush"];
         }
         catch (Exception ex)
         {
-            PlatformSaveStatus.Text = $"Error: {ex.Message}";
+            PlatformSaveStatus.Text = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsErrorFormat"), ex.Message);
             PlatformSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
         }
     }
@@ -601,12 +609,12 @@ This file is a living document about the human I work with. It helps me provide 
             };
             await HermesEnvironment.SaveConfigSectionAsync("compression", compSettings);
 
-            MemorySaveStatus.Text = "Saved successfully. Restart to apply.";
+            MemorySaveStatus.Text = ResourceLoader.GetString("SettingsSaveSuccessRestart");
             MemorySaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOnlineBrush"];
         }
         catch (Exception ex)
         {
-            MemorySaveStatus.Text = $"Error: {ex.Message}";
+            MemorySaveStatus.Text = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsErrorFormat"), ex.Message);
             MemorySaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
         }
     }
@@ -630,12 +638,12 @@ This file is a living document about the human I work with. It helps me provide 
             };
             await HermesEnvironment.SaveConfigSectionAsync("privacy", privacySettings);
 
-            DisplaySaveStatus.Text = "Saved successfully. Restart to apply.";
+            DisplaySaveStatus.Text = ResourceLoader.GetString("SettingsSaveSuccessRestart");
             DisplaySaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOnlineBrush"];
         }
         catch (Exception ex)
         {
-            DisplaySaveStatus.Text = $"Error: {ex.Message}";
+            DisplaySaveStatus.Text = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsErrorFormat"), ex.Message);
             DisplaySaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
         }
     }
@@ -728,12 +736,12 @@ This file is a living document about the human I work with. It helps me provide 
 
             await HermesEnvironment.SaveConfigSectionAsync("terminal", settings);
 
-            ExecutionSaveStatus.Text = "Saved successfully. Restart to apply.";
+            ExecutionSaveStatus.Text = ResourceLoader.GetString("SettingsSaveSuccessRestart");
             ExecutionSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOnlineBrush"];
         }
         catch (Exception ex)
         {
-            ExecutionSaveStatus.Text = $"Error: {ex.Message}";
+            ExecutionSaveStatus.Text = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsErrorFormat"), ex.Message);
             ExecutionSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
         }
     }
@@ -762,12 +770,12 @@ This file is a living document about the human I work with. It helps me provide 
 
             await HermesEnvironment.SaveConfigSectionAsync("plugins", settings);
 
-            PluginSaveStatus.Text = "Saved successfully. Restart to apply.";
+            PluginSaveStatus.Text = ResourceLoader.GetString("SettingsSaveSuccessRestart");
             PluginSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOnlineBrush"];
         }
         catch (Exception ex)
         {
-            PluginSaveStatus.Text = $"Error: {ex.Message}";
+            PluginSaveStatus.Text = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsErrorFormat"), ex.Message);
             PluginSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
         }
     }
@@ -808,14 +816,6 @@ This file is a living document about the human I work with. It helps me provide 
     /// <summary>
     /// Enable or disable the authentication-related input fields to match the selected authentication mode.
     /// </summary>
-    /// <param name="authMode">
-    /// The selected authentication mode (case-insensitive). Recognized values:
-    /// "api_key" — enables the API key text box;
-    /// "api_key_env" — enables the API key environment variable box;
-    /// "oauth_proxy_env" — enables proxy-related header/scheme fields and the proxy token environment box;
-    /// "oauth_proxy_command" — enables proxy-related header/scheme fields and the proxy token command box.
-    /// A null value is treated as "api_key".
-    /// </param>
     private void UpdateAuthFieldState(string? authMode)
     {
         var mode = (authMode ?? "api_key").ToLowerInvariant();
@@ -829,8 +829,28 @@ This file is a living document about the human I work with. It helps me provide 
         AuthTokenCommandBox.IsEnabled = mode == "oauth_proxy_command";
     }
 
+    // ── Dreamer ──
+    private static string NormalizeDreamerDigestTimesForSave(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw))
+            return "";
+
+        var validated = new List<string>();
+        foreach (var part in raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var timeParts = part.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (timeParts.Length == 2 &&
+                int.TryParse(timeParts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var h) &&
+                int.TryParse(timeParts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var m) &&
+                h >= 0 && h <= 23 && m >= 0 && m <= 59)
+                validated.Add(part);
+        }
+
+        return string.Join(",", validated);
+    }
+
     /// <summary>
-    /// Loads the Dreamer configuration from the Hermes home config.yaml and applies its values to the Dreamer UI controls.
+    /// Loads the Dreamer configuration from config.yaml and applies its values to the Dreamer UI controls.
     /// </summary>
     private void LoadDreamerSettings()
     {
@@ -840,17 +860,15 @@ This file is a living document about the human I work with. It helps me provide 
         DreamerWalkIntervalBox.Value = c.WalkIntervalMinutes;
         DreamerWalkModelBox.Text = c.WalkModel;
         DreamerWalkBaseUrlBox.Text = c.WalkBaseUrl;
+        DreamerDigestTimesBox.Text = string.Join(", ", c.DigestTimes);
+        DreamerTriggerThresholdBox.Value = c.TriggerThreshold;
+        DreamerMinWalksToTriggerBox.Value = c.MinWalksToTrigger;
         DreamerDiscordChannelBox.Text = c.DiscordChannelId;
     }
 
     /// <summary>
-    /// Persists the Dreamer settings from the UI into the application's "dreamer" configuration section and updates the status label.
+    /// Persists the Dreamer settings from the UI into the application's "dreamer" configuration section.
     /// </summary>
-    /// <remarks>
-    /// Reads the existing config.yaml to preserve values that are not supplied in the UI, serializes list fields (RSS feeds and digest times) as comma-separated strings, and saves the assembled key/value mapping via HermesEnvironment.SaveConfigSectionAsync. On success or failure, the method updates <c>DreamerSaveStatus</c> text and foreground color accordingly.
-    /// </remarks>
-    /// <param name="sender">The source of the event.</param>
-    /// <param name="e">Event data for the click event.</param>
     private async void SaveDreamerConfig_Click(object sender, RoutedEventArgs e)
     {
         try
@@ -858,7 +876,7 @@ This file is a living document about the human I work with. It helps me provide 
             var cfgPath = Path.Combine(HermesEnvironment.HermesHomePath, "config.yaml");
             var cur = DreamerConfig.Load(cfgPath);
             var rss = string.Join(",", cur.RssFeeds);
-            var digest = string.Join(",", cur.DigestTimes);
+            var digest = NormalizeDreamerDigestTimesForSave(DreamerDigestTimesBox.Text);
             var dict = new Dictionary<string, string>
             {
                 ["enabled"] = DreamerEnabledToggle.IsOn ? "true" : "false",
@@ -872,8 +890,8 @@ This file is a living document about the human I work with. It helps me provide 
                 ["walk_interval_minutes"] = ((int)DreamerWalkIntervalBox.Value).ToString(CultureInfo.InvariantCulture),
                 ["digest_times"] = digest,
                 ["discord_channel_id"] = DreamerDiscordChannelBox.Text.Trim(),
-                ["trigger_threshold"] = cur.TriggerThreshold.ToString(CultureInfo.InvariantCulture),
-                ["min_walks_to_trigger"] = cur.MinWalksToTrigger.ToString(CultureInfo.InvariantCulture),
+                ["trigger_threshold"] = DreamerTriggerThresholdBox.Value.ToString(CultureInfo.InvariantCulture),
+                ["min_walks_to_trigger"] = ((int)DreamerMinWalksToTriggerBox.Value).ToString(CultureInfo.InvariantCulture),
                 ["autonomy"] = cur.Autonomy,
                 ["input_transcripts"] = cur.InputTranscripts ? "true" : "false",
                 ["input_inbox"] = cur.InputInbox ? "true" : "false",
@@ -883,21 +901,19 @@ This file is a living document about the human I work with. It helps me provide 
                 dict["build_base_url"] = cur.BuildBaseUrl;
 
             await HermesEnvironment.SaveConfigSectionAsync("dreamer", dict);
-            DreamerSaveStatus.Text = "Saved. Restart app to refresh Dreamer LLM clients.";
+            DreamerSaveStatus.Text = ResourceLoader.GetString("SettingsDreamerSaved");
             DreamerSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOnlineBrush"];
         }
         catch (Exception ex)
         {
-            DreamerSaveStatus.Text = $"Error: {ex.Message}";
+            DreamerSaveStatus.Text = string.Format(CultureInfo.CurrentCulture, ResourceLoader.GetString("SettingsErrorFormat"), ex.Message);
             DreamerSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
         }
     }
 
     /// <summary>
-    /// Ensures the "dreamer" directory exists under the Hermes home path and opens it in the system file explorer.
+    /// Ensures the dreamer directory exists and opens it in the system file explorer.
     /// </summary>
-    /// <param name="sender">The source of the event.</param>
-    /// <param name="e">Event data for the routed event.</param>
     private void OpenDreamerRoom_Click(object sender, RoutedEventArgs e)
     {
         var dir = Path.Combine(HermesEnvironment.HermesHomePath, "dreamer");

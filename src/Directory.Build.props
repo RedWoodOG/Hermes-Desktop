@@ -1,0 +1,14 @@
+<Project>
+  <!-- Two .csproj files share this folder: split intermediate output + NuGet extensions per project. -->
+  <PropertyGroup>
+    <BaseIntermediateOutputPath>$(MSBuildProjectDirectory)\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath>
+  </PropertyGroup>
+  <!-- Default glob excludes only this project's BaseIntermediateOutputPath/**, so the other project's generated *.cs under obj/<Sibling>/ would be compiled. -->
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Hermes.Core'">
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)\obj\Hermes.Agent\**</DefaultItemExcludes>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(MSBuildProjectName)' == 'Hermes.Agent'">
+    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildProjectDirectory)\obj\Hermes.Core\**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

@@ -50,8 +50,9 @@ internal static class StartupDiagnostics
             Directory.CreateDirectory(logsDir);
             return Path.Combine(logsDir, "desktop-startup.log");
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"StartupDiagnostics.GetStartupLogPath fallback triggered: {ex}");
             string fallbackDir = Path.Combine(Path.GetTempPath(), "HermesDesktop");
             Directory.CreateDirectory(fallbackDir);
             return Path.Combine(fallbackDir, "desktop-startup.log");
@@ -67,8 +68,9 @@ internal static class StartupDiagnostics
                 {
                     return Process.GetProcessesByName(name).Length > 0;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    Debug.WriteLine($"StartupDiagnostics overlay process probe failed for {name}: {ex}");
                     return false;
                 }
             })
@@ -89,8 +91,9 @@ internal static class StartupDiagnostics
                 "Hermes Desktop",
                 MessageBoxOk | MessageBoxIconError | MessageBoxSetForeground);
         }
-        catch
+        catch (Exception ex)
         {
+            Debug.WriteLine($"StartupDiagnostics message box display failed: {ex}");
         }
     }
 

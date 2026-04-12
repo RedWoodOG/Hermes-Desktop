@@ -1,6 +1,7 @@
 namespace Hermes.Agent.LLM;
 
 using Hermes.Agent.Core;
+using System.Diagnostics;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
@@ -175,9 +176,29 @@ public sealed class AnthropicClient : IChatClient
         var cacheCreationTokens = 0;
         var cacheReadTokens = 0;
         
-        while (!reader.EndOfStream)
+        while (true)
         {
-            var line = await reader.ReadLineAsync(ct);
+            if (ct.IsCancellationRequested) break;
+            string? line;
+            try
+            {
+                line = await reader.ReadLineAsync(ct);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (IOException)
+            {
+                Debug.WriteLine("Anthropic SSE: stream read ended (IOException).");
+                break;
+            }
+            catch (ObjectDisposedException)
+            {
+                break;
+            }
+
+            if (line is null) break;
             if (string.IsNullOrEmpty(line)) continue;
             
             if (!line.StartsWith("data: "))

@@ -1,6 +1,10 @@
 # Build outputs
 bin/
 obj/
+artifacts/
+# Local MSIX dev signing — see Desktop/HermesDesktop/packaging/README.md and scripts/new-msix-dev-cert.ps1.
+# CI uses an ephemeral cert (.github/workflows/ci-msix.yml); do not commit .pfx material.
+Desktop/HermesDesktop/packaging/dev-msix.pfx
 *.dll
 *.exe
 *.xbf
@@ -25,3 +29,21 @@ Thumbs.db
 
 # Config (optional - keep template)
 # config.yaml
+.aider*
+
+# Local dotnet SDK / tool payloads (not repo source)
+.dotnet/
+.dotnet-cli/
+
+# Nested clone kept alongside the repo for reference (do not vendor)
+hermes-agent-repo/
+
+# Ad-hoc logs / tree dumps at repo root
+/err.txt
+/out.txt
+/repo-tree.txt
+
+# One-off documentation / analysis exports (regenerate locally if needed)
+/hermes-forensic-report.md
+/hermes-code-patterns.md
+/hermes-complete-docs.md

@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  App Installer update graph for sideloaded MSIX.
+  - Replace every https://YOURCDN.example/hermes/... URL with your real HTTPS base (required for update checks).
+  - MainPackage Version / Name / Publisher / Uri must match the signed .msix you upload (see Package.appxmanifest Identity).
+  - Bump AppInstaller @Version when you change this file (metadata version, not the app version).
+  Docs: https://learn.microsoft.com/windows/msix/app-installer/how-to-create-appinstaller-file
+-->
+<AppInstaller xmlns="http://schemas.microsoft.com/appx/appinstaller/2018" Version="1.0.0.0" Uri="https://YOURCDN.example/hermes/desktop/HermesDesktop.appinstaller">
+  <MainPackage Name="EDC29F63-281C-4D34-8723-155C8122DEA2" Publisher="CN=AppPublisher" Version="2.2.0.0" ProcessorArchitecture="x64" Uri="https://YOURCDN.example/hermes/desktop/HermesDesktop_2.2.0.0_x64.msix" />
+  <UpdateSettings>
+    <OnLaunch HoursBetweenUpdateChecks="8" ShowPrompt="true" UpdateBlocksActivation="false" />
+    <AutomaticBackgroundTask />
+  </UpdateSettings>
+</AppInstaller>

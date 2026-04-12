@@ -1,55 +1,67 @@
 namespace Hermes.Agent.Dreamer;
 
+using Microsoft.Extensions.Logging;
+
 /// <summary>Filesystem workspace under %LOCALAPPDATA%/hermes/dreamer/ (or HERMES_HOME/dreamer/).</summary>
 public sealed class DreamerRoom
 {
+    private readonly ILogger<DreamerRoom>? _logger;
+
     public string Root { get; }
 
-    /// <summary>
-        /// Initializes a new DreamerRoom rooted at the provided Hermes home directory.
-        /// </summary>
-        /// <param name="hermesHome">Path to the Hermes home directory; the room's Root will be set to <c>Path.Combine(hermesHome, "dreamer")</c>.</param>
-        public DreamerRoom(string hermesHome) =>
+    public DreamerRoom(string hermesHome, ILogger<DreamerRoom>? logger = null)
+    {
+        _logger = logger;
         Root = Path.Combine(hermesHome, "dreamer");
+    }
 
     public string WalksDir => Path.Combine(Root, "walks");
     public string ProjectsDir => Path.Combine(Root, "projects");
     public string InboxDir => Path.Combine(Root, "inbox");
     public string InboxRssDir => Path.Combine(Root, "inbox-rss");
     public string FeedbackDir => Path.Combine(Root, "feedback");
+    public string DigestsDir => Path.Combine(FeedbackDir, "digests");
     public string SoulPath => Path.Combine(Root, "DREAMER_SOUL.md");
     public string FascinationsPath => Path.Combine(Root, "fascinations.md");
     public string SignalLogPath => Path.Combine(Root, "signal-log.jsonl");
     public string SignalStatePath => Path.Combine(Root, "signal-state.json");
 
-    /// <summary>
-    /// Ensures the Dreamer workspace exists under Root by creating required directories and initializing missing files with default content.
-    /// </summary>
-    /// <remarks>
-    /// Creates the directories: Root, WalksDir, ProjectsDir, InboxDir, InboxRssDir, and FeedbackDir if they do not exist. If missing, writes default content to SoulPath (using DefaultSoulMarkdown), writes a header and description to FascinationsPath, and creates an empty SignalLogPath. The operation is idempotent.
-    /// </remarks>
     public void EnsureLayout()
     {
-        foreach (var d in new[] { Root, WalksDir, ProjectsDir, InboxDir, InboxRssDir, FeedbackDir })
-            Directory.CreateDirectory(d);
+        foreach (var d in new[] { Root, WalksDir, ProjectsDir, InboxDir, InboxRssDir, FeedbackDir, DigestsDir })
+        {
+            try
+            {
+                Directory.CreateDirectory(d);
+            }
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+            {
+                _logger?.LogWarning(ex, "Failed to ensure Dreamer directory {Path}", d);
+            }
+        }
 
-        if (!File.Exists(SoulPath))
-            File.WriteAllText(SoulPath, DefaultSoulMarkdown);
-
-        if (!File.Exists(FascinationsPath))
-            File.WriteAllText(FascinationsPath,
-                "# Fascinations\n\nLong-running interests and threads the Dreamer notices.\n");
-
-        if (!File.Exists(SignalLogPath))
-            File.WriteAllText(SignalLogPath, "");
+        EnsureFileExists(SoulPath, DefaultSoulMarkdown);
+        EnsureFileExists(
+            FascinationsPath,
+            "# Fascinations\n\nLong-running interests and threads the Dreamer notices.\n");
+        EnsureFileExists(SignalLogPath, "");
     }
 
-    /// <summary>
-        /// Generate a new file path for a walk markdown file in the WalksDir using the current UTC timestamp.
-        /// </summary>
-        /// <returns>The full path to a walk markdown file named "walk-YYYYMMDD-HHmmss.md" located in WalksDir.</returns>
-        public string NewWalkPath() =>
+    public string NewWalkPath() =>
         Path.Combine(WalksDir, $"walk-{DateTime.UtcNow:yyyyMMdd-HHmmss}.md");
+
+    private void EnsureFileExists(string path, string content)
+    {
+        try
+        {
+            if (!File.Exists(path))
+                File.WriteAllText(path, content);
+        }
+        catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
+        {
+            _logger?.LogWarning(ex, "Failed to ensure Dreamer file {Path}", path);
+        }
+    }
 
     private const string DefaultSoulMarkdown = """
 # Dreamer Soul

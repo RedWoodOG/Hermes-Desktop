@@ -60,8 +60,15 @@ public sealed class SignalScorer
     /// <param name="board">The SignalBoard to serialize and save as the current persistent state.</param>
     public void SaveBoard(SignalBoard board)
     {
-        var json = JsonSerializer.Serialize(board, _json);
-        File.WriteAllText(_room.SignalStatePath, json);
+        try
+        {
+            var json = JsonSerializer.Serialize(board, _json);
+            File.WriteAllText(_room.SignalStatePath, json);
+        }
+        catch (Exception ex) when (IsRecoverableFileException(ex))
+        {
+            _logger.LogWarning(ex, "Failed to save signal board");
+        }
     }
 
     /// <summary>
@@ -70,8 +77,15 @@ public sealed class SignalScorer
     /// <param name="evt">The signal event to serialize and append; written as one-line (compact) JSON to the room's signal log path.</param>
     public void AppendSignalLog(SignalEvent evt)
     {
-        var line = JsonSerializer.Serialize(evt, _jsonLogOptions) + "\n";
-        File.AppendAllText(_room.SignalLogPath, line);
+        try
+        {
+            var line = JsonSerializer.Serialize(evt, _jsonLogOptions) + "\n";
+            File.AppendAllText(_room.SignalLogPath, line);
+        }
+        catch (Exception ex) when (IsRecoverableFileException(ex))
+        {
+            _logger.LogWarning(ex, "Failed to append Dreamer signal event for {ProjectKey}", evt.ProjectKey);
+        }
     }
 
     /// <summary>
@@ -90,7 +104,20 @@ public sealed class SignalScorer
         buildSlug = null;
         var m = Regex.Match(walkText, @"\[BUILD:\s*([a-zA-Z0-9_-]+)\]", RegexOptions.IgnoreCase);
         if (m.Success)
-            buildSlug = m.Groups[1].Value.ToLowerInvariant();
+        {
+            var candidate = m.Groups[1].Value;
+            var normalized = DreamerProjectSlug.Normalize(candidate);
+            if (normalized.Length > 0)
+                buildSlug = normalized;
+            else
+                _logger.LogWarning(
+                    "Ignoring Dreamer build marker with invalid normalized slug {Slug} from input {InputSlug}",
+                    normalized,
+                    candidate);
+        }
+
+        // Strip BUILD metadata to prevent false commit signal
+        walkText = Regex.Replace(walkText, @"\[BUILD:\s*[a-zA-Z0-9_-]+\]", "", RegexOptions.IgnoreCase);
 
         var board = LoadBoard();
         ApplyDecay(board);
@@ -172,14 +199,14 @@ public sealed class SignalScorer
     public bool ShouldTriggerBuild(string? slug, DreamerConfig config, out ProjectSignals? signals)
     {
         signals = null;
-        if (string.IsNullOrWhiteSpace(slug))
+        if (!DreamerProjectSlug.TryNormalize(slug, out var normalized))
             return false;
 
         var board = LoadBoard();
         if (board.PositiveWalkStreak < config.MinWalksToTrigger)
             return false;
 
-        if (!board.Projects.TryGetValue(slug, out var ps))
+        if (!board.Projects.TryGetValue(normalized, out var ps))
             return false;
 
         signals = ps;
@@ -187,33 +214,38 @@ public sealed class SignalScorer
             return false;
 
         var distinct = ps.SignalTypes.Distinct(StringComparer.OrdinalIgnoreCase).Count();
-        if (distinct < 2 && InferDistinctTypesFromLog(slug) < 2)
+        if (distinct < 2 && InferDistinctTypesFromLog(normalized) < 2)
             return false;
 
         return true;
     }
 
-    /// <summary>
-    /// Estimates how many distinct signal types appear for the given project slug in recent signal log entries.
-    /// </summary>
-    /// <param name="slug">Project slug to match against each log entry's ProjectKey (case-insensitive).</param>
-    /// <returns>The count of distinct signal type names found for that slug among up to the last 500 log lines; returns 0 if the log file is missing or no matching entries are found. Malformed log lines are ignored.</returns>
-    private int InferDistinctTypesFromLog(string slug)
+    private int InferDistinctTypesFromLog(string normalizedSlug)
     {
         if (!File.Exists(_room.SignalLogPath))
             return 0;
 
         var types = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var line in File.ReadLines(_room.SignalLogPath).TakeLast(500))
+        try
         {
-            try
+            foreach (var line in File.ReadLines(_room.SignalLogPath).TakeLast(500))
             {
-                var evt = JsonSerializer.Deserialize<SignalEvent>(line, _jsonLogOptions);
-                if (evt is null || !string.Equals(evt.ProjectKey, slug, StringComparison.OrdinalIgnoreCase))
-                    continue;
-                types.Add(evt.Type);
+                try
+                {
+                    var evt = JsonSerializer.Deserialize<SignalEvent>(line, _jsonLogOptions);
+                    if (evt is null || !string.Equals(evt.ProjectKey, normalizedSlug, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    types.Add(evt.Type);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Skipping malformed signal log row while scoring {Slug}", normalizedSlug);
+                }
             }
-            catch { /* skip */ }
+        }
+        catch (Exception ex) when (IsRecoverableFileException(ex))
+        {
+            _logger.LogWarning(ex, "Failed to read Dreamer signal log for {Slug}", normalizedSlug);
         }
 
         return types.Count;
@@ -225,11 +257,17 @@ public sealed class SignalScorer
     /// <param name="slug">The project slug or key whose saved signals should be removed.</param>
     public void ResetProjectAfterBuild(string slug)
     {
+        if (!DreamerProjectSlug.TryNormalize(slug, out var normalized))
+            return;
+
         var board = LoadBoard();
-        board.Projects.Remove(slug);
+        board.Projects.Remove(normalized);
         board.PositiveWalkStreak = 0;
         SaveBoard(board);
     }
+
+    private static bool IsRecoverableFileException(Exception ex) =>
+        ex is IOException or UnauthorizedAccessException;
 }
 
 public sealed class SignalBoard

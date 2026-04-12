@@ -108,7 +108,11 @@ public sealed class DockerBackend : IExecutionBackend
         }
         catch (OperationCanceledException)
         {
-            try { process.Kill(entireProcessTree: true); } catch { }
+            try { process.Kill(entireProcessTree: true); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"DockerBackend timed-out process kill failed: {ex}");
+            }
             sw.Stop();
             return new ExecutionResult
             {
@@ -135,7 +139,10 @@ public sealed class DockerBackend : IExecutionBackend
             using var p = Process.Start(psi);
             if (p is not null) await p.WaitForExitAsync();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"DockerBackend cleanup failed for container {_containerId}: {ex}");
+        }
     }
 
     public async ValueTask DisposeAsync() => await CleanupAsync();

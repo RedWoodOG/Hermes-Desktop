@@ -52,8 +52,8 @@ public sealed class MessageEvent
     public required string Text { get; init; }
     public MessageType Type { get; init; } = MessageType.Text;
     public required SessionSource Source { get; init; }
-    public List<string> MediaUrls { get; init; } = [];
-    public List<string> MediaTypes { get; init; } = [];
+    public List<string> MediaUrls { get; init; } = new List<string>();
+    public List<string> MediaTypes { get; init; } = new List<string>();
     public string? MessageId { get; init; }
     public DateTime Timestamp { get; init; } = DateTime.UtcNow;
 

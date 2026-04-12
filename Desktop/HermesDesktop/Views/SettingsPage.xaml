@@ -15,9 +15,9 @@
             <!-- ═══ A. Header ═══ -->
             <Border Style="{StaticResource SurfaceCardStyle}">
                 <StackPanel Spacing="14">
-                    <TextBlock Text="SETTINGS" Style="{StaticResource PageEyebrowTextStyle}"/>
-                    <TextBlock Text="Configuration" Style="{StaticResource PageTitleTextStyle}" MaxWidth="920"/>
-                    <TextBlock Text="Configure model, agent behavior, gateway platforms, memory, and display preferences."
+                    <TextBlock x:Uid="SettingsPageEyebrow" Style="{StaticResource PageEyebrowTextStyle}"/>
+                    <TextBlock x:Uid="SettingsPageTitle" Style="{StaticResource PageTitleTextStyle}" MaxWidth="920"/>
+                    <TextBlock x:Uid="SettingsPageSubtitle"
                                Style="{StaticResource BodySecondaryTextStyle}" MaxWidth="920"/>
                 </StackPanel>
             </Border>
@@ -27,34 +27,34 @@
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <FontIcon Glyph="&#xE77B;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
-                        <TextBlock Text="User Profile" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                        <TextBlock x:Uid="SettingsExpUserProfileHeader" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Expander.Header>
                 <Expander.Content>
                     <StackPanel Spacing="12" Padding="4,12,4,4">
-                        <TextBlock Text="This information helps the agent personalize responses and remember who you are across sessions. Stored in USER.md."
+                        <TextBlock x:Uid="SettingsUserProfileIntro"
                                    FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"/>
 
                         <!-- Display Name -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="YOUR NAME" Style="{StaticResource LabelTextStyle}"/>
-                            <TextBox x:Name="UserNameBox" PlaceholderText="How should the agent address you?"
+                            <TextBlock x:Uid="SettingsLblYourName" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="UserNameBox" x:Uid="SettingsUserNameBox"
                                      Background="{StaticResource AppInsetBrush}"
                                      BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
                         </StackPanel>
 
                         <!-- Role / Expertise -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="ROLE / EXPERTISE" Style="{StaticResource LabelTextStyle}"/>
-                            <TextBox x:Name="UserRoleBox" PlaceholderText="e.g. Windows developer, data scientist, student..."
+                            <TextBlock x:Uid="SettingsLblRoleExpertise" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="UserRoleBox" x:Uid="SettingsUserRoleBox"
                                      Background="{StaticResource AppInsetBrush}"
                                      BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
                         </StackPanel>
 
                         <!-- Working Style -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="WORKING STYLE" Style="{StaticResource LabelTextStyle}"/>
-                            <TextBox x:Name="UserStyleBox" PlaceholderText="e.g. Prefers concise responses, likes code over explanations..."
+                            <TextBlock x:Uid="SettingsLblWorkingStyle" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="UserStyleBox" x:Uid="SettingsUserStyleBox"
                                      Background="{StaticResource AppInsetBrush}" AcceptsReturn="True"
                                      TextWrapping="Wrap" MinHeight="60"
                                      BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
@@ -62,16 +62,16 @@
 
                         <!-- Project Directory -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="DEFAULT PROJECT DIRECTORY" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblDefaultProjectDir" Style="{StaticResource LabelTextStyle}"/>
                             <Grid ColumnSpacing="8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBox x:Name="UserProjectDirBox" PlaceholderText="e.g. C:\Projects or ~/code"
+                                <TextBox x:Name="UserProjectDirBox" x:Uid="SettingsUserProjectDirBox"
                                          Background="{StaticResource AppInsetBrush}"
                                          BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
-                                <Button Grid.Column="1" Content="Browse" Click="BrowseProjectDir_Click"
+                                <Button Grid.Column="1" x:Uid="SettingsBrowseProjectDirBtn" Click="BrowseProjectDir_Click"
                                         Background="{StaticResource AppInsetBrush}"
                                         BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White" Padding="12,6"/>
                             </Grid>
@@ -83,11 +83,11 @@
 
                         <!-- Save + Edit raw -->
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <Button x:Name="SaveUserProfileBtn" Content="Save Profile" Click="SaveUserProfile_Click"
+                            <Button x:Name="SaveUserProfileBtn" x:Uid="SettingsSaveUserProfileBtn" Click="SaveUserProfile_Click"
                                     Background="{StaticResource AppAccentGradientBrush}"
                                     BorderBrush="{StaticResource AppAccentDarkBrush}"
                                     Foreground="#16110D" Padding="20,8"/>
-                            <Button Content="Edit USER.md" Click="EditUserMd_Click"
+                            <Button x:Uid="SettingsEditUserMdBtn" Click="EditUserMd_Click"
                                     Background="{StaticResource AppInsetBrush}"
                                     BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White" Padding="12,6"/>
                             <TextBlock x:Name="UserProfileSaveStatus" VerticalAlignment="Center"
@@ -102,35 +102,35 @@
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <FontIcon Glyph="&#xE964;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
-                        <TextBlock Text="Model Configuration" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                        <TextBlock x:Uid="SettingsExpModelConfigHeader" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Expander.Header>
                 <Expander.Content>
                     <StackPanel Spacing="12" Padding="4,8,4,4">
                         <!-- Provider -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="PROVIDER" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblProvider" Style="{StaticResource LabelTextStyle}"/>
                             <ComboBox x:Name="ProviderCombo" HorizontalAlignment="Stretch"
                                       Background="{StaticResource AppInsetBrush}"
                                       BorderBrush="{StaticResource AppStrokeBrush}"
                                       SelectionChanged="ProviderCombo_SelectionChanged">
-                                <ComboBoxItem Content="Nous (OpenRouter)" Tag="nous"/>
-                                <ComboBoxItem Content="OpenAI" Tag="openai"/>
-                                <ComboBoxItem Content="Google Gemini" Tag="google"/>
-                                <ComboBoxItem Content="Anthropic" Tag="anthropic"/>
-                                <ComboBoxItem Content="Qwen (Alibaba)" Tag="qwen"/>
-                                <ComboBoxItem Content="DeepSeek" Tag="deepseek"/>
-                                <ComboBoxItem Content="MiniMax" Tag="minimax"/>
-                                <ComboBoxItem Content="OpenRouter" Tag="openrouter"/>
-                                <ComboBoxItem Content="Ollama" Tag="ollama"/>
-                                <ComboBoxItem Content="Custom / Local" Tag="local"/>
+                                <ComboBoxItem x:Uid="SettingsProvNous" Tag="nous"/>
+                                <ComboBoxItem x:Uid="SettingsProvOpenAI" Tag="openai"/>
+                                <ComboBoxItem x:Uid="SettingsProvGoogle" Tag="google"/>
+                                <ComboBoxItem x:Uid="SettingsProvAnthropic" Tag="anthropic"/>
+                                <ComboBoxItem x:Uid="SettingsProvQwen" Tag="qwen"/>
+                                <ComboBoxItem x:Uid="SettingsProvDeepSeek" Tag="deepseek"/>
+                                <ComboBoxItem x:Uid="SettingsProvMiniMax" Tag="minimax"/>
+                                <ComboBoxItem x:Uid="SettingsProvOpenRouter" Tag="openrouter"/>
+                                <ComboBoxItem x:Uid="SettingsProvOllama" Tag="ollama"/>
+                                <ComboBoxItem x:Uid="SettingsProvLocal" Tag="local"/>
                             </ComboBox>
                         </StackPanel>
 
                         <!-- Base URL -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="BASE URL" Style="{StaticResource LabelTextStyle}"/>
-                            <TextBox x:Name="BaseUrlBox" PlaceholderText="http://127.0.0.1:11434/v1"
+                            <TextBlock x:Uid="SettingsLblBaseUrl" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="BaseUrlBox" x:Uid="SettingsBaseUrlBox"
                                      Background="{StaticResource AppInsetBrush}"
                                      BorderBrush="{StaticResource AppStrokeBrush}"
                                      Foreground="White"/>
@@ -138,46 +138,45 @@
 
                         <!-- Model Picker -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="MODEL" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblModel" Style="{StaticResource LabelTextStyle}"/>
                             <ComboBox x:Name="ModelCombo" HorizontalAlignment="Stretch"
                                       Background="{StaticResource AppInsetBrush}"
                                       BorderBrush="{StaticResource AppStrokeBrush}"
                                       SelectionChanged="ModelCombo_SelectionChanged"/>
-                            <TextBox x:Name="ModelBox" PlaceholderText="Or type a custom model ID"
+                            <TextBox x:Name="ModelBox" x:Uid="SettingsModelBox"
                                      Background="{StaticResource AppInsetBrush}"
                                      BorderBrush="{StaticResource AppStrokeBrush}"
                                      Foreground="White"/>
-                            <TextBlock x:Name="ContextLengthLabel" FontSize="12"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}"
-                                       Text="Context: --"/>
+                            <TextBlock x:Name="ContextLengthLabel" x:Uid="SettingsContextLengthLabel" FontSize="12"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}"/>
                         </StackPanel>
 
                         <!-- API Key -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="API KEY" Style="{StaticResource LabelTextStyle}"/>
-                            <PasswordBox x:Name="ApiKeyBox" PlaceholderText="sk-... (leave blank for local)"
+                            <TextBlock x:Uid="SettingsLblApiKey" Style="{StaticResource LabelTextStyle}"/>
+                            <PasswordBox x:Name="ApiKeyBox" x:Uid="SettingsApiKeyBox"
                                          Background="{StaticResource AppInsetBrush}"
                                          BorderBrush="{StaticResource AppStrokeBrush}"
                                          Foreground="White"/>
                         </StackPanel>
 
                         <StackPanel Spacing="4">
-                            <TextBlock Text="AUTH MODE" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblAuthMode" Style="{StaticResource LabelTextStyle}"/>
                             <ComboBox x:Name="AuthModeCombo" HorizontalAlignment="Stretch"
                                       Background="{StaticResource AppInsetBrush}"
                                       BorderBrush="{StaticResource AppStrokeBrush}"
                                       SelectionChanged="AuthModeCombo_SelectionChanged">
-                                <ComboBoxItem Content="API Key" Tag="api_key"/>
-                                <ComboBoxItem Content="API Key (Env Var)" Tag="api_key_env"/>
-                                <ComboBoxItem Content="OAuth Proxy (Env Token)" Tag="oauth_proxy_env"/>
-                                <ComboBoxItem Content="OAuth Proxy (Command Token)" Tag="oauth_proxy_command"/>
-                                <ComboBoxItem Content="No Auth Header" Tag="none"/>
+                                <ComboBoxItem x:Uid="SettingsAuthApiKey" Tag="api_key"/>
+                                <ComboBoxItem x:Uid="SettingsAuthApiKeyEnv" Tag="api_key_env"/>
+                                <ComboBoxItem x:Uid="SettingsAuthOAuthEnv" Tag="oauth_proxy_env"/>
+                                <ComboBoxItem x:Uid="SettingsAuthOAuthCmd" Tag="oauth_proxy_command"/>
+                                <ComboBoxItem x:Uid="SettingsAuthNone" Tag="none"/>
                             </ComboBox>
                         </StackPanel>
 
                         <StackPanel Spacing="4">
-                            <TextBlock Text="API KEY ENV VAR" Style="{StaticResource LabelTextStyle}"/>
-                            <TextBox x:Name="ApiKeyEnvBox" PlaceholderText="GOOGLE_API_KEY"
+                            <TextBlock x:Uid="SettingsLblApiKeyEnvVar" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="ApiKeyEnvBox" x:Uid="SettingsApiKeyEnvBox"
                                      Background="{StaticResource AppInsetBrush}"
                                      BorderBrush="{StaticResource AppStrokeBrush}"
                                      Foreground="White"/>
@@ -190,16 +189,16 @@
                             </Grid.ColumnDefinitions>
 
                             <StackPanel Grid.Column="0" Spacing="4">
-                                <TextBlock Text="AUTH HEADER" Style="{StaticResource LabelTextStyle}"/>
-                                <TextBox x:Name="AuthHeaderBox" PlaceholderText="Authorization"
+                                <TextBlock x:Uid="SettingsLblAuthHeader" Style="{StaticResource LabelTextStyle}"/>
+                                <TextBox x:Name="AuthHeaderBox" x:Uid="SettingsAuthHeaderBox"
                                          Background="{StaticResource AppInsetBrush}"
                                          BorderBrush="{StaticResource AppStrokeBrush}"
                                          Foreground="White"/>
                             </StackPanel>
 
                             <StackPanel Grid.Column="1" Spacing="4">
-                                <TextBlock Text="AUTH SCHEME" Style="{StaticResource LabelTextStyle}"/>
-                                <TextBox x:Name="AuthSchemeBox" PlaceholderText="Bearer"
+                                <TextBlock x:Uid="SettingsLblAuthScheme" Style="{StaticResource LabelTextStyle}"/>
+                                <TextBox x:Name="AuthSchemeBox" x:Uid="SettingsAuthSchemeBox"
                                          Background="{StaticResource AppInsetBrush}"
                                          BorderBrush="{StaticResource AppStrokeBrush}"
                                          Foreground="White"/>
@@ -207,22 +206,22 @@
                         </Grid>
 
                         <StackPanel Spacing="4">
-                            <TextBlock Text="TOKEN ENV VAR" Style="{StaticResource LabelTextStyle}"/>
-                            <TextBox x:Name="AuthTokenEnvBox" PlaceholderText="OPENAI_OAUTH_ACCESS_TOKEN"
+                            <TextBlock x:Uid="SettingsLblTokenEnvVar" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="AuthTokenEnvBox" x:Uid="SettingsAuthTokenEnvBox"
                                      Background="{StaticResource AppInsetBrush}"
                                      BorderBrush="{StaticResource AppStrokeBrush}"
                                      Foreground="White"/>
                         </StackPanel>
 
                         <StackPanel Spacing="4">
-                            <TextBlock Text="TOKEN COMMAND" Style="{StaticResource LabelTextStyle}"/>
-                            <TextBox x:Name="AuthTokenCommandBox" PlaceholderText="oauth-proxy-helper print-access-token"
+                            <TextBlock x:Uid="SettingsLblTokenCommand" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="AuthTokenCommandBox" x:Uid="SettingsAuthTokenCommandBox"
                                      Background="{StaticResource AppInsetBrush}"
                                      BorderBrush="{StaticResource AppStrokeBrush}"
                                      Foreground="White"/>
                         </StackPanel>
 
-                        <TextBlock Text="OAuth proxy modes let Hermes fetch a short-lived token from an environment variable or refresh command and attach it to an OpenAI-compatible proxy request."
+                        <TextBlock x:Uid="SettingsOAuthHelpText"
                                    TextWrapping="Wrap"
                                    Foreground="{StaticResource AppTextSecondaryBrush}"
                                    FontSize="12"/>
@@ -230,7 +229,7 @@
                         <!-- Temperature -->
                         <StackPanel Spacing="4">
                             <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="TEMPERATURE" Style="{StaticResource LabelTextStyle}"/>
+                                <TextBlock x:Uid="SettingsLblTemperature" Style="{StaticResource LabelTextStyle}"/>
                                 <TextBlock x:Name="TemperatureValueLabel" FontSize="12"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
                             </StackPanel>
@@ -241,7 +240,7 @@
 
                         <!-- Max Tokens -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="MAX TOKENS" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblMaxTokens" Style="{StaticResource LabelTextStyle}"/>
                             <NumberBox x:Name="MaxTokensBox" Value="4096"
                                        Minimum="1" Maximum="1000000" SpinButtonPlacementMode="Inline"
                                        Background="{StaticResource AppInsetBrush}"
@@ -250,7 +249,7 @@
 
                         <!-- Save -->
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <Button x:Name="SaveModelBtn" Content="Save Model Config" Click="SaveModelConfig_Click"
+                            <Button x:Name="SaveModelBtn" x:Uid="SettingsSaveModelBtn" Click="SaveModelConfig_Click"
                                     Background="{StaticResource AppAccentGradientBrush}"
                                     BorderBrush="{StaticResource AppAccentDarkBrush}"
                                     Foreground="#16110D" Padding="20,8"/>
@@ -259,7 +258,7 @@
                         </StackPanel>
 
                         <StackPanel Spacing="6" Margin="0,6,0,0">
-                            <TextBlock Text="CURRENT RUNTIME STATUS" Style="{StaticResource LabelTextStyle}" />
+                            <TextBlock x:Uid="SettingsRuntimeStatusHeader" Style="{StaticResource LabelTextStyle}" />
                             <Grid ColumnSpacing="12" RowSpacing="6">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="110" />
@@ -271,13 +270,13 @@
                                     <RowDefinition Height="Auto" />
                                 </Grid.RowDefinitions>
 
-                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Provider" Style="{StaticResource LabelTextStyle}" />
+                                <TextBlock Grid.Row="0" Grid.Column="0" x:Uid="SettingsRuntimeProviderRow" Style="{StaticResource LabelTextStyle}" />
                                 <TextBlock x:Name="RuntimeProviderStatusText" Grid.Row="0" Grid.Column="1" />
 
-                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Model" Style="{StaticResource LabelTextStyle}" />
+                                <TextBlock Grid.Row="1" Grid.Column="0" x:Uid="SettingsRuntimeModelRow" Style="{StaticResource LabelTextStyle}" />
                                 <TextBlock x:Name="RuntimeModelStatusText" Grid.Row="1" Grid.Column="1" TextWrapping="Wrap" />
 
-                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Connection" Style="{StaticResource LabelTextStyle}" />
+                                <TextBlock Grid.Row="2" Grid.Column="0" x:Uid="SettingsRuntimeConnectionRow" Style="{StaticResource LabelTextStyle}" />
                                 <TextBlock x:Name="RuntimeConnectionStatusText" Grid.Row="2" Grid.Column="1" />
                             </Grid>
                         </StackPanel>
@@ -290,14 +289,14 @@
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <FontIcon Glyph="&#xE99A;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
-                        <TextBlock Text="Agent Behavior" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                        <TextBlock x:Uid="SettingsExpAgentBehaviorHeader" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Expander.Header>
                 <Expander.Content>
                     <StackPanel Spacing="12" Padding="4,8,4,4">
                         <!-- Max Turns -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="MAX TURNS" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblMaxTurns" Style="{StaticResource LabelTextStyle}"/>
                             <NumberBox x:Name="MaxTurnsBox" Value="90"
                                        Minimum="1" Maximum="999" SpinButtonPlacementMode="Inline"
                                        Background="{StaticResource AppInsetBrush}"
@@ -306,31 +305,31 @@
 
                         <!-- Tool Use Enforcement -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="TOOL USE ENFORCEMENT" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblToolUse" Style="{StaticResource LabelTextStyle}"/>
                             <ComboBox x:Name="ToolUseCombo" HorizontalAlignment="Stretch"
                                       Background="{StaticResource AppInsetBrush}"
                                       BorderBrush="{StaticResource AppStrokeBrush}">
-                                <ComboBoxItem Content="Auto" Tag="auto"/>
-                                <ComboBoxItem Content="Always" Tag="always"/>
-                                <ComboBoxItem Content="Never" Tag="never"/>
+                                <ComboBoxItem x:Uid="SettingsToolUseAuto" Tag="auto"/>
+                                <ComboBoxItem x:Uid="SettingsToolUseAlways" Tag="always"/>
+                                <ComboBoxItem x:Uid="SettingsToolUseNever" Tag="never"/>
                             </ComboBox>
                         </StackPanel>
 
                         <!-- Approvals Mode -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="APPROVALS MODE" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblApprovalsMode" Style="{StaticResource LabelTextStyle}"/>
                             <ComboBox x:Name="ApprovalsCombo" HorizontalAlignment="Stretch"
                                       Background="{StaticResource AppInsetBrush}"
                                       BorderBrush="{StaticResource AppStrokeBrush}">
-                                <ComboBoxItem Content="Manual" Tag="manual"/>
-                                <ComboBoxItem Content="Smart" Tag="smart"/>
-                                <ComboBoxItem Content="Off" Tag="off"/>
+                                <ComboBoxItem x:Uid="SettingsApprovalsManual" Tag="manual"/>
+                                <ComboBoxItem x:Uid="SettingsApprovalsSmart" Tag="smart"/>
+                                <ComboBoxItem x:Uid="SettingsApprovalsOff" Tag="off"/>
                             </ComboBox>
                         </StackPanel>
 
                         <!-- Approval Timeout -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="APPROVAL TIMEOUT (SECONDS)" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblApprovalTimeout" Style="{StaticResource LabelTextStyle}"/>
                             <NumberBox x:Name="ApprovalTimeoutBox" Value="60"
                                        Minimum="5" Maximum="600" SpinButtonPlacementMode="Inline"
                                        Background="{StaticResource AppInsetBrush}"
@@ -339,7 +338,7 @@
 
                         <!-- Save -->
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <Button Content="Save Agent Config" Click="SaveAgentConfig_Click"
+                            <Button x:Uid="SettingsSaveAgentBtn" Click="SaveAgentConfig_Click"
                                     Background="{StaticResource AppAccentGradientBrush}"
                                     BorderBrush="{StaticResource AppAccentDarkBrush}"
                                     Foreground="#16110D" Padding="20,8"/>
@@ -355,7 +354,7 @@
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <FontIcon Glyph="&#xEC05;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
-                        <TextBlock Text="Gateway &amp; Platforms" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                        <TextBlock x:Uid="SettingsExpGatewayPlatformsHeader" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Expander.Header>
                 <Expander.Content>
@@ -363,12 +362,11 @@
 
                         <!-- Gateway Status -->
                         <StackPanel Spacing="8">
-                            <TextBlock Text="GATEWAY STATUS" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblGatewayStatus" Style="{StaticResource LabelTextStyle}"/>
                             <StackPanel Orientation="Horizontal" Spacing="12">
-                                <TextBlock x:Name="GatewayStatusText" VerticalAlignment="Center"
-                                           Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"
-                                           Text="Checking..."/>
-                                <Button x:Name="GatewayToggleBtn" Content="Start" Click="GatewayToggle_Click"
+                                <TextBlock x:Name="GatewayStatusText" x:Uid="SettingsGatewayStatusInitial" VerticalAlignment="Center"
+                                           Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
+                                <Button x:Name="GatewayToggleBtn" x:Uid="SettingsGatewayStartBtn" Click="GatewayToggle_Click"
                                         Background="{StaticResource AppInsetBrush}"
                                         BorderBrush="{StaticResource AppStrokeBrush}"
                                         Foreground="White" Padding="16,6"/>
@@ -379,16 +377,15 @@
 
                         <!-- Telegram -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="TELEGRAM" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblTelegram" Style="{StaticResource LabelTextStyle}"/>
                             <Grid ColumnSpacing="12">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="120"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Text="Bot Token" VerticalAlignment="Center"
+                                <TextBlock x:Uid="SettingsTelegramBotTokenLabel" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
-                                <PasswordBox x:Name="TelegramBotTokenBox" Grid.Column="1"
-                                             PlaceholderText="Telegram bot token"
+                                <PasswordBox x:Name="TelegramBotTokenBox" Grid.Column="1" x:Uid="SettingsTelegramBotTokenBox"
                                              Background="{StaticResource AppInsetBrush}"
                                              BorderBrush="{StaticResource AppStrokeBrush}"
                                              Foreground="White"/>
@@ -399,7 +396,7 @@
 
                         <!-- Discord -->
                         <StackPanel Spacing="8">
-                            <TextBlock Text="DISCORD" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblDiscord" Style="{StaticResource LabelTextStyle}"/>
                             <Grid ColumnSpacing="12" RowSpacing="8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="120"/>
@@ -411,20 +408,19 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Text="Bot Token" VerticalAlignment="Center"
+                                <TextBlock x:Uid="SettingsDiscordBotTokenLabel" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
-                                <PasswordBox x:Name="DiscordBotTokenBox" Grid.Column="1"
-                                             PlaceholderText="Discord bot token"
+                                <PasswordBox x:Name="DiscordBotTokenBox" Grid.Column="1" x:Uid="SettingsDiscordBotTokenBox"
                                              Background="{StaticResource AppInsetBrush}"
                                              BorderBrush="{StaticResource AppStrokeBrush}"
                                              Foreground="White"/>
-                                <TextBlock Grid.Row="1" Text="Require Mention" VerticalAlignment="Center"
+                                <TextBlock Grid.Row="1" x:Uid="SettingsLblDiscordRequireMention" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                                 <ToggleSwitch x:Name="DiscordRequireMentionToggle" Grid.Row="1" Grid.Column="1"/>
-                                <TextBlock Grid.Row="2" Text="Auto Thread" VerticalAlignment="Center"
+                                <TextBlock Grid.Row="2" x:Uid="SettingsLblDiscordAutoThread" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                                 <ToggleSwitch x:Name="DiscordAutoThreadToggle" Grid.Row="2" Grid.Column="1"/>
-                                <TextBlock Grid.Row="3" Text="Reactions" VerticalAlignment="Center"
+                                <TextBlock Grid.Row="3" x:Uid="SettingsLblDiscordReactions" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                                 <ToggleSwitch x:Name="DiscordReactionsToggle" Grid.Row="3" Grid.Column="1"/>
                             </Grid>
@@ -434,7 +430,7 @@
 
                         <!-- Slack -->
                         <StackPanel Spacing="8">
-                            <TextBlock Text="SLACK" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblSlack" Style="{StaticResource LabelTextStyle}"/>
                             <Grid ColumnSpacing="12" RowSpacing="8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="120"/>
@@ -444,17 +440,15 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Text="Bot Token" VerticalAlignment="Center"
+                                <TextBlock x:Uid="SettingsSlackBotTokenLabel" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
-                                <PasswordBox x:Name="SlackBotTokenBox" Grid.Column="1"
-                                             PlaceholderText="xoxb-..."
+                                <PasswordBox x:Name="SlackBotTokenBox" Grid.Column="1" x:Uid="SettingsSlackBotTokenBox"
                                              Background="{StaticResource AppInsetBrush}"
                                              BorderBrush="{StaticResource AppStrokeBrush}"
                                              Foreground="White"/>
-                                <TextBlock Grid.Row="1" Text="App Token" VerticalAlignment="Center"
+                                <TextBlock Grid.Row="1" x:Uid="SettingsLblSlackAppToken" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
-                                <PasswordBox x:Name="SlackAppTokenBox" Grid.Row="1" Grid.Column="1"
-                                             PlaceholderText="xapp-..."
+                                <PasswordBox x:Name="SlackAppTokenBox" Grid.Row="1" Grid.Column="1" x:Uid="SettingsSlackAppTokenBox"
                                              Background="{StaticResource AppInsetBrush}"
                                              BorderBrush="{StaticResource AppStrokeBrush}"
                                              Foreground="White"/>
@@ -465,7 +459,7 @@
 
                         <!-- Matrix -->
                         <StackPanel Spacing="8">
-                            <TextBlock Text="MATRIX" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblMatrix" Style="{StaticResource LabelTextStyle}"/>
                             <Grid ColumnSpacing="12" RowSpacing="8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="120"/>
@@ -475,17 +469,15 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Text="Access Token" VerticalAlignment="Center"
+                                <TextBlock x:Uid="SettingsLblMatrixAccessToken" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
-                                <PasswordBox x:Name="MatrixAccessTokenBox" Grid.Column="1"
-                                             PlaceholderText="Matrix access token"
+                                <PasswordBox x:Name="MatrixAccessTokenBox" Grid.Column="1" x:Uid="SettingsMatrixAccessTokenBox"
                                              Background="{StaticResource AppInsetBrush}"
                                              BorderBrush="{StaticResource AppStrokeBrush}"
                                              Foreground="White"/>
-                                <TextBlock Grid.Row="1" Text="Homeserver URL" VerticalAlignment="Center"
+                                <TextBlock Grid.Row="1" x:Uid="SettingsLblMatrixHomeserver" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
-                                <TextBox x:Name="MatrixHomeserverBox" Grid.Row="1" Grid.Column="1"
-                                         PlaceholderText="https://matrix.org"
+                                <TextBox x:Name="MatrixHomeserverBox" Grid.Row="1" Grid.Column="1" x:Uid="SettingsMatrixHomeserverBox"
                                          Background="{StaticResource AppInsetBrush}"
                                          BorderBrush="{StaticResource AppStrokeBrush}"
                                          Foreground="White"/>
@@ -496,7 +488,7 @@
 
                         <!-- Webhook -->
                         <StackPanel Spacing="8">
-                            <TextBlock Text="WEBHOOK" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblWebhook" Style="{StaticResource LabelTextStyle}"/>
                             <Grid ColumnSpacing="12" RowSpacing="8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="120"/>
@@ -507,20 +499,19 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Text="Enabled" VerticalAlignment="Center"
+                                <TextBlock x:Uid="SettingsLblWebhookEnabled" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                                 <ToggleSwitch x:Name="WebhookEnabledToggle" Grid.Column="1"/>
-                                <TextBlock Grid.Row="1" Text="Port" VerticalAlignment="Center"
+                                <TextBlock Grid.Row="1" x:Uid="SettingsLblWebhookPort" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                                 <NumberBox x:Name="WebhookPortBox" Grid.Row="1" Grid.Column="1"
                                            Value="8080" Minimum="1" Maximum="65535"
                                            SpinButtonPlacementMode="Inline"
                                            Background="{StaticResource AppInsetBrush}"
                                            BorderBrush="{StaticResource AppStrokeBrush}"/>
-                                <TextBlock Grid.Row="2" Text="HMAC Secret" VerticalAlignment="Center"
+                                <TextBlock Grid.Row="2" x:Uid="SettingsLblWebhookHmac" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
-                                <PasswordBox x:Name="WebhookHmacSecretBox" Grid.Row="2" Grid.Column="1"
-                                             PlaceholderText="Optional HMAC secret"
+                                <PasswordBox x:Name="WebhookHmacSecretBox" Grid.Row="2" Grid.Column="1" x:Uid="SettingsWebhookHmacSecretBox"
                                              Background="{StaticResource AppInsetBrush}"
                                              BorderBrush="{StaticResource AppStrokeBrush}"
                                              Foreground="White"/>
@@ -531,7 +522,7 @@
 
                         <!-- Email -->
                         <StackPanel Spacing="8">
-                            <TextBlock Text="EMAIL" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblEmail" Style="{StaticResource LabelTextStyle}"/>
                             <Grid ColumnSpacing="12" RowSpacing="8">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="120"/>
@@ -545,42 +536,38 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
-                                <TextBlock Text="Address" VerticalAlignment="Center"
+                                <TextBlock x:Uid="SettingsLblEmailAddress" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
-                                <TextBox x:Name="EmailAddressBox" Grid.Column="1"
-                                         PlaceholderText="you@example.com"
+                                <TextBox x:Name="EmailAddressBox" Grid.Column="1" x:Uid="SettingsEmailAddressBox"
                                          Background="{StaticResource AppInsetBrush}"
                                          BorderBrush="{StaticResource AppStrokeBrush}"
                                          Foreground="White"/>
-                                <TextBlock Grid.Row="1" Text="Password" VerticalAlignment="Center"
+                                <TextBlock Grid.Row="1" x:Uid="SettingsLblEmailPassword" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
-                                <PasswordBox x:Name="EmailPasswordBox" Grid.Row="1" Grid.Column="1"
-                                             PlaceholderText="Email password or app password"
+                                <PasswordBox x:Name="EmailPasswordBox" Grid.Row="1" Grid.Column="1" x:Uid="SettingsEmailPasswordBox"
                                              Background="{StaticResource AppInsetBrush}"
                                              BorderBrush="{StaticResource AppStrokeBrush}"
                                              Foreground="White"/>
-                                <TextBlock Grid.Row="2" Text="IMAP Host" VerticalAlignment="Center"
+                                <TextBlock Grid.Row="2" x:Uid="SettingsLblEmailImapHost" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
-                                <TextBox x:Name="EmailImapHostBox" Grid.Row="2" Grid.Column="1"
-                                         PlaceholderText="imap.gmail.com"
+                                <TextBox x:Name="EmailImapHostBox" Grid.Row="2" Grid.Column="1" x:Uid="SettingsEmailImapHostBox"
                                          Background="{StaticResource AppInsetBrush}"
                                          BorderBrush="{StaticResource AppStrokeBrush}"
                                          Foreground="White"/>
-                                <TextBlock Grid.Row="3" Text="IMAP Port" VerticalAlignment="Center"
+                                <TextBlock Grid.Row="3" x:Uid="SettingsLblEmailImapPort" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                                 <NumberBox x:Name="EmailImapPortBox" Grid.Row="3" Grid.Column="1"
                                            Value="993" Minimum="1" Maximum="65535"
                                            SpinButtonPlacementMode="Inline"
                                            Background="{StaticResource AppInsetBrush}"
                                            BorderBrush="{StaticResource AppStrokeBrush}"/>
-                                <TextBlock Grid.Row="4" Text="SMTP Host" VerticalAlignment="Center"
+                                <TextBlock Grid.Row="4" x:Uid="SettingsLblEmailSmtpHost" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
-                                <TextBox x:Name="EmailSmtpHostBox" Grid.Row="4" Grid.Column="1"
-                                         PlaceholderText="smtp.gmail.com"
+                                <TextBox x:Name="EmailSmtpHostBox" Grid.Row="4" Grid.Column="1" x:Uid="SettingsEmailSmtpHostBox"
                                          Background="{StaticResource AppInsetBrush}"
                                          BorderBrush="{StaticResource AppStrokeBrush}"
                                          Foreground="White"/>
-                                <TextBlock Grid.Row="5" Text="SMTP Port" VerticalAlignment="Center"
+                                <TextBlock Grid.Row="5" x:Uid="SettingsLblEmailSmtpPort" VerticalAlignment="Center"
                                            Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                                 <NumberBox x:Name="EmailSmtpPortBox" Grid.Row="5" Grid.Column="1"
                                            Value="587" Minimum="1" Maximum="65535"
@@ -594,7 +581,7 @@
 
                         <!-- Save All Platforms -->
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <Button Content="Save All Platforms" Click="SavePlatformConfig_Click"
+                            <Button x:Uid="SettingsSaveAllPlatformsBtn" Click="SavePlatformConfig_Click"
                                     Background="{StaticResource AppAccentGradientBrush}"
                                     BorderBrush="{StaticResource AppAccentDarkBrush}"
                                     Foreground="#16110D" Padding="20,8"/>
@@ -610,7 +597,7 @@
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <FontIcon Glyph="&#xE7C3;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
-                        <TextBlock Text="Memory &amp; Context" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                        <TextBlock x:Uid="SettingsExpMemoryContextHeader" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Expander.Header>
                 <Expander.Content>
@@ -629,15 +616,15 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <TextBlock Text="Memory Enabled" VerticalAlignment="Center"
+                            <TextBlock x:Uid="SettingsLblMemoryEnabled" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                             <ToggleSwitch x:Name="MemoryEnabledToggle" Grid.Column="1"/>
 
-                            <TextBlock Grid.Row="1" Text="User Profile Enabled" VerticalAlignment="Center"
+                            <TextBlock Grid.Row="1" x:Uid="SettingsLblUserProfileEnabled" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                             <ToggleSwitch x:Name="UserProfileEnabledToggle" Grid.Row="1" Grid.Column="1"/>
 
-                            <TextBlock Grid.Row="2" Text="MEMORY CHAR LIMIT" VerticalAlignment="Center"
+                            <TextBlock Grid.Row="2" x:Uid="SettingsLblMemoryCharLimit" VerticalAlignment="Center"
                                        Style="{StaticResource LabelTextStyle}"/>
                             <NumberBox x:Name="MemoryCharLimitBox" Grid.Row="2" Grid.Column="1"
                                        Value="2200" Minimum="100" Maximum="50000"
@@ -645,7 +632,7 @@
                                        Background="{StaticResource AppInsetBrush}"
                                        BorderBrush="{StaticResource AppStrokeBrush}"/>
 
-                            <TextBlock Grid.Row="3" Text="USER CHAR LIMIT" VerticalAlignment="Center"
+                            <TextBlock Grid.Row="3" x:Uid="SettingsLblUserCharLimit" VerticalAlignment="Center"
                                        Style="{StaticResource LabelTextStyle}"/>
                             <NumberBox x:Name="UserCharLimitBox" Grid.Row="3" Grid.Column="1"
                                        Value="1375" Minimum="100" Maximum="50000"
@@ -653,11 +640,11 @@
                                        Background="{StaticResource AppInsetBrush}"
                                        BorderBrush="{StaticResource AppStrokeBrush}"/>
 
-                            <TextBlock Grid.Row="4" Text="Compression Enabled" VerticalAlignment="Center"
+                            <TextBlock Grid.Row="4" x:Uid="SettingsLblCompressionEnabled" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                             <ToggleSwitch x:Name="CompressionEnabledToggle" Grid.Row="4" Grid.Column="1"/>
 
-                            <TextBlock Grid.Row="5" Text="COMPRESSION THRESHOLD" VerticalAlignment="Center"
+                            <TextBlock Grid.Row="5" x:Uid="SettingsLblCompressionThreshold" VerticalAlignment="Center"
                                        Style="{StaticResource LabelTextStyle}"/>
                             <StackPanel Grid.Row="5" Grid.Column="1" Orientation="Horizontal" Spacing="8">
                                 <Slider x:Name="CompressionThresholdSlider" Minimum="0" Maximum="1"
@@ -670,7 +657,7 @@
                         </Grid>
 
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <Button Content="Save Memory Config" Click="SaveMemoryConfig_Click"
+                            <Button x:Uid="SettingsSaveMemoryBtn" Click="SaveMemoryConfig_Click"
                                     Background="{StaticResource AppAccentGradientBrush}"
                                     BorderBrush="{StaticResource AppAccentDarkBrush}"
                                     Foreground="#16110D" Padding="20,8"/>
@@ -686,20 +673,20 @@
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <FontIcon Glyph="&#xE9CE;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
-                        <TextBlock Text="Dreamer" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                        <TextBlock x:Uid="SettingsExpDreamerHeader" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Expander.Header>
                 <Expander.Content>
                     <StackPanel Spacing="12" Padding="4,8,4,4">
-                        <TextBlock Text="Background free-association on a local model (Ollama). Off by default. Room: %LOCALAPPDATA%\\hermes\\dreamer\\"
+                        <TextBlock x:Uid="SettingsDreamerIntro"
                                    FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"/>
                         <StackPanel Spacing="4">
-                            <TextBlock x:Name="DreamerEnabledLabel" Text="ENABLE DREAMER" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Name="DreamerEnabledLabel" x:Uid="SettingsDreamerEnabledLabel" Style="{StaticResource LabelTextStyle}"/>
                             <ToggleSwitch x:Name="DreamerEnabledToggle"
                                           AutomationProperties.LabeledBy="{Binding ElementName=DreamerEnabledLabel}"/>
                         </StackPanel>
                         <StackPanel Spacing="4">
-                            <TextBlock x:Name="DreamerWalkIntervalLabel" Text="WALK INTERVAL (MINUTES)" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Name="DreamerWalkIntervalLabel" x:Uid="SettingsDreamerWalkIntervalLabel" Style="{StaticResource LabelTextStyle}"/>
                             <NumberBox x:Name="DreamerWalkIntervalBox" Value="30" Minimum="1" Maximum="120"
                                        SpinButtonPlacementMode="Inline"
                                        Background="{StaticResource AppInsetBrush}"
@@ -707,37 +694,58 @@
                                        AutomationProperties.LabeledBy="{Binding ElementName=DreamerWalkIntervalLabel}"/>
                         </StackPanel>
                         <StackPanel Spacing="4">
-                            <TextBlock x:Name="DreamerWalkModelLabel" Text="WALK MODEL" Style="{StaticResource LabelTextStyle}"/>
-                            <TextBox x:Name="DreamerWalkModelBox" PlaceholderText="qwen3.5:latest"
+                            <TextBlock x:Name="DreamerWalkModelLabel" x:Uid="SettingsDreamerWalkModelLabel" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="DreamerWalkModelBox" x:Uid="SettingsDreamerWalkModelBox"
                                      Background="{StaticResource AppInsetBrush}"
                                      BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"
                                      AutomationProperties.LabeledBy="{Binding ElementName=DreamerWalkModelLabel}"/>
                         </StackPanel>
                         <StackPanel Spacing="4">
-                            <TextBlock x:Name="DreamerWalkBaseUrlLabel" Text="WALK BASE URL" Style="{StaticResource LabelTextStyle}"/>
-                            <TextBox x:Name="DreamerWalkBaseUrlBox" PlaceholderText="http://127.0.0.1:11434/v1"
+                            <TextBlock x:Name="DreamerWalkBaseUrlLabel" x:Uid="SettingsDreamerWalkBaseUrlLabel" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="DreamerWalkBaseUrlBox" x:Uid="SettingsDreamerWalkBaseUrlBox"
                                      Background="{StaticResource AppInsetBrush}"
                                      BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"
                                      AutomationProperties.LabeledBy="{Binding ElementName=DreamerWalkBaseUrlLabel}"/>
                         </StackPanel>
                         <StackPanel Spacing="4">
-                            <TextBlock x:Name="DreamerDiscordChannelLabel" Text="DISCORD CHANNEL ID (postcards)" Style="{StaticResource LabelTextStyle}"/>
-                            <TextBox x:Name="DreamerDiscordChannelBox" PlaceholderText="optional numeric channel id"
+                            <TextBlock x:Name="DreamerDigestTimesLabel" x:Uid="SettingsDreamerDigestTimesLabel" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="DreamerDigestTimesBox" x:Uid="SettingsDreamerDigestTimesBox"
+                                     Background="{StaticResource AppInsetBrush}"
+                                     BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"
+                                     AutomationProperties.LabeledBy="{Binding ElementName=DreamerDigestTimesLabel}"/>
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="DreamerTriggerThresholdLabel" x:Uid="SettingsDreamerTriggerThresholdLabel" Style="{StaticResource LabelTextStyle}"/>
+                            <NumberBox x:Name="DreamerTriggerThresholdBox" Minimum="0.5" Maximum="50" SmallChange="0.5" LargeChange="1"
+                                       SpinButtonPlacementMode="Inline"
+                                       Background="{StaticResource AppInsetBrush}"
+                                       BorderBrush="{StaticResource AppStrokeBrush}"
+                                       AutomationProperties.LabeledBy="{Binding ElementName=DreamerTriggerThresholdLabel}"/>
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="DreamerMinWalksLabel" x:Uid="SettingsDreamerMinWalksLabel" Style="{StaticResource LabelTextStyle}"/>
+                            <NumberBox x:Name="DreamerMinWalksToTriggerBox" Minimum="1" Maximum="50" SpinButtonPlacementMode="Inline"
+                                       Background="{StaticResource AppInsetBrush}"
+                                       BorderBrush="{StaticResource AppStrokeBrush}"
+                                       AutomationProperties.LabeledBy="{Binding ElementName=DreamerMinWalksLabel}"/>
+                        </StackPanel>
+                        <StackPanel Spacing="4">
+                            <TextBlock x:Name="DreamerDiscordChannelLabel" x:Uid="SettingsDreamerDiscordChannelLabel" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="DreamerDiscordChannelBox" x:Uid="SettingsDreamerDiscordChannelBox"
                                      Background="{StaticResource AppInsetBrush}"
                                      BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"
                                      AutomationProperties.LabeledBy="{Binding ElementName=DreamerDiscordChannelLabel}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <Button Content="Save Dreamer Config" Click="SaveDreamerConfig_Click"
+                            <Button x:Uid="SettingsSaveDreamerBtn" Click="SaveDreamerConfig_Click"
                                     Background="{StaticResource AppAccentGradientBrush}"
                                     BorderBrush="{StaticResource AppAccentDarkBrush}"
                                     Foreground="#16110D" Padding="20,8"/>
-                            <Button Content="Open Dreamer Room" Click="OpenDreamerRoom_Click"
+                            <Button x:Uid="SettingsOpenDreamerRoomBtn" Click="OpenDreamerRoom_Click"
                                     Background="{StaticResource AppInsetBrush}"
                                     BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White" Padding="12,6"/>
-                            <TextBlock x:Name="DreamerSaveStatus" VerticalAlignment="Center"
+                            <TextBlock x:Name="DreamerSaveStatus" x:Uid="SettingsDreamerSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"
-                                       AutomationProperties.Name="Dreamer save status"
                                        AutomationProperties.LiveSetting="Polite"/>
                         </StackPanel>
                     </StackPanel>
@@ -749,7 +757,7 @@
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <FontIcon Glyph="&#xE7B3;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
-                        <TextBlock Text="Display &amp; Privacy" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                        <TextBlock x:Uid="SettingsExpDisplayPrivacyHeader" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Expander.Header>
                 <Expander.Content>
@@ -767,29 +775,29 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <TextBlock Text="Show Reasoning" VerticalAlignment="Center"
+                            <TextBlock x:Uid="SettingsLblShowReasoning" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                             <ToggleSwitch x:Name="ShowReasoningToggle" Grid.Column="1"/>
 
-                            <TextBlock Grid.Row="1" Text="Streaming" VerticalAlignment="Center"
+                            <TextBlock Grid.Row="1" x:Uid="SettingsLblStreaming" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                             <ToggleSwitch x:Name="StreamingToggle" Grid.Row="1" Grid.Column="1"/>
 
-                            <TextBlock Grid.Row="2" Text="Inline Diffs" VerticalAlignment="Center"
+                            <TextBlock Grid.Row="2" x:Uid="SettingsLblInlineDiffs" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                             <ToggleSwitch x:Name="InlineDiffsToggle" Grid.Row="2" Grid.Column="1" IsOn="True"/>
 
-                            <TextBlock Grid.Row="3" Text="Show Cost" VerticalAlignment="Center"
+                            <TextBlock Grid.Row="3" x:Uid="SettingsLblShowCost" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                             <ToggleSwitch x:Name="ShowCostToggle" Grid.Row="3" Grid.Column="1"/>
 
-                            <TextBlock Grid.Row="4" Text="Redact PII" VerticalAlignment="Center"
+                            <TextBlock Grid.Row="4" x:Uid="SettingsLblRedactPii" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                             <ToggleSwitch x:Name="RedactPiiToggle" Grid.Row="4" Grid.Column="1"/>
                         </Grid>
 
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <Button Content="Save Display Config" Click="SaveDisplayConfig_Click"
+                            <Button x:Uid="SettingsSaveDisplayBtn" Click="SaveDisplayConfig_Click"
                                     Background="{StaticResource AppAccentGradientBrush}"
                                     BorderBrush="{StaticResource AppAccentDarkBrush}"
                                     Foreground="#16110D" Padding="20,8"/>
@@ -805,30 +813,30 @@
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <FontIcon Glyph="&#xE756;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
-                        <TextBlock Text="Execution Environment" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                        <TextBlock x:Uid="SettingsExpExecutionEnvHeader" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Expander.Header>
                 <Expander.Content>
                     <StackPanel Spacing="12" Padding="4,8,4,4">
                         <!-- Backend -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="BACKEND" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblBackend" Style="{StaticResource LabelTextStyle}"/>
                             <ComboBox x:Name="ExecBackendCombo" HorizontalAlignment="Stretch"
                                       Background="{StaticResource AppInsetBrush}"
                                       BorderBrush="{StaticResource AppStrokeBrush}"
                                       SelectionChanged="ExecBackendCombo_SelectionChanged">
-                                <ComboBoxItem Content="Local" Tag="local"/>
-                                <ComboBoxItem Content="Docker" Tag="docker"/>
-                                <ComboBoxItem Content="SSH" Tag="ssh"/>
-                                <ComboBoxItem Content="Modal" Tag="modal"/>
-                                <ComboBoxItem Content="Daytona" Tag="daytona"/>
+                                <ComboBoxItem x:Uid="SettingsExecLocal" Tag="local"/>
+                                <ComboBoxItem x:Uid="SettingsExecDocker" Tag="docker"/>
+                                <ComboBoxItem x:Uid="SettingsExecSsh" Tag="ssh"/>
+                                <ComboBoxItem x:Uid="SettingsExecModal" Tag="modal"/>
+                                <ComboBoxItem x:Uid="SettingsExecDaytona" Tag="daytona"/>
                             </ComboBox>
                         </StackPanel>
 
                         <!-- Working Directory -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="WORKING DIRECTORY" Style="{StaticResource LabelTextStyle}"/>
-                            <TextBox x:Name="ExecWorkingDirBox" PlaceholderText="."
+                            <TextBlock x:Uid="SettingsLblWorkingDirectory" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="ExecWorkingDirBox" x:Uid="SettingsExecWorkingDirBox"
                                      Background="{StaticResource AppInsetBrush}"
                                      BorderBrush="{StaticResource AppStrokeBrush}"
                                      Foreground="White"/>
@@ -836,7 +844,7 @@
 
                         <!-- Timeout -->
                         <StackPanel Spacing="4">
-                            <TextBlock Text="TIMEOUT (SECONDS)" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblExecTimeout" Style="{StaticResource LabelTextStyle}"/>
                             <NumberBox x:Name="ExecTimeoutBox" Value="180"
                                        Minimum="1" Maximum="3600" SpinButtonPlacementMode="Inline"
                                        Background="{StaticResource AppInsetBrush}"
@@ -846,19 +854,18 @@
                         <!-- Docker-specific fields (visible only when Docker selected) -->
                         <StackPanel x:Name="DockerOptionsPanel" Spacing="8" Visibility="Collapsed">
                             <Border Height="1" Background="{StaticResource AppStrokeBrush}" Margin="0,4"/>
-                            <TextBlock Text="DOCKER OPTIONS" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Uid="SettingsLblDockerOptions" Style="{StaticResource LabelTextStyle}"/>
 
                             <StackPanel Spacing="4">
-                                <TextBlock Text="DOCKER IMAGE" Style="{StaticResource LabelTextStyle}"/>
-                                <TextBox x:Name="DockerImageBox"
-                                         PlaceholderText="nikolaik/python-nodejs:python3.11-nodejs20"
+                                <TextBlock x:Uid="SettingsLblDockerImage" Style="{StaticResource LabelTextStyle}"/>
+                                <TextBox x:Name="DockerImageBox" x:Uid="SettingsDockerImageBox"
                                          Background="{StaticResource AppInsetBrush}"
                                          BorderBrush="{StaticResource AppStrokeBrush}"
                                          Foreground="White"/>
                             </StackPanel>
 
                             <StackPanel Spacing="4">
-                                <TextBlock Text="CONTAINER CPU" Style="{StaticResource LabelTextStyle}"/>
+                                <TextBlock x:Uid="SettingsLblDockerCpu" Style="{StaticResource LabelTextStyle}"/>
                                 <NumberBox x:Name="DockerCpuBox" Value="1"
                                            Minimum="1" Maximum="32" SpinButtonPlacementMode="Inline"
                                            Background="{StaticResource AppInsetBrush}"
@@ -866,7 +873,7 @@
                             </StackPanel>
 
                             <StackPanel Spacing="4">
-                                <TextBlock Text="CONTAINER MEMORY (MB)" Style="{StaticResource LabelTextStyle}"/>
+                                <TextBlock x:Uid="SettingsLblDockerMemory" Style="{StaticResource LabelTextStyle}"/>
                                 <NumberBox x:Name="DockerMemoryBox" Value="5120"
                                            Minimum="256" Maximum="65536" SpinButtonPlacementMode="Inline"
                                            Background="{StaticResource AppInsetBrush}"
@@ -876,7 +883,7 @@
 
                         <!-- Save -->
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <Button Content="Save Execution Config" Click="SaveExecutionConfig_Click"
+                            <Button x:Uid="SettingsSaveExecutionBtn" Click="SaveExecutionConfig_Click"
                                     Background="{StaticResource AppAccentGradientBrush}"
                                     BorderBrush="{StaticResource AppAccentDarkBrush}"
                                     Foreground="#16110D" Padding="20,8"/>
@@ -892,7 +899,7 @@
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <FontIcon Glyph="&#xEA86;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
-                        <TextBlock Text="Plugins &amp; Extensions" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                        <TextBlock x:Uid="SettingsExpPluginsHeader" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Expander.Header>
                 <Expander.Content>
@@ -907,14 +914,13 @@
                                 <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <TextBlock Text="Built-in Memory Plugin" VerticalAlignment="Center"
+                            <TextBlock x:Uid="SettingsLblBuiltinMemoryPlugin" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                             <ToggleSwitch x:Name="BuiltinMemoryPluginToggle" Grid.Column="1" IsOn="True"/>
 
-                            <TextBlock Grid.Row="1" Text="EXTERNAL MEMORY PROVIDER" VerticalAlignment="Center"
+                            <TextBlock Grid.Row="1" x:Uid="SettingsLblExternalMemoryProvider" VerticalAlignment="Center"
                                        Style="{StaticResource LabelTextStyle}"/>
-                            <TextBox x:Name="ExternalMemoryProviderBox" Grid.Row="1" Grid.Column="1"
-                                     PlaceholderText="Leave empty for built-in only"
+                            <TextBox x:Name="ExternalMemoryProviderBox" Grid.Row="1" Grid.Column="1" x:Uid="SettingsExternalMemoryProviderBox"
                                      Background="{StaticResource AppInsetBrush}"
                                      BorderBrush="{StaticResource AppStrokeBrush}"
                                      Foreground="White"/>
@@ -922,7 +928,7 @@
 
                         <!-- Save -->
                         <StackPanel Orientation="Horizontal" Spacing="12">
-                            <Button Content="Save Plugin Config" Click="SavePluginConfig_Click"
+                            <Button x:Uid="SettingsSavePluginBtn" Click="SavePluginConfig_Click"
                                     Background="{StaticResource AppAccentGradientBrush}"
                                     BorderBrush="{StaticResource AppAccentDarkBrush}"
                                     Foreground="#16110D" Padding="20,8"/>
@@ -938,7 +944,7 @@
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal" Spacing="10">
                         <FontIcon Glyph="&#xE8B7;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
-                        <TextBlock Text="Paths &amp; System" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                        <TextBlock x:Uid="SettingsExpPathsSystemHeader" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </Expander.Header>
                 <Expander.Content>

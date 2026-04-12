@@ -57,19 +57,20 @@ public sealed class TextToSpeechTool : ITool
             using var process = new Process { StartInfo = psi };
 
             try { process.Start(); }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"edge-tts executable launch failed, falling back to python -m edge_tts: {ex}");
                 // Fallback: try via python -m edge_tts
                 psi.FileName = "python";
                 psi.Arguments = $"-m edge_tts --voice \"{voice}\" --text \"{Escape(p.Text)}\" --write-media \"{outputPath}\"";
                 using var fallback = new Process { StartInfo = psi };
 
                 try { fallback.Start(); }
-                catch (Exception ex)
+                catch (Exception ex2)
                 {
                     return ToolResult.Fail(
                         "Edge TTS not found. Install with: pip install edge-tts\n" +
-                        $"Error: {ex.Message}");
+                        $"Error: {ex2.Message}");
                 }
 
                 using var tCts = CancellationTokenSource.CreateLinkedTokenSource(ct);

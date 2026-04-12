@@ -185,9 +185,9 @@ public sealed class TokenizedCommandValidator : IShellValidator
                 if (LooksSensitive(fullPath.Replace('\\', '/')))
                     return true;
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore path expansion failures; fallback checks already ran on raw.
+                System.Diagnostics.Debug.WriteLine($"TokenizedCommandValidator path expansion failed for '{raw}': {ex}");
             }
         }
 

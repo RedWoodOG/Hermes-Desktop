@@ -81,10 +81,16 @@ internal sealed class HermesChatService : IDisposable
             _logger.LogInformation("Chat reply for session {SessionId}: {Length} chars", _currentSession.Id, response.Length);
             return new HermesChatReply(response, _currentSession.Id);
         }
-        catch
+        catch (OperationCanceledException)
+        {
+            await PersistNewMessagesAsync(messageCountBefore);
+            throw;
+        }
+        catch (Exception ex)
         {
             // Persist whatever was added before the failure (at minimum the user message)
             await PersistNewMessagesAsync(messageCountBefore);
+            _logger.LogWarning(ex, "Chat send failed for session {SessionId}", _currentSession.Id);
             throw;
         }
     }

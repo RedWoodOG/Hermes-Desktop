@@ -160,8 +160,9 @@ public sealed partial class ReplayPanel : UserControl
                     PreviewImage.Source = bitmap;
                     PreviewArea.Visibility = Visibility.Visible;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    System.Diagnostics.Debug.WriteLine($"ReplayPanel failed to load screenshot preview {item.ScreenshotPath}: {ex}");
                     PreviewArea.Visibility = Visibility.Collapsed;
                 }
             }

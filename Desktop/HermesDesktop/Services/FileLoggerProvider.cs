@@ -48,9 +48,9 @@ internal sealed class FileLoggerProvider : ILoggerProvider
                 var shortCategory = category.Contains('.') ? category[(category.LastIndexOf('.') + 1)..] : category;
                 File.AppendAllText(_logPath, $"[{timestamp}] [{levelTag}] {shortCategory}: {message}{Environment.NewLine}");
             }
-            catch
+            catch (Exception ex)
             {
-                // Logging must never crash the app
+                System.Diagnostics.Debug.WriteLine($"FileLoggerProvider.WriteEntry failed: {ex}");
             }
         }
     }

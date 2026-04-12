@@ -245,7 +245,10 @@ public sealed class WebSocketMcpTransport : IMcpTransport
             {
                 await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Closing", CancellationToken.None);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"WebSocketMcpTransport close failed during dispose: {ex}");
+            }
         }
         
         _webSocket.Dispose();

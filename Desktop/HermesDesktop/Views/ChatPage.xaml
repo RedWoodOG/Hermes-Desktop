@@ -32,14 +32,14 @@
             </Grid.ColumnDefinitions>
 
             <StackPanel Spacing="4">
-                <TextBlock Text="Hermes Agent" FontSize="22" FontWeight="SemiBold" />
+                <TextBlock x:Uid="ChatPageAgentTitle" FontSize="22" FontWeight="SemiBold" />
                 <StackPanel Orientation="Horizontal" Spacing="12">
                     <TextBlock x:Name="ConnectionStateText" Style="{StaticResource BodySecondaryTextStyle}" />
                 </StackPanel>
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <Button Content="New Chat" Click="NewChat_Click" Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppSubtleStrokeBrush}" Foreground="White" />
+                <Button x:Uid="ChatNewChatButton" Click="NewChat_Click" Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppSubtleStrokeBrush}" Foreground="White" />
             </StackPanel>
         </Grid>
 
@@ -72,7 +72,7 @@
                                             <Expander.Header>
                                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                                     <TextBlock Text="&#x1F9E0;" FontSize="12"/>
-                                                    <TextBlock Text="Reasoning" FontSize="12" FontStyle="Italic"
+                                                    <TextBlock x:Uid="ChatReasoningHeaderLabel" FontSize="12" FontStyle="Italic"
                                                                Foreground="{StaticResource AppTextSecondaryBrush}"/>
                                                 </StackPanel>
                                             </Expander.Header>
@@ -96,11 +96,11 @@
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <ProgressRing x:Name="ThinkingRing" IsActive="False" Width="16" Height="16"
                                           Foreground="{StaticResource AppAccentBrush}"/>
-                            <TextBlock x:Name="ThinkingText" Text="Hermes is thinking..."
+                            <TextBlock x:Name="ThinkingText" x:Uid="ChatPageThinkingText"
                                        FontSize="13" Foreground="{StaticResource AppTextSecondaryBrush}"
                                        FontStyle="Italic"/>
                         </StackPanel>
-                        <Button x:Name="StopButton" Content="Stop" Click="StopGeneration_Click"
+                        <Button x:Name="StopButton" x:Uid="ChatStopButton" Click="StopGeneration_Click"
                                 HorizontalAlignment="Right" VerticalAlignment="Center"
                                 Background="{StaticResource AppInsetBrush}" Foreground="White"
                                 BorderBrush="{StaticResource AppSubtleStrokeBrush}"
@@ -121,9 +121,9 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBox x:Name="PromptTextBox"
+                                     x:Uid="ChatPromptTextBox"
                                      AcceptsReturn="True"
                                      MaxHeight="200" MinHeight="36"
-                                     PlaceholderText="Message Hermes..."
                                      Background="Transparent"
                                      BorderThickness="0"
                                      Foreground="White"
@@ -131,7 +131,7 @@
                                      KeyDown="PromptTextBox_KeyDown"
                                      TextChanged="PromptTextBox_TextChanged" />
 
-                            <Button x:Name="SendButton" Grid.Column="1"
+                            <Button x:Name="SendButton" x:Uid="ChatPageSendButton" Grid.Column="1"
                                     Click="SendPrompt_Click"
                                     VerticalAlignment="Bottom"
                                     Background="Transparent" BorderThickness="0"
@@ -159,14 +159,14 @@
                                   SelectionChanged="ModelSwitchCombo_SelectionChanged"/>
                         <!-- Permission mode -->
                         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Opacity="0.5" Margin="12,0,0,0">
-                            <TextBlock x:Name="PermissionModeLabel" Text="Default mode"
+                            <TextBlock x:Name="PermissionModeLabel" x:Uid="ChatPermissionModeLabel"
                                        FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"
                                        VerticalAlignment="Center" />
-                            <HyperlinkButton x:Name="PermissionModeToggle" Content="change"
+                            <HyperlinkButton x:Name="PermissionModeToggle" x:Uid="ChatPermissionModeChange"
                                              FontSize="11" Padding="0"
                                              Click="PermissionModeToggle_Click" />
                         </StackPanel>
-                        <TextBlock Grid.Column="2" Text="Hermes can make mistakes. Verify important information."
+                        <TextBlock Grid.Column="2" x:Uid="ChatPageDisclaimer"
                                    FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}"
                                    Opacity="0.4" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
@@ -189,13 +189,13 @@
                 <!-- Tab selector -->
                 <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Padding="8,8,8,0">
                     <StackPanel Orientation="Horizontal" Spacing="2">
-                        <Button x:Name="TabSessions" Content="Sessions" Click="PanelTab_Click" Tag="sessions"
+                        <Button x:Name="TabSessions" x:Uid="ChatPageTabSessions" Click="PanelTab_Click" Tag="sessions"
                                 Background="Transparent" Foreground="{StaticResource AppAccentTextBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
-                        <Button x:Name="TabFiles" Content="Files" Click="PanelTab_Click" Tag="files"
+                        <Button x:Name="TabFiles" x:Uid="ChatPageTabFiles" Click="PanelTab_Click" Tag="files"
                                 Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
-                        <Button x:Name="TabTasks" Content="Tasks" Click="PanelTab_Click" Tag="tasks"
+                        <Button x:Name="TabTasks" x:Uid="ChatPageTabTasks" Click="PanelTab_Click" Tag="tasks"
                                 Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
-                        <Button x:Name="TabReplay" Content="Replay" Click="PanelTab_Click" Tag="replay"
+                        <Button x:Name="TabReplay" x:Uid="ChatPageTabReplay" Click="PanelTab_Click" Tag="replay"
                                 Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
                     </StackPanel>
                 </ScrollViewer>
@@ -220,11 +220,10 @@
                         <TextBlock x:Name="SessionIdLabel" Grid.Column="0" FontSize="11" VerticalAlignment="Center"
                                    TextTrimming="CharacterEllipsis"
                                    Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                        <Button x:Name="CopySessionIdButton" Grid.Column="1" Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets"
+                        <Button x:Name="CopySessionIdButton" x:Uid="ChatCopySessionIdButton" Grid.Column="1" Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets"
                                 FontSize="12" MinWidth="32" Padding="6,4" CornerRadius="6"
                                 Background="Transparent" BorderBrush="{StaticResource AppSubtleStrokeBrush}"
-                                Click="CopySessionId_Click" IsEnabled="False"
-                                ToolTipService.ToolTip="Copy session ID"/>
+                                Click="CopySessionId_Click" IsEnabled="False"/>
                     </Grid>
                 </Border>
             </Grid>

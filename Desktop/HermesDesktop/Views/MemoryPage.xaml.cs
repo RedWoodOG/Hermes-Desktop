@@ -108,7 +108,10 @@ public sealed partial class MemoryPage : Page
                              : new SolidColorBrush(ColorHelper.FromArgb(255, 100, 200, 100))
                 });
             }
-            catch { /* skip unreadable */ }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"MemoryPage skipping unreadable memory file {file}: {ex}");
+            }
         }
 
         MemoryList.ItemsSource = _memories;

@@ -25,7 +25,7 @@
     <value>Conversation</value>
   </data>
   <data name="ChatNewChatButton.Content" xml:space="preserve">
-    <value>New chat</value>
+    <value>New Chat</value>
   </data>
   <data name="ChatNewChatButton.AutomationProperties.Name" xml:space="preserve">
     <value>Start a fresh Hermes desktop conversation</value>
@@ -470,5 +470,818 @@
   </data>
   <data name="ChatClearButton.AutomationProperties.Name" xml:space="preserve">
     <value>Clear the desktop chat conversation</value>
+  </data>
+  <data name="ChatPageAgentTitle.Text" xml:space="preserve">
+    <value>Hermes Agent</value>
+  </data>
+  <data name="ChatReasoningHeaderLabel.Text" xml:space="preserve">
+    <value>Reasoning</value>
+  </data>
+  <data name="ChatPageThinkingText.Text" xml:space="preserve">
+    <value>Hermes is thinking...</value>
+  </data>
+  <data name="ChatStopButton.Content" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="ChatPromptTextBox.PlaceholderText" xml:space="preserve">
+    <value>Message Hermes...</value>
+  </data>
+  <data name="ChatPageSendButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Send message</value>
+  </data>
+  <data name="ChatPermissionModeLabel.Text" xml:space="preserve">
+    <value>Default mode</value>
+  </data>
+  <data name="ChatPermissionModeChange.Content" xml:space="preserve">
+    <value>change</value>
+  </data>
+  <data name="ChatPageDisclaimer.Text" xml:space="preserve">
+    <value>Hermes can make mistakes. Verify important information.</value>
+  </data>
+  <data name="ChatPageTabSessions.Content" xml:space="preserve">
+    <value>Sessions</value>
+  </data>
+  <data name="ChatPageTabFiles.Content" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="ChatPageTabTasks.Content" xml:space="preserve">
+    <value>Tasks</value>
+  </data>
+  <data name="ChatPageTabReplay.Content" xml:space="preserve">
+    <value>Replay</value>
+  </data>
+  <data name="ChatCopySessionIdButton.[using:Microsoft.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
+    <value>Copy session ID</value>
+  </data>
+  <data name="ChatCopySessionIdButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Copy session ID</value>
+  </data>
+  <data name="ChatSessionFooterNew" xml:space="preserve">
+    <value>New Session</value>
+  </data>
+  <data name="ChatSessionFooterFormat" xml:space="preserve">
+    <value>Session: {0}</value>
+  </data>
+  <data name="ChatThinkingShort" xml:space="preserve">
+    <value>Hermes is thinking</value>
+  </data>
+  <data name="ChatThinkingRunningSkill" xml:space="preserve">
+    <value>Running skill...</value>
+  </data>
+  <data name="ChatThinkingLineThinking" xml:space="preserve">
+    <value>Hermes is thinking</value>
+  </data>
+  <data name="ChatThinkingLineReasoning" xml:space="preserve">
+    <value>Hermes is reasoning</value>
+  </data>
+  <data name="ChatPermissionModeFormat" xml:space="preserve">
+    <value>{0} mode</value>
+  </data>
+  <data name="ChatPermissionModeNameDefault" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="ChatPermissionModeNamePlan" xml:space="preserve">
+    <value>Plan</value>
+  </data>
+  <data name="ChatPermissionModeNameAuto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="ChatPermissionModeNameAcceptEdits" xml:space="preserve">
+    <value>Accept Edits</value>
+  </data>
+  <data name="ChatPermissionModeNameBypass" xml:space="preserve">
+    <value>Bypass</value>
+  </data>
+  <data name="DashOverviewKpiSessionsTitle.Text" xml:space="preserve">
+    <value>Sessions</value>
+  </data>
+  <data name="DashOverviewKpiSessionsSub.Text" xml:space="preserve">
+    <value>total conversations</value>
+  </data>
+  <data name="DashOverviewKpiToolsTitle.Text" xml:space="preserve">
+    <value>Tools</value>
+  </data>
+  <data name="DashOverviewKpiToolsSub.Text" xml:space="preserve">
+    <value>registered</value>
+  </data>
+  <data name="DashOverviewKpiSkillsTitle.Text" xml:space="preserve">
+    <value>Skills</value>
+  </data>
+  <data name="DashOverviewKpiSkillsSub.Text" xml:space="preserve">
+    <value>available</value>
+  </data>
+  <data name="DashOverviewKpiLlmTitle.Text" xml:space="preserve">
+    <value>LLM Status</value>
+  </data>
+  <data name="DashOverviewLlmStatusInitial.Text" xml:space="preserve">
+    <value>Checking...</value>
+  </data>
+  <data name="DashDreamerCardTitle.Text" xml:space="preserve">
+    <value>Dreamer</value>
+  </data>
+  <data name="DashDreamerPhaseInitial.Text" xml:space="preserve">
+    <value>Phase: —</value>
+  </data>
+  <data name="DashDreamerWalksInitial.Text" xml:space="preserve">
+    <value>Walks: —</value>
+  </data>
+  <data name="DashDreamerSignalInitial.Text" xml:space="preserve">
+    <value>Top signal: —</value>
+  </data>
+  <data name="DashDreamerLocalDigestInitial.Text" xml:space="preserve">
+    <value>Local digest: —</value>
+  </data>
+  <data name="DashDreamerPostcardInitial.Text" xml:space="preserve">
+    <value>Last postcard: —</value>
+  </data>
+  <data name="DashPlatformsCardTitle.Text" xml:space="preserve">
+    <value>Platforms &amp; Services</value>
+  </data>
+  <data name="DashPlatformsMessaging.Text" xml:space="preserve">
+    <value>Messaging</value>
+  </data>
+  <data name="DashPlatformsServices.Text" xml:space="preserve">
+    <value>Services</value>
+  </data>
+  <data name="DashModelCardTitle.Text" xml:space="preserve">
+    <value>Model Configuration</value>
+  </data>
+  <data name="DashOverviewEndpointField.Text" xml:space="preserve">
+    <value>Endpoint</value>
+  </data>
+  <data name="DashTestConnectionButton.Content" xml:space="preserve">
+    <value>Test Connection</value>
+  </data>
+  <data name="DashRecentActivityTitle.Text" xml:space="preserve">
+    <value>Recent Activity</value>
+  </data>
+  <data name="DashOpenChatButton.Content" xml:space="preserve">
+    <value>Open Chat</value>
+  </data>
+  <data name="DashNoSessionsText.Text" xml:space="preserve">
+    <value>No sessions yet. Start a conversation in Chat.</value>
+  </data>
+  <data name="DashSystemCardTitle.Text" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="DashSystemSoulsLabel.Text" xml:space="preserve">
+    <value>Souls</value>
+  </data>
+  <data name="DashOpenLogsSmallButton.Content" xml:space="preserve">
+    <value>Open Logs</value>
+  </data>
+  <data name="DashOpenConfigSmallButton.Content" xml:space="preserve">
+    <value>Open Config</value>
+  </data>
+  <data name="DashInsightsTitle.Text" xml:space="preserve">
+    <value>Usage Insights</value>
+  </data>
+  <data name="DashInsightsTotalTurns.Text" xml:space="preserve">
+    <value>Total Turns</value>
+  </data>
+  <data name="DashInsightsToolCalls.Text" xml:space="preserve">
+    <value>Tool Calls</value>
+  </data>
+  <data name="DashInsightsEstCost.Text" xml:space="preserve">
+    <value>Est. Cost</value>
+  </data>
+  <data name="DashInsightsTopTools.Text" xml:space="preserve">
+    <value>Top Tools</value>
+  </data>
+  <data name="BadgeTelegram" xml:space="preserve">
+    <value>Telegram</value>
+  </data>
+  <data name="BadgeDiscord" xml:space="preserve">
+    <value>Discord</value>
+  </data>
+  <data name="BadgeSlack" xml:space="preserve">
+    <value>Slack</value>
+  </data>
+  <data name="BadgeWhatsApp" xml:space="preserve">
+    <value>WhatsApp</value>
+  </data>
+  <data name="BadgeMatrix" xml:space="preserve">
+    <value>Matrix</value>
+  </data>
+  <data name="BadgeWebhook" xml:space="preserve">
+    <value>Webhook</value>
+  </data>
+  <data name="BadgeMemory" xml:space="preserve">
+    <value>Memory</value>
+  </data>
+  <data name="BadgeSkills" xml:space="preserve">
+    <value>Skills</value>
+  </data>
+  <data name="BadgeDream" xml:space="preserve">
+    <value>Dream</value>
+  </data>
+  <data name="BadgeSoul" xml:space="preserve">
+    <value>Soul</value>
+  </data>
+  <data name="DashboardDreamerPhaseFormat" xml:space="preserve">
+    <value>Phase: {0}</value>
+  </data>
+  <data name="DashboardDreamerWalksFormat" xml:space="preserve">
+    <value>Walks: {0}</value>
+  </data>
+  <data name="DashboardDreamerTopSignalEmpty" xml:space="preserve">
+    <value>Top signal: —</value>
+  </data>
+  <data name="DashboardDreamerTopSignalFormat" xml:space="preserve">
+    <value>Top signal: {0} ({1:F1})</value>
+  </data>
+  <data name="DashboardDreamerStartupIssueFormat" xml:space="preserve">
+    <value>Startup issue: {0}</value>
+  </data>
+  <data name="DashboardDreamerLocalDigestEmpty" xml:space="preserve">
+    <value>Local digest: —</value>
+  </data>
+  <data name="DashboardDreamerLocalDigestFormat" xml:space="preserve">
+    <value>Local digest: {0}</value>
+  </data>
+  <data name="DashboardDreamerPostcardEmpty" xml:space="preserve">
+    <value>Last postcard: —</value>
+  </data>
+  <data name="DashboardTimeAgoNow" xml:space="preserve">
+    <value>now</value>
+  </data>
+  <data name="DashboardTimeAgoMinutesFormat" xml:space="preserve">
+    <value>{0}m</value>
+  </data>
+  <data name="DashboardTimeAgoHoursFormat" xml:space="preserve">
+    <value>{0}h</value>
+  </data>
+  <data name="DashboardTimeAgoDaysFormat" xml:space="preserve">
+    <value>{0}d</value>
+  </data>
+  <data name="DashboardSessionMessageCountFormat" xml:space="preserve">
+    <value>{0} msgs</value>
+  </data>
+  <data name="DashboardSessionNoMessages" xml:space="preserve">
+    <value>(no messages)</value>
+  </data>
+  <data name="DashboardTopToolLineFormat" xml:space="preserve">
+    <value>{0}: {1} calls • {2} ms avg</value>
+  </data>
+  <data name="DashboardTestTesting" xml:space="preserve">
+    <value>Testing...</value>
+  </data>
+  <data name="DashboardTestNotConfigured" xml:space="preserve">
+    <value>Not configured</value>
+  </data>
+  <data name="DashboardTestSuccessFormat" xml:space="preserve">
+    <value>Connected — {0}</value>
+  </data>
+  <data name="DashboardTestFailedFormat" xml:space="preserve">
+    <value>Failed: {0}</value>
+  </data>
+  <data name="DashboardSoulDefaultProfile" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="SettingsPageEyebrow.Text" xml:space="preserve">
+    <value>SETTINGS</value>
+  </data>
+  <data name="SettingsPageTitle.Text" xml:space="preserve">
+    <value>Configuration</value>
+  </data>
+  <data name="SettingsPageSubtitle.Text" xml:space="preserve">
+    <value>Configure model, agent behavior, gateway platforms, memory, and display preferences.</value>
+  </data>
+  <data name="SettingsExpUserProfileHeader.Text" xml:space="preserve">
+    <value>User Profile</value>
+  </data>
+  <data name="SettingsUserProfileIntro.Text" xml:space="preserve">
+    <value>This information helps the agent personalize responses and remember who you are across sessions. Stored in USER.md.</value>
+  </data>
+  <data name="SettingsLblYourName.Text" xml:space="preserve">
+    <value>YOUR NAME</value>
+  </data>
+  <data name="SettingsUserNameBox.PlaceholderText" xml:space="preserve">
+    <value>How should the agent address you?</value>
+  </data>
+  <data name="SettingsLblRoleExpertise.Text" xml:space="preserve">
+    <value>ROLE / EXPERTISE</value>
+  </data>
+  <data name="SettingsUserRoleBox.PlaceholderText" xml:space="preserve">
+    <value>e.g. Windows developer, data scientist, student...</value>
+  </data>
+  <data name="SettingsLblWorkingStyle.Text" xml:space="preserve">
+    <value>WORKING STYLE</value>
+  </data>
+  <data name="SettingsUserStyleBox.PlaceholderText" xml:space="preserve">
+    <value>e.g. Prefers concise responses, likes code over explanations...</value>
+  </data>
+  <data name="SettingsLblDefaultProjectDir.Text" xml:space="preserve">
+    <value>DEFAULT PROJECT DIRECTORY</value>
+  </data>
+  <data name="SettingsUserProjectDirBox.PlaceholderText" xml:space="preserve">
+    <value>e.g. C:\Projects or ~/code</value>
+  </data>
+  <data name="SettingsBrowseProjectDirBtn.Content" xml:space="preserve">
+    <value>Browse</value>
+  </data>
+  <data name="SettingsSaveUserProfileBtn.Content" xml:space="preserve">
+    <value>Save Profile</value>
+  </data>
+  <data name="SettingsEditUserMdBtn.Content" xml:space="preserve">
+    <value>Edit USER.md</value>
+  </data>
+  <data name="SettingsExpModelConfigHeader.Text" xml:space="preserve">
+    <value>Model Configuration</value>
+  </data>
+  <data name="SettingsLblProvider.Text" xml:space="preserve">
+    <value>PROVIDER</value>
+  </data>
+  <data name="SettingsProvNous.Content" xml:space="preserve">
+    <value>Nous (OpenRouter)</value>
+  </data>
+  <data name="SettingsProvOpenAI.Content" xml:space="preserve">
+    <value>OpenAI</value>
+  </data>
+  <data name="SettingsProvGoogle.Content" xml:space="preserve">
+    <value>Google Gemini</value>
+  </data>
+  <data name="SettingsProvAnthropic.Content" xml:space="preserve">
+    <value>Anthropic</value>
+  </data>
+  <data name="SettingsProvQwen.Content" xml:space="preserve">
+    <value>Qwen (Alibaba)</value>
+  </data>
+  <data name="SettingsProvDeepSeek.Content" xml:space="preserve">
+    <value>DeepSeek</value>
+  </data>
+  <data name="SettingsProvMiniMax.Content" xml:space="preserve">
+    <value>MiniMax</value>
+  </data>
+  <data name="SettingsProvOpenRouter.Content" xml:space="preserve">
+    <value>OpenRouter</value>
+  </data>
+  <data name="SettingsProvOllama.Content" xml:space="preserve">
+    <value>Ollama</value>
+  </data>
+  <data name="SettingsProvLocal.Content" xml:space="preserve">
+    <value>Custom / Local</value>
+  </data>
+  <data name="SettingsLblBaseUrl.Text" xml:space="preserve">
+    <value>BASE URL</value>
+  </data>
+  <data name="SettingsBaseUrlBox.PlaceholderText" xml:space="preserve">
+    <value>http://127.0.0.1:11434/v1</value>
+  </data>
+  <data name="SettingsLblModel.Text" xml:space="preserve">
+    <value>MODEL</value>
+  </data>
+  <data name="SettingsModelBox.PlaceholderText" xml:space="preserve">
+    <value>Or type a custom model ID</value>
+  </data>
+  <data name="SettingsContextLengthLabel.Text" xml:space="preserve">
+    <value>Context: --</value>
+  </data>
+  <data name="SettingsLblApiKey.Text" xml:space="preserve">
+    <value>API KEY</value>
+  </data>
+  <data name="SettingsApiKeyBox.PlaceholderText" xml:space="preserve">
+    <value>sk-... (leave blank for local)</value>
+  </data>
+  <data name="SettingsLblAuthMode.Text" xml:space="preserve">
+    <value>AUTH MODE</value>
+  </data>
+  <data name="SettingsAuthApiKey.Content" xml:space="preserve">
+    <value>API Key</value>
+  </data>
+  <data name="SettingsAuthApiKeyEnv.Content" xml:space="preserve">
+    <value>API Key (Env Var)</value>
+  </data>
+  <data name="SettingsAuthOAuthEnv.Content" xml:space="preserve">
+    <value>OAuth Proxy (Env Token)</value>
+  </data>
+  <data name="SettingsAuthOAuthCmd.Content" xml:space="preserve">
+    <value>OAuth Proxy (Command Token)</value>
+  </data>
+  <data name="SettingsAuthNone.Content" xml:space="preserve">
+    <value>No Auth Header</value>
+  </data>
+  <data name="SettingsLblApiKeyEnvVar.Text" xml:space="preserve">
+    <value>API KEY ENV VAR</value>
+  </data>
+  <data name="SettingsApiKeyEnvBox.PlaceholderText" xml:space="preserve">
+    <value>GOOGLE_API_KEY</value>
+  </data>
+  <data name="SettingsLblAuthHeader.Text" xml:space="preserve">
+    <value>AUTH HEADER</value>
+  </data>
+  <data name="SettingsAuthHeaderBox.PlaceholderText" xml:space="preserve">
+    <value>Authorization</value>
+  </data>
+  <data name="SettingsLblAuthScheme.Text" xml:space="preserve">
+    <value>AUTH SCHEME</value>
+  </data>
+  <data name="SettingsAuthSchemeBox.PlaceholderText" xml:space="preserve">
+    <value>Bearer</value>
+  </data>
+  <data name="SettingsLblTokenEnvVar.Text" xml:space="preserve">
+    <value>TOKEN ENV VAR</value>
+  </data>
+  <data name="SettingsAuthTokenEnvBox.PlaceholderText" xml:space="preserve">
+    <value>OPENAI_OAUTH_ACCESS_TOKEN</value>
+  </data>
+  <data name="SettingsLblTokenCommand.Text" xml:space="preserve">
+    <value>TOKEN COMMAND</value>
+  </data>
+  <data name="SettingsAuthTokenCommandBox.PlaceholderText" xml:space="preserve">
+    <value>oauth-proxy-helper print-access-token</value>
+  </data>
+  <data name="SettingsOAuthHelpText.Text" xml:space="preserve">
+    <value>OAuth proxy modes let Hermes fetch a short-lived token from an environment variable or refresh command and attach it to an OpenAI-compatible proxy request.</value>
+  </data>
+  <data name="SettingsLblTemperature.Text" xml:space="preserve">
+    <value>TEMPERATURE</value>
+  </data>
+  <data name="SettingsLblMaxTokens.Text" xml:space="preserve">
+    <value>MAX TOKENS</value>
+  </data>
+  <data name="SettingsSaveModelBtn.Content" xml:space="preserve">
+    <value>Save Model Config</value>
+  </data>
+  <data name="SettingsRuntimeStatusHeader.Text" xml:space="preserve">
+    <value>CURRENT RUNTIME STATUS</value>
+  </data>
+  <data name="SettingsRuntimeProviderRow.Text" xml:space="preserve">
+    <value>Provider</value>
+  </data>
+  <data name="SettingsRuntimeModelRow.Text" xml:space="preserve">
+    <value>Model</value>
+  </data>
+  <data name="SettingsRuntimeConnectionRow.Text" xml:space="preserve">
+    <value>Connection</value>
+  </data>
+  <data name="SettingsExpAgentBehaviorHeader.Text" xml:space="preserve">
+    <value>Agent Behavior</value>
+  </data>
+  <data name="SettingsLblMaxTurns.Text" xml:space="preserve">
+    <value>MAX TURNS</value>
+  </data>
+  <data name="SettingsLblToolUse.Text" xml:space="preserve">
+    <value>TOOL USE ENFORCEMENT</value>
+  </data>
+  <data name="SettingsToolUseAuto.Content" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="SettingsToolUseAlways.Content" xml:space="preserve">
+    <value>Always</value>
+  </data>
+  <data name="SettingsToolUseNever.Content" xml:space="preserve">
+    <value>Never</value>
+  </data>
+  <data name="SettingsLblApprovalsMode.Text" xml:space="preserve">
+    <value>APPROVALS MODE</value>
+  </data>
+  <data name="SettingsApprovalsManual.Content" xml:space="preserve">
+    <value>Manual</value>
+  </data>
+  <data name="SettingsApprovalsSmart.Content" xml:space="preserve">
+    <value>Smart</value>
+  </data>
+  <data name="SettingsApprovalsOff.Content" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="SettingsLblApprovalTimeout.Text" xml:space="preserve">
+    <value>APPROVAL TIMEOUT (SECONDS)</value>
+  </data>
+  <data name="SettingsSaveAgentBtn.Content" xml:space="preserve">
+    <value>Save Agent Config</value>
+  </data>
+  <data name="SettingsExpGatewayPlatformsHeader.Text" xml:space="preserve">
+    <value>Gateway &amp; Platforms</value>
+  </data>
+  <data name="SettingsLblGatewayStatus.Text" xml:space="preserve">
+    <value>GATEWAY STATUS</value>
+  </data>
+  <data name="SettingsGatewayStatusInitial.Text" xml:space="preserve">
+    <value>Checking...</value>
+  </data>
+  <data name="SettingsGatewayStartBtn.Content" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="SettingsLblTelegram.Text" xml:space="preserve">
+    <value>TELEGRAM</value>
+  </data>
+  <data name="SettingsTelegramBotTokenLabel.Text" xml:space="preserve">
+    <value>Bot Token</value>
+  </data>
+  <data name="SettingsDiscordBotTokenLabel.Text" xml:space="preserve">
+    <value>Bot Token</value>
+  </data>
+  <data name="SettingsSlackBotTokenLabel.Text" xml:space="preserve">
+    <value>Bot Token</value>
+  </data>
+  <data name="SettingsTelegramBotTokenBox.PlaceholderText" xml:space="preserve">
+    <value>Telegram bot token</value>
+  </data>
+  <data name="SettingsLblDiscord.Text" xml:space="preserve">
+    <value>DISCORD</value>
+  </data>
+  <data name="SettingsDiscordBotTokenBox.PlaceholderText" xml:space="preserve">
+    <value>Discord bot token</value>
+  </data>
+  <data name="SettingsLblDiscordRequireMention.Text" xml:space="preserve">
+    <value>Require Mention</value>
+  </data>
+  <data name="SettingsLblDiscordAutoThread.Text" xml:space="preserve">
+    <value>Auto Thread</value>
+  </data>
+  <data name="SettingsLblDiscordReactions.Text" xml:space="preserve">
+    <value>Reactions</value>
+  </data>
+  <data name="SettingsLblSlack.Text" xml:space="preserve">
+    <value>SLACK</value>
+  </data>
+  <data name="SettingsSlackBotTokenBox.PlaceholderText" xml:space="preserve">
+    <value>xoxb-...</value>
+  </data>
+  <data name="SettingsLblSlackAppToken.Text" xml:space="preserve">
+    <value>App Token</value>
+  </data>
+  <data name="SettingsSlackAppTokenBox.PlaceholderText" xml:space="preserve">
+    <value>xapp-...</value>
+  </data>
+  <data name="SettingsLblMatrix.Text" xml:space="preserve">
+    <value>MATRIX</value>
+  </data>
+  <data name="SettingsLblMatrixAccessToken.Text" xml:space="preserve">
+    <value>Access Token</value>
+  </data>
+  <data name="SettingsMatrixAccessTokenBox.PlaceholderText" xml:space="preserve">
+    <value>Matrix access token</value>
+  </data>
+  <data name="SettingsLblMatrixHomeserver.Text" xml:space="preserve">
+    <value>Homeserver URL</value>
+  </data>
+  <data name="SettingsMatrixHomeserverBox.PlaceholderText" xml:space="preserve">
+    <value>https://matrix.org</value>
+  </data>
+  <data name="SettingsLblWebhook.Text" xml:space="preserve">
+    <value>WEBHOOK</value>
+  </data>
+  <data name="SettingsLblWebhookEnabled.Text" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="SettingsLblWebhookPort.Text" xml:space="preserve">
+    <value>Port</value>
+  </data>
+  <data name="SettingsLblWebhookHmac.Text" xml:space="preserve">
+    <value>HMAC Secret</value>
+  </data>
+  <data name="SettingsWebhookHmacSecretBox.PlaceholderText" xml:space="preserve">
+    <value>Optional HMAC secret</value>
+  </data>
+  <data name="SettingsLblEmail.Text" xml:space="preserve">
+    <value>EMAIL</value>
+  </data>
+  <data name="SettingsLblEmailAddress.Text" xml:space="preserve">
+    <value>Address</value>
+  </data>
+  <data name="SettingsEmailAddressBox.PlaceholderText" xml:space="preserve">
+    <value>you@example.com</value>
+  </data>
+  <data name="SettingsLblEmailPassword.Text" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="SettingsEmailPasswordBox.PlaceholderText" xml:space="preserve">
+    <value>Email password or app password</value>
+  </data>
+  <data name="SettingsLblEmailImapHost.Text" xml:space="preserve">
+    <value>IMAP Host</value>
+  </data>
+  <data name="SettingsEmailImapHostBox.PlaceholderText" xml:space="preserve">
+    <value>imap.gmail.com</value>
+  </data>
+  <data name="SettingsLblEmailImapPort.Text" xml:space="preserve">
+    <value>IMAP Port</value>
+  </data>
+  <data name="SettingsLblEmailSmtpHost.Text" xml:space="preserve">
+    <value>SMTP Host</value>
+  </data>
+  <data name="SettingsEmailSmtpHostBox.PlaceholderText" xml:space="preserve">
+    <value>smtp.gmail.com</value>
+  </data>
+  <data name="SettingsLblEmailSmtpPort.Text" xml:space="preserve">
+    <value>SMTP Port</value>
+  </data>
+  <data name="SettingsSaveAllPlatformsBtn.Content" xml:space="preserve">
+    <value>Save All Platforms</value>
+  </data>
+  <data name="SettingsExpMemoryContextHeader.Text" xml:space="preserve">
+    <value>Memory &amp; Context</value>
+  </data>
+  <data name="SettingsLblMemoryEnabled.Text" xml:space="preserve">
+    <value>Memory Enabled</value>
+  </data>
+  <data name="SettingsLblUserProfileEnabled.Text" xml:space="preserve">
+    <value>User Profile Enabled</value>
+  </data>
+  <data name="SettingsLblMemoryCharLimit.Text" xml:space="preserve">
+    <value>MEMORY CHAR LIMIT</value>
+  </data>
+  <data name="SettingsLblUserCharLimit.Text" xml:space="preserve">
+    <value>USER CHAR LIMIT</value>
+  </data>
+  <data name="SettingsLblCompressionEnabled.Text" xml:space="preserve">
+    <value>Compression Enabled</value>
+  </data>
+  <data name="SettingsLblCompressionThreshold.Text" xml:space="preserve">
+    <value>COMPRESSION THRESHOLD</value>
+  </data>
+  <data name="SettingsSaveMemoryBtn.Content" xml:space="preserve">
+    <value>Save Memory Config</value>
+  </data>
+  <data name="SettingsExpDreamerHeader.Text" xml:space="preserve">
+    <value>Dreamer</value>
+  </data>
+  <data name="SettingsDreamerIntro.Text" xml:space="preserve">
+    <value>Background free-association on a local model (Ollama). Off by default. Room: %LOCALAPPDATA%\hermes\dreamer\ — scheduled digests save under feedback\digests\ and can also post to Discord.</value>
+  </data>
+  <data name="SettingsDreamerEnabledLabel.Text" xml:space="preserve">
+    <value>ENABLE DREAMER</value>
+  </data>
+  <data name="SettingsDreamerWalkIntervalLabel.Text" xml:space="preserve">
+    <value>WALK INTERVAL (MINUTES)</value>
+  </data>
+  <data name="SettingsDreamerWalkModelLabel.Text" xml:space="preserve">
+    <value>WALK MODEL</value>
+  </data>
+  <data name="SettingsDreamerWalkModelBox.PlaceholderText" xml:space="preserve">
+    <value>qwen3.5:latest</value>
+  </data>
+  <data name="SettingsDreamerWalkBaseUrlLabel.Text" xml:space="preserve">
+    <value>WALK BASE URL</value>
+  </data>
+  <data name="SettingsDreamerWalkBaseUrlBox.PlaceholderText" xml:space="preserve">
+    <value>http://127.0.0.1:11434/v1</value>
+  </data>
+  <data name="SettingsDreamerDigestTimesLabel.Text" xml:space="preserve">
+    <value>DIGEST TIMES (LOCAL + DISCORD)</value>
+  </data>
+  <data name="SettingsDreamerDigestTimesBox.PlaceholderText" xml:space="preserve">
+    <value>08:00,12:00,20:00</value>
+  </data>
+  <data name="SettingsDreamerTriggerThresholdLabel.Text" xml:space="preserve">
+    <value>SIGNAL SCORE TO TRIGGER BUILD</value>
+  </data>
+  <data name="SettingsDreamerMinWalksLabel.Text" xml:space="preserve">
+    <value>MIN WALKS BEFORE BUILD</value>
+  </data>
+  <data name="SettingsDreamerDiscordChannelLabel.Text" xml:space="preserve">
+    <value>DISCORD CHANNEL ID (postcards)</value>
+  </data>
+  <data name="SettingsDreamerDiscordChannelBox.PlaceholderText" xml:space="preserve">
+    <value>optional numeric channel id</value>
+  </data>
+  <data name="SettingsSaveDreamerBtn.Content" xml:space="preserve">
+    <value>Save Dreamer Config</value>
+  </data>
+  <data name="SettingsOpenDreamerRoomBtn.Content" xml:space="preserve">
+    <value>Open Dreamer Room</value>
+  </data>
+  <data name="SettingsDreamerSaveStatus.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
+    <value>Dreamer save status</value>
+  </data>
+  <data name="SettingsExpDisplayPrivacyHeader.Text" xml:space="preserve">
+    <value>Display &amp; Privacy</value>
+  </data>
+  <data name="SettingsLblShowReasoning.Text" xml:space="preserve">
+    <value>Show Reasoning</value>
+  </data>
+  <data name="SettingsLblStreaming.Text" xml:space="preserve">
+    <value>Streaming</value>
+  </data>
+  <data name="SettingsLblInlineDiffs.Text" xml:space="preserve">
+    <value>Inline Diffs</value>
+  </data>
+  <data name="SettingsLblShowCost.Text" xml:space="preserve">
+    <value>Show Cost</value>
+  </data>
+  <data name="SettingsLblRedactPii.Text" xml:space="preserve">
+    <value>Redact PII</value>
+  </data>
+  <data name="SettingsSaveDisplayBtn.Content" xml:space="preserve">
+    <value>Save Display Config</value>
+  </data>
+  <data name="SettingsExpExecutionEnvHeader.Text" xml:space="preserve">
+    <value>Execution Environment</value>
+  </data>
+  <data name="SettingsLblBackend.Text" xml:space="preserve">
+    <value>BACKEND</value>
+  </data>
+  <data name="SettingsExecLocal.Content" xml:space="preserve">
+    <value>Local</value>
+  </data>
+  <data name="SettingsExecDocker.Content" xml:space="preserve">
+    <value>Docker</value>
+  </data>
+  <data name="SettingsExecSsh.Content" xml:space="preserve">
+    <value>SSH</value>
+  </data>
+  <data name="SettingsExecModal.Content" xml:space="preserve">
+    <value>Modal</value>
+  </data>
+  <data name="SettingsExecDaytona.Content" xml:space="preserve">
+    <value>Daytona</value>
+  </data>
+  <data name="SettingsLblWorkingDirectory.Text" xml:space="preserve">
+    <value>WORKING DIRECTORY</value>
+  </data>
+  <data name="SettingsExecWorkingDirBox.PlaceholderText" xml:space="preserve">
+    <value>.</value>
+  </data>
+  <data name="SettingsLblExecTimeout.Text" xml:space="preserve">
+    <value>TIMEOUT (SECONDS)</value>
+  </data>
+  <data name="SettingsLblDockerOptions.Text" xml:space="preserve">
+    <value>DOCKER OPTIONS</value>
+  </data>
+  <data name="SettingsLblDockerImage.Text" xml:space="preserve">
+    <value>DOCKER IMAGE</value>
+  </data>
+  <data name="SettingsDockerImageBox.PlaceholderText" xml:space="preserve">
+    <value>nikolaik/python-nodejs:python3.11-nodejs20</value>
+  </data>
+  <data name="SettingsLblDockerCpu.Text" xml:space="preserve">
+    <value>CONTAINER CPU</value>
+  </data>
+  <data name="SettingsLblDockerMemory.Text" xml:space="preserve">
+    <value>CONTAINER MEMORY (MB)</value>
+  </data>
+  <data name="SettingsSaveExecutionBtn.Content" xml:space="preserve">
+    <value>Save Execution Config</value>
+  </data>
+  <data name="SettingsExpPluginsHeader.Text" xml:space="preserve">
+    <value>Plugins &amp; Extensions</value>
+  </data>
+  <data name="SettingsLblBuiltinMemoryPlugin.Text" xml:space="preserve">
+    <value>Built-in Memory Plugin</value>
+  </data>
+  <data name="SettingsLblExternalMemoryProvider.Text" xml:space="preserve">
+    <value>EXTERNAL MEMORY PROVIDER</value>
+  </data>
+  <data name="SettingsExternalMemoryProviderBox.PlaceholderText" xml:space="preserve">
+    <value>Leave empty for built-in only</value>
+  </data>
+  <data name="SettingsSavePluginBtn.Content" xml:space="preserve">
+    <value>Save Plugin Config</value>
+  </data>
+  <data name="SettingsExpPathsSystemHeader.Text" xml:space="preserve">
+    <value>Paths &amp; System</value>
+  </data>
+  <data name="SettingsUserProfilePathFormat" xml:space="preserve">
+    <value>Stored at: {0}</value>
+  </data>
+  <data name="SettingsProfileSaved" xml:space="preserve">
+    <value>Profile saved.</value>
+  </data>
+  <data name="SettingsSaveSuccessRestart" xml:space="preserve">
+    <value>Saved successfully. Restart to apply.</value>
+  </data>
+  <data name="SettingsSaveAllPlatformsSuccess" xml:space="preserve">
+    <value>All platforms saved. Restart gateway to apply.</value>
+  </data>
+  <data name="SettingsDreamerSaved" xml:space="preserve">
+    <value>Saved. Restart app to refresh Dreamer LLM clients.</value>
+  </data>
+  <data name="SettingsErrorFormat" xml:space="preserve">
+    <value>Error: {0}</value>
+  </data>
+  <data name="SettingsModelRequired" xml:space="preserve">
+    <value>Model name is required.</value>
+  </data>
+  <data name="SettingsModelApiKeyEnvRequired" xml:space="preserve">
+    <value>API key env var is required for API Key (Env Var).</value>
+  </data>
+  <data name="SettingsModelOAuthEnvRequired" xml:space="preserve">
+    <value>Token env var is required for OAuth Proxy (Env Token).</value>
+  </data>
+  <data name="SettingsModelOAuthCommandRequired" xml:space="preserve">
+    <value>Token command is required for OAuth Proxy (Command Token).</value>
+  </data>
+  <data name="SettingsModelContextFormat" xml:space="preserve">
+    <value>Context: {0}</value>
+  </data>
+  <data name="SettingsModelContextUnknown" xml:space="preserve">
+    <value>Context: --</value>
+  </data>
+  <data name="SettingsModelComboItemFormat" xml:space="preserve">
+    <value>{0}  ({1})</value>
+  </data>
+  <data name="SettingsGatewayStatusRunning" xml:space="preserve">
+    <value>Running</value>
+  </data>
+  <data name="SettingsGatewayStatusStopped" xml:space="preserve">
+    <value>Stopped</value>
+  </data>
+  <data name="SettingsGatewayStart" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="SettingsGatewayStop" xml:space="preserve">
+    <value>Stop</value>
   </data>
 </root>

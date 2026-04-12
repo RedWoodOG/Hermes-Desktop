@@ -29,7 +29,7 @@ public sealed class BuiltinMemoryPlugin : PluginBase
     {
         if (_lastQuery is null) return null;
 
-        var memories = await _memoryManager.LoadRelevantMemoriesAsync(_lastQuery, [], ct);
+        var memories = await _memoryManager.LoadRelevantMemoriesAsync(_lastQuery, new List<string>(), ct);
         if (memories.Count == 0) return null;
 
         var sb = new StringBuilder();

@@ -96,7 +96,7 @@ public abstract class PluginBase : IPlugin
     public virtual Task OnTurnEndAsync(string userMessage, string assistantResponse, string sessionId, CancellationToken ct) => Task.CompletedTask;
     public virtual Task OnSessionEndAsync(IReadOnlyList<Message> messages, CancellationToken ct) => Task.CompletedTask;
     public virtual Task OnPreCompressAsync(IReadOnlyList<Message> messages, CancellationToken ct) => Task.CompletedTask;
-    public virtual IReadOnlyList<ITool> GetTools() => [];
+    public virtual IReadOnlyList<ITool> GetTools() => Array.Empty<ITool>();
     public virtual Task OnMemoryWriteAsync(string action, string target, string content, CancellationToken ct) => Task.CompletedTask;
     public virtual Task OnDelegationCompleteAsync(string task, string result, string? childSessionId, CancellationToken ct) => Task.CompletedTask;
 }

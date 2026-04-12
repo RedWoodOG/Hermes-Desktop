@@ -2,6 +2,9 @@ namespace Hermes.Agent.Gateway.Platforms;
 
 using System.Net.Http.Json;
 using System.Text.Json;
+using Hermes.Agent.Diagnostics;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 // ══════════════════════════════════════════════
 // Telegram Bot API Adapter
@@ -19,15 +22,17 @@ public sealed class TelegramAdapter : IPlatformAdapter
 {
     private readonly string _token;
     private readonly HttpClient _http;
+    private readonly ILogger<TelegramAdapter> _logger;
     private Func<MessageEvent, Task<string?>>? _messageHandler;
     private Action<Platform, Exception>? _errorHandler;
     private CancellationTokenSource? _pollCts;
     private long _lastUpdateId;
 
-    public TelegramAdapter(string token, HttpClient? http = null)
+    public TelegramAdapter(string token, HttpClient? http = null, ILogger<TelegramAdapter>? logger = null)
     {
         _token = token;
         _http = http ?? new HttpClient();
+        _logger = logger ?? NullLogger<TelegramAdapter>.Instance;
     }
 
     public Platform Platform => Platform.Telegram;
@@ -55,8 +60,13 @@ public sealed class TelegramAdapter : IPlatformAdapter
 
             return true;
         }
-        catch
+        catch (OperationCanceledException)
         {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Telegram adapter connect failed");
             return false;
         }
     }
@@ -106,7 +116,7 @@ public sealed class TelegramAdapter : IPlatformAdapter
 
     public async Task DisconnectAsync()
     {
-        _pollCts?.Cancel();
+        BestEffort.Run(() => _pollCts?.Cancel(), _logger, "stopping Telegram polling");
         IsConnected = false;
         await Task.CompletedTask;
     }
@@ -189,6 +199,7 @@ public sealed class TelegramAdapter : IPlatformAdapter
             catch (OperationCanceledException) { break; }
             catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Telegram adapter polling failed; retrying");
                 _errorHandler?.Invoke(Platform.Telegram, ex);
                 await Task.Delay(5000, ct); // Brief pause before retrying
             }
@@ -197,7 +208,7 @@ public sealed class TelegramAdapter : IPlatformAdapter
 
     private static List<string> ChunkText(string text, int maxLength)
     {
-        if (text.Length <= maxLength) return [text];
+        if (text.Length <= maxLength) return new List<string> { text };
 
         var chunks = new List<string>();
         var remaining = text.AsSpan();

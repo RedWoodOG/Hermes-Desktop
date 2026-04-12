@@ -56,8 +56,8 @@ public sealed record HabitEntry
 /// </summary>
 public sealed class SoulExtractionResult
 {
-    public List<MistakeEntry> Mistakes { get; init; } = [];
-    public List<HabitEntry> Habits { get; init; } = [];
+    public List<MistakeEntry> Mistakes { get; init; } = new List<MistakeEntry>();
+    public List<HabitEntry> Habits { get; init; } = new List<HabitEntry>();
 
     /// <summary>
     /// Signals about the user's profile extracted from the conversation

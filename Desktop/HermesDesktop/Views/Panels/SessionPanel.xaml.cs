@@ -57,7 +57,10 @@ public sealed partial class SessionPanel : UserControl
                     MessageCount = $"{messages.Count} msgs"
                 });
             }
-            catch { /* skip corrupt sessions */ }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SessionPanel skipping unreadable session {id}: {ex}");
+            }
         }
 
         SessionList.ItemsSource = Sessions;

@@ -103,7 +103,10 @@ public sealed partial class FileBrowserPanel : UserControl
                 });
             }
         }
-        catch { /* permission denied etc */ }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"FileBrowserPanel failed to enumerate {item.FullPath}: {ex}");
+        }
     }
 
     private void FileTree_ItemInvoked(TreeView sender, TreeViewItemInvokedEventArgs args)

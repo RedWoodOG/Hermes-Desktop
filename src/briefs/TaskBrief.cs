@@ -92,13 +92,13 @@ public sealed class TaskBrief
     /// Explicit list of what IS in scope. Agents only work within these boundaries.
     /// Empty = everything relevant (dangerous for weak models, discouraged).
     /// </summary>
-    public List<string> Focus { get; set; } = [];
+    public List<string> Focus { get; set; } = new List<string>();
 
     /// <summary>
     /// Hard exclusions. Agents must NOT touch/explore/produce anything in this list.
     /// More enforceable than making focus "precise enough" — weak models need both.
     /// </summary>
-    public List<string> Exclude { get; set; } = [];
+    public List<string> Exclude { get; set; } = new List<string>();
 
     /// <summary>
     /// Maximum depth/breadth constraint to prevent rabbit-holing.
@@ -119,7 +119,7 @@ public sealed class TaskBrief
     /// Each role becomes part of the agent's system prompt.
     /// E.g., ["researcher-cursor", "researcher-windsurf", "synthesizer"]
     /// </summary>
-    public List<string> AgentRoles { get; set; } = [];
+    public List<string> AgentRoles { get; set; } = new List<string>();
 
     /// <summary>
     /// Per-role instructions injected into agent system prompts.
@@ -164,13 +164,13 @@ public sealed class TaskBrief
     /// Bad:  "Good quality research"
     /// Good: "Output includes pricing for all 4 competitors"
     /// </summary>
-    public List<string> VerifyChecklist { get; set; } = [];
+    public List<string> VerifyChecklist { get; set; } = new List<string>();
 
     /// <summary>
     /// For Contains method: output must include all of these strings.
     /// Machine-checkable — no LLM judgment needed.
     /// </summary>
-    public List<string> VerifyContains { get; set; } = [];
+    public List<string> VerifyContains { get; set; } = new List<string>();
 
     /// <summary>
     /// For Schema method: JSON schema that the output must validate against.
@@ -183,7 +183,7 @@ public sealed class TaskBrief
     public string? EscalateTo { get; set; }
 
     /// <summary>Conditions that trigger escalation (optional, defaults to "any blocker").</summary>
-    public List<string> EscalateWhen { get; set; } = [];
+    public List<string> EscalateWhen { get; set; } = new List<string>();
 
     // ── Type-Specific Guidance ──
 
@@ -264,6 +264,6 @@ public sealed class BriefDraftRequest
 public sealed class BriefValidationResult
 {
     public bool IsValid { get; init; }
-    public List<string> Errors { get; init; } = [];
-    public List<string> Warnings { get; init; } = [];
+    public List<string> Errors { get; init; } = new List<string>();
+    public List<string> Warnings { get; init; } = new List<string>();
 }

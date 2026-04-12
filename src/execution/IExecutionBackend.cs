@@ -49,7 +49,7 @@ public sealed class ExecutionConfig
 
     // Docker
     public string? DockerImage { get; set; }
-    public List<string> DockerVolumes { get; set; } = [];
+    public List<string> DockerVolumes { get; set; } = new List<string>();
     public Dictionary<string, string> DockerEnv { get; set; } = new();
 
     // SSH

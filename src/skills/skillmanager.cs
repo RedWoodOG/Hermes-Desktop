@@ -219,8 +219,14 @@ public sealed class SkillManager
             await File.WriteAllTextAsync(tempPath, content, ct);
             File.Move(tempPath, path, overwrite: true);
         }
-        catch
+        catch (OperationCanceledException)
         {
+            if (File.Exists(tempPath)) File.Delete(tempPath);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to create skill {Name}", safeName);
             if (File.Exists(tempPath)) File.Delete(tempPath);
             throw;
         }
@@ -268,8 +274,14 @@ public sealed class SkillManager
             await File.WriteAllTextAsync(tempPath, newContent, ct);
             File.Move(tempPath, existing.FilePath, overwrite: true);
         }
-        catch
+        catch (OperationCanceledException)
         {
+            if (File.Exists(tempPath)) File.Delete(tempPath);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to edit skill {Name}", name);
             if (File.Exists(tempPath)) File.Delete(tempPath);
             throw;
         }
@@ -315,8 +327,14 @@ public sealed class SkillManager
             await File.WriteAllTextAsync(tempPath, content, ct);
             File.Move(tempPath, existing.FilePath, overwrite: true);
         }
-        catch
+        catch (OperationCanceledException)
         {
+            if (File.Exists(tempPath)) File.Delete(tempPath);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to patch skill {Name}", name);
             if (File.Exists(tempPath)) File.Delete(tempPath);
             throw;
         }

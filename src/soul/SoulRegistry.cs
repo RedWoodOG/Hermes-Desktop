@@ -126,7 +126,7 @@ public sealed class SoulTemplate
     public required string Description { get; init; }
     public string Author { get; init; } = "Hermes";
     public string Category { get; init; } = "general";
-    public List<string> Tags { get; init; } = [];
+    public List<string> Tags { get; init; } = new List<string>();
     public required string Content { get; init; }
     public required string FilePath { get; init; }
 }

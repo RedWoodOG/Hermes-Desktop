@@ -162,6 +162,8 @@ powershell -ExecutionPolicy Bypass -File .\Desktop\HermesDesktop\run-dev.ps1
 
 The `run-dev.ps1` script builds, registers, and launches in one step.
 
+MSIX dev signing note: local certificate material such as `Desktop/HermesDesktop/packaging/dev-msix.pfx` must stay out of git. If you need a local test cert, see `Desktop/HermesDesktop/packaging/README.md` and generate one on your machine with `scripts/new-msix-dev-cert.ps1`.
+
 ### Updating
 
 ```powershell
@@ -236,6 +238,9 @@ model:
 #   auth_header: Authorization
 #   auth_scheme: Bearer
 #   auth_token_command: oauth-proxy-helper print-access-token
+#
+# Auth is applied per outgoing request. Shared HttpClient instances such as the
+# Dreamer background clients must not store credentials in DefaultRequestHeaders.
 
 # Keys for runtime model swapping (optional)
 provider_keys:

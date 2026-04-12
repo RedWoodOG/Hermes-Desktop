@@ -5,6 +5,9 @@ using System.Net.Http.Json;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
+using Hermes.Agent.Diagnostics;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 // ══════════════════════════════════════════════
 // Discord Bot Adapter
@@ -22,6 +25,7 @@ public sealed class DiscordAdapter : IPlatformAdapter
 {
     private readonly string _token;
     private readonly HttpClient _http;
+    private readonly ILogger<DiscordAdapter> _logger;
     private ClientWebSocket? _ws;
     private Func<MessageEvent, Task<string?>>? _messageHandler;
     private Action<Platform, Exception>? _errorHandler;
@@ -30,10 +34,11 @@ public sealed class DiscordAdapter : IPlatformAdapter
     private int? _heartbeatIntervalMs;
     private int? _lastSequence;
 
-    public DiscordAdapter(string token, HttpClient? http = null)
+    public DiscordAdapter(string token, HttpClient? http = null, ILogger<DiscordAdapter>? logger = null)
     {
         _token = token;
         _http = http ?? new HttpClient();
+        _logger = logger ?? NullLogger<DiscordAdapter>.Instance;
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bot", token);
         _http.DefaultRequestHeaders.Add("User-Agent", "HermesDesktop/1.0");
     }
@@ -87,8 +92,13 @@ public sealed class DiscordAdapter : IPlatformAdapter
 
             return true;
         }
-        catch
+        catch (OperationCanceledException)
         {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Discord adapter connect failed");
             return false;
         }
     }
@@ -134,7 +144,10 @@ public sealed class DiscordAdapter : IPlatformAdapter
         if (_ws?.State == WebSocketState.Open)
         {
             try { await _ws.CloseAsync(WebSocketCloseStatus.NormalClosure, "shutdown", CancellationToken.None); }
-            catch { /* best effort */ }
+            catch (Exception ex)
+            {
+                BestEffort.LogFailure(_logger, ex, "closing Discord WebSocket during shutdown");
+            }
         }
         IsConnected = false;
     }
@@ -218,6 +231,7 @@ public sealed class DiscordAdapter : IPlatformAdapter
             catch (WebSocketException) { break; }
             catch (Exception ex)
             {
+                _logger.LogWarning(ex, "Discord adapter receive loop failed");
                 _errorHandler?.Invoke(Platform.Discord, ex);
             }
         }
@@ -233,7 +247,15 @@ public sealed class DiscordAdapter : IPlatformAdapter
             await Task.Delay(interval, ct);
             var heartbeat = new { op = 1, d = _lastSequence };
             try { await SendJsonAsync(heartbeat, ct); }
-            catch { break; }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+            catch (Exception ex)
+            {
+                BestEffort.LogFailure(_logger, ex, "sending Discord heartbeat");
+                break;
+            }
         }
     }
 
@@ -266,7 +288,7 @@ public sealed class DiscordAdapter : IPlatformAdapter
 
     private static List<string> ChunkText(string text, int maxLength)
     {
-        if (text.Length <= maxLength) return [text];
+        if (text.Length <= maxLength) return new List<string> { text };
 
         var chunks = new List<string>();
         var remaining = text.AsSpan();

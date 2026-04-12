@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- dotnet CLI does not ship VS Appx PRI tasks (ExpandPriContent); VS does. -->
+  <PropertyGroup Condition="'$(BuildingInsideVisualStudio)' != 'true'">
+    <EnableCoreMrtTooling>false</EnableCoreMrtTooling>
+    <EnablePriGenTooling>false</EnablePriGenTooling>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>HermesDesktop.Package</PackageId>
+    <PackageVersion>1.0.0.0</PackageVersion>
+    <DefaultLanguage>en-US</DefaultLanguage>
+    <Description>Hermes Desktop MSIX packaging project</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HermesDesktop\HermesDesktop.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Package.appxmanifest">
+      <Pack>true</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+</Project>

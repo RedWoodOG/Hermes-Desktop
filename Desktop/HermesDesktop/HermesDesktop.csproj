@@ -4,6 +4,7 @@
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <RootNamespace>HermesDesktop</RootNamespace>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platform>x64</Platform>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
@@ -11,8 +12,20 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableMsixTooling>true</EnableMsixTooling>
     <UseXamlCompilerExecutable>false</UseXamlCompilerExecutable>
+    <!-- With Package.appxmanifest present, SDK would default to MSIX; keep unpackaged for dotnet run / folder deploy. -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <!-- Ship WinApp SDK DLLs next to the exe so unpackaged runs work without a machine-wide "Windows App Runtime" install -->
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- false: avoids DeploymentManager WinRT (REGDB_E_CLASSNOTREG) when runtime COM is not registered -->
     <WindowsAppSdkDeploymentManagerInitialize>false</WindowsAppSdkDeploymentManagerInitialize>
     <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <!-- Set -p:HermesMsixPublish=true (see scripts/publish-msix.ps1) to produce a signed .msix under AppPackages\ -->
+  <PropertyGroup Condition="'$(HermesMsixPublish)' == 'true'">
+    <WindowsPackageType>MSIX</WindowsPackageType>
+    <PublishAppxPackage>true</PublishAppxPackage>
+    <WindowsAppSDKSelfContained>false</WindowsAppSDKSelfContained>
   </PropertyGroup>
 
   <ItemGroup>
@@ -47,6 +60,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250310001" />
@@ -59,6 +73,14 @@
   <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
     <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
   </PropertyGroup>
+
+  <!-- Playwright copies Vite-hashed assets under .playwright/; MRT PRI treats dotted names as qualifiers (PRI249). -->
+  <Target Name="HermesExcludePlaywrightFromPriLayout" AfterTargets="GetPriOutputs" BeforeTargets="_GenerateProjectPriConfigurationFiles">
+    <ItemGroup>
+      <_AppxLayoutAssetPackageFiles Include="@(PriOutputs)"
+        Condition="$([MSBuild]::ValueOrDefault('%(PriOutputs.TargetPath)', '').Contains('.playwright')) or $([MSBuild]::ValueOrDefault('%(PriOutputs.Identity)', '').Contains('.playwright')) or '%(PriOutputs.TargetPath)' == 'playwright.ps1'" />
+    </ItemGroup>
+  </Target>
 
   <PropertyGroup>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>

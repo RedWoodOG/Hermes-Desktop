@@ -1,6 +1,7 @@
 using System.IO;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using Hermes.Agent.Core;
 using Hermes.Agent.LLM;
@@ -46,6 +47,7 @@ public class OpenAiClientAuthTests
             Assert.AreEqual("ok", result);
             Assert.IsNotNull(capturedRequest);
             Assert.AreEqual("Bearer oauth-token", capturedRequest!.Headers.Authorization!.ToString());
+            Assert.IsNull(httpClient.DefaultRequestHeaders.Authorization);
         }
         finally
         {
@@ -85,6 +87,8 @@ public class OpenAiClientAuthTests
         Assert.IsTrue(capturedRequest!.Headers.TryGetValues("X-Proxy-Auth", out var headerValues));
         CollectionAssert.AreEqual(new[] { "cmd-token" }, headerValues!.ToArray());
         Assert.IsNull(capturedRequest.Headers.Authorization);
+        Assert.IsFalse(httpClient.DefaultRequestHeaders.Contains("X-Proxy-Auth"));
+        Assert.IsNull(httpClient.DefaultRequestHeaders.Authorization);
     }
 
     [TestMethod]
@@ -138,6 +142,127 @@ public class OpenAiClientAuthTests
             Assert.AreEqual(
                 "Bearer stream-oauth-token",
                 capturedRequest!.Headers.Authorization!.ToString());
+            Assert.IsNull(httpClient.DefaultRequestHeaders.Authorization);
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(envVarName, null);
+        }
+    }
+
+    [TestMethod]
+    public async Task StreamAsync_Text_DoesNotMutateSharedHttpClientDefaultHeaders()
+    {
+        const string envVarName = "HERMES_TEST_PROXY_TOKEN_TEXT_SHARED";
+        Environment.SetEnvironmentVariable(envVarName, "request-token");
+
+        try
+        {
+            HttpRequestMessage? capturedRequest = null;
+            var sse =
+                """
+                data: {"choices":[{"delta":{"content":"z"}}]}
+
+                data: [DONE]
+
+                """;
+            using var httpClient = new HttpClient(new CaptureHandler(request =>
+            {
+                capturedRequest = request;
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StreamContent(new MemoryStream(Encoding.UTF8.GetBytes(sse)))
+                };
+            }));
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "shared-default-token");
+            httpClient.DefaultRequestHeaders.TryAddWithoutValidation("X-Shared-Header", "shared-default-value");
+
+            var client = new OpenAiClient(
+                new LlmConfig
+                {
+                    Provider = "openai",
+                    Model = "gpt-5.4",
+                    BaseUrl = "https://proxy.example/v1",
+                    AuthMode = "oauth_proxy_env",
+                    AuthHeader = "Authorization",
+                    AuthScheme = "Bearer",
+                    AuthTokenEnv = envVarName
+                },
+                httpClient);
+
+            await foreach (var _ in client.StreamAsync(
+                               new[] { new Message { Role = "user", Content = "hello" } },
+                               CancellationToken.None))
+            {
+                // Drain SSE until completion
+            }
+
+            Assert.IsNotNull(capturedRequest);
+            Assert.AreEqual("Bearer request-token", capturedRequest!.Headers.Authorization!.ToString());
+            Assert.AreEqual("Bearer shared-default-token", httpClient.DefaultRequestHeaders.Authorization!.ToString());
+            Assert.IsTrue(httpClient.DefaultRequestHeaders.TryGetValues("X-Shared-Header", out var sharedValues));
+            CollectionAssert.AreEqual(new[] { "shared-default-value" }, sharedValues!.ToArray());
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(envVarName, null);
+        }
+    }
+
+    [TestMethod]
+    public async Task StreamAsync_StreamEvent_DoesNotMutateSharedHttpClientDefaultHeaders()
+    {
+        const string envVarName = "HERMES_TEST_PROXY_TOKEN_EVENT_SHARED";
+        Environment.SetEnvironmentVariable(envVarName, "request-token");
+
+        try
+        {
+            HttpRequestMessage? capturedRequest = null;
+            var sse =
+                """
+                data: {"choices":[{"delta":{"content":"z"}}]}
+
+                data: [DONE]
+
+                """;
+            using var httpClient = new HttpClient(new CaptureHandler(request =>
+            {
+                capturedRequest = request;
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StreamContent(new MemoryStream(Encoding.UTF8.GetBytes(sse)))
+                };
+            }));
+            httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "shared-default-token");
+            httpClient.DefaultRequestHeaders.TryAddWithoutValidation("X-Shared-Header", "shared-default-value");
+
+            var client = new OpenAiClient(
+                new LlmConfig
+                {
+                    Provider = "openai",
+                    Model = "gpt-5.4",
+                    BaseUrl = "https://proxy.example/v1",
+                    AuthMode = "oauth_proxy_env",
+                    AuthHeader = "Authorization",
+                    AuthScheme = "Bearer",
+                    AuthTokenEnv = envVarName
+                },
+                httpClient);
+
+            await foreach (var _ in client.StreamAsync(
+                               null,
+                               new[] { new Message { Role = "user", Content = "hello" } },
+                               null,
+                               CancellationToken.None))
+            {
+                // Drain SSE until completion
+            }
+
+            Assert.IsNotNull(capturedRequest);
+            Assert.AreEqual("Bearer request-token", capturedRequest!.Headers.Authorization!.ToString());
+            Assert.AreEqual("Bearer shared-default-token", httpClient.DefaultRequestHeaders.Authorization!.ToString());
+            Assert.IsTrue(httpClient.DefaultRequestHeaders.TryGetValues("X-Shared-Header", out var sharedValues));
+            CollectionAssert.AreEqual(new[] { "shared-default-value" }, sharedValues!.ToArray());
         }
         finally
         {

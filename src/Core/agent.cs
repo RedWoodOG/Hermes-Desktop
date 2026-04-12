@@ -451,7 +451,10 @@ public sealed class Agent : IAgent
                                 Lesson = $"When using {toolCall.Name}, verify inputs before execution"
                             });
                         }
-                        catch { /* fire and forget */ }
+                        catch (Exception ex)
+                        {
+                            _logger.LogDebug(ex, "RecordMistakeAsync failed in background task");
+                        }
                     }, CancellationToken.None);
                 }
 
@@ -768,7 +771,10 @@ public sealed class Agent : IAgent
                                 Lesson = $"When using {toolCall.Name}, verify inputs before execution"
                             });
                         }
-                        catch { /* fire and forget */ }
+                        catch (Exception ex)
+                        {
+                            _logger.LogDebug(ex, "RecordMistakeAsync failed in background task");
+                        }
                     }, CancellationToken.None);
                 }
 

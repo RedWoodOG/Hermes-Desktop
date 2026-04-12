@@ -83,8 +83,9 @@ internal sealed class SessionRecorder
 
             return filePath;
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"SessionRecorder capture failed for {label}: {ex}");
             return null;
         }
     }

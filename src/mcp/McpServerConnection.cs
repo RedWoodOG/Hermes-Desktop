@@ -151,7 +151,7 @@ public sealed class McpServerConnection : IAsyncDisposable
         var result = await _transport.SendRequestAsync("tools/call", parameters, ct);
         
         return JsonSerializer.Deserialize<McpToolResult>(result, JsonOptions) 
-            ?? new McpToolResult([]);
+            ?? new McpToolResult(Array.Empty<McpContentBlock>());
     }
     
     /// <summary>
@@ -166,7 +166,7 @@ public sealed class McpServerConnection : IAsyncDisposable
         var result = await _transport.SendRequestAsync("resources/read", parameters, ct);
         
         return JsonSerializer.Deserialize<McpResourceContent>(result, JsonOptions) 
-            ?? new McpResourceContent([]);
+            ?? new McpResourceContent(Array.Empty<McpResourceBlock>());
     }
     
     /// <summary>
@@ -196,7 +196,10 @@ public sealed class McpServerConnection : IAsyncDisposable
             if (_notificationTask is not null)
                 await _notificationTask.WaitAsync(TimeSpan.FromSeconds(5));
         }
-        catch { }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"McpServerConnection notification shutdown wait failed: {ex}");
+        }
         
         if (_transport is not null)
         {

@@ -96,7 +96,11 @@ public sealed class SshBackend : IExecutionBackend
         }
         catch (OperationCanceledException)
         {
-            try { process.Kill(entireProcessTree: true); } catch { }
+            try { process.Kill(entireProcessTree: true); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SshBackend timed-out process kill failed: {ex}");
+            }
             sw.Stop();
             return new ExecutionResult
             {

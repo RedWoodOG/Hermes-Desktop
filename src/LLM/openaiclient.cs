@@ -3,6 +3,7 @@ namespace Hermes.Agent.LLM;
 using Hermes.Agent.Core;
 using System.Diagnostics;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
@@ -99,54 +100,45 @@ public sealed class OpenAiClient : IChatClient
         using var request = await CreateRequestAsync($"{_config.BaseUrl}/chat/completions", json, ct);
 
         HttpResponseMessage? response = null;
-        string? connectionError = null;
         try
         {
             response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
             response.EnsureSuccessStatusCode();
         }
-        catch (HttpRequestException ex)
+        catch (HttpRequestException)
         {
             response?.Dispose();
-            response = null;
-            connectionError = $"\n[Connection error: {ex.Message}]";
+            throw;
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
             response?.Dispose();
-            response = null;
-            connectionError = "\n[Request timed out — the LLM server may be overloaded or unreachable]";
+            throw new TimeoutException("Request timed out - the LLM server may be overloaded or unreachable.");
         }
 
-        if (connectionError is not null)
+        var httpResponse = response!;
+        using (httpResponse)
         {
-            yield return connectionError;
-            yield break;
-        }
+            var body = httpResponse.Content;
+            if (body is null)
+            {
+                Debug.WriteLine("OpenAiClient.StreamTextAsync: response.Content is null.");
+                throw new InvalidOperationException("Empty response body from server.");
+            }
 
-        using (response!)
-        {
-            using var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var stream = await body.ReadAsStreamAsync(ct);
             using var reader = new StreamReader(stream);
 
             while (!ct.IsCancellationRequested)
             {
                 string? line;
-                string? readError = null;
                 try
                 {
                     line = await reader.ReadLineAsync(ct);
                 }
-                catch (IOException)
+                catch (IOException ex)
                 {
-                    readError = "\n[Connection lost during streaming]";
-                    line = null;
-                }
-
-                if (readError is not null)
-                {
-                    yield return readError;
-                    yield break;
+                    throw new IOException("Connection lost during streaming.", ex);
                 }
 
                 if (line is null) break;
@@ -293,6 +285,8 @@ public sealed class OpenAiClient : IChatClient
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
 
+        // Keep authentication request-scoped so callers can safely reuse HttpClient
+        // instances without leaking credentials through DefaultRequestHeaders.
         await ApplyAuthenticationAsync(request, apiKeyOverride, ct);
         return request;
     }
@@ -370,11 +364,25 @@ public sealed class OpenAiClient : IChatClient
             ? "Authorization"
             : _config.AuthHeader.Trim();
         var authScheme = _config.AuthScheme ?? "Bearer";
+
+        if (headerName.Equals("Authorization", StringComparison.OrdinalIgnoreCase) &&
+            string.IsNullOrWhiteSpace(authScheme))
+        {
+            throw new InvalidOperationException("model.auth_scheme must be set when model.auth_header is Authorization.");
+        }
+
         AddHeader(request, headerName, authScheme, token);
     }
 
     private static void AddHeader(HttpRequestMessage request, string headerName, string? scheme, string token)
     {
+        if (headerName.Equals("Authorization", StringComparison.OrdinalIgnoreCase) &&
+            !string.IsNullOrWhiteSpace(scheme))
+        {
+            request.Headers.Authorization = new AuthenticationHeaderValue(scheme.Trim(), token);
+            return;
+        }
+
         var headerValue = string.IsNullOrWhiteSpace(scheme)
             ? token
             : $"{scheme.Trim()} {token}";
@@ -427,12 +435,7 @@ public sealed class OpenAiClient : IChatClient
 
         var payload = BuildPayload(messages, tools: null, stream: true);
         var json = JsonSerializer.Serialize(payload);
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"{_config.BaseUrl}/chat/completions")
-        {
-            Content = new StringContent(json, Encoding.UTF8, "application/json")
-        };
-
-        await ApplyAuthenticationAsync(request, null, ct);
+        using var request = await CreateRequestAsync($"{_config.BaseUrl}/chat/completions", json, ct);
 
         HttpResponseMessage? response = null;
         Exception? connectError = null;
@@ -451,9 +454,19 @@ public sealed class OpenAiClient : IChatClient
             yield break;
         }
 
-        using (response!)
+        var httpResponse = response!;
+        using (httpResponse)
         {
-            using var stream = await response.Content.ReadAsStreamAsync(ct);
+            var body = httpResponse.Content;
+            if (body is null)
+            {
+                Debug.WriteLine("OpenAiClient.StreamEventsAsync: response.Content is null.");
+                yield return new StreamEvent.StreamError(
+                    new InvalidOperationException("Empty response body from server."));
+                yield break;
+            }
+
+            using var stream = await body.ReadAsStreamAsync(ct);
             using var reader = new StreamReader(stream);
 
             while (!ct.IsCancellationRequested)

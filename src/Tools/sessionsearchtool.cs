@@ -88,7 +88,10 @@ public sealed class SessionSearchTool : ITool
                 return TruncateAround(content, query, 150);
             }
         }
-        catch { /* Fall through to raw line */ }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"SessionSearchTool failed to parse structured line: {ex}");
+        }
 
         return TruncateAround(line, query, 150);
     }

@@ -55,7 +55,7 @@ public sealed class TaskManager
             Priority = request.Priority ?? TaskPriority.Medium,
             Assignee = request.Assignee,
             DueDate = request.DueDate,
-            Dependencies = request.Dependencies ?? [],
+            Dependencies = request.Dependencies ?? new List<string>(),
             SuccessCriteria = request.SuccessCriteria,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -261,7 +261,7 @@ public sealed class HermesTask
     public TaskPriority Priority { get; set; } = TaskPriority.Medium;
     public string? Assignee { get; set; }
     public DateTime? DueDate { get; set; }
-    public List<string> Dependencies { get; set; } = [];
+    public List<string> Dependencies { get; set; } = new List<string>();
     public string? SuccessCriteria { get; set; }
     public string? FailureReason { get; set; }
     public DateTime? CompletedAt { get; set; }

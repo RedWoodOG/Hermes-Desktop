@@ -196,8 +196,9 @@ public sealed class BrowserTool : ITool, IAsyncDisposable
             var bodyText = await _page.InnerTextAsync("body");
             sb.AppendLine(bodyText);
         }
-        catch
+        catch (Exception ex)
         {
+            System.Diagnostics.Debug.WriteLine($"BrowserTool snapshot body extraction failed: {ex}");
             sb.AppendLine("(page content not available)");
         }
 
@@ -251,7 +252,11 @@ public sealed class BrowserTool : ITool, IAsyncDisposable
     {
         if (_browser is not null)
         {
-            try { await _browser.CloseAsync(); } catch { }
+            try { await _browser.CloseAsync(); }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"BrowserTool.DisposeAsync close failed: {ex}");
+            }
         }
         _playwright?.Dispose();
     }
