@@ -94,6 +94,13 @@ internal sealed class HermesChatService : IDisposable
     }
 
     // ── Stream (structured events: tokens + thinking) ──
+    //
+    // CRITICAL: Producer runs on thread pool via Task.Run to prevent WinUI 3
+    // sync context deadlocks. The agent pipeline (StreamChatAsync → _chatClient.StreamAsync)
+    // contains many awaits without .ConfigureAwait(false), any of which would otherwise
+    // try to resume on the UI thread. By running the producer on a worker thread and
+    // passing events through a Channel<T>, we guarantee the HTTP read never blocks
+    // waiting for the UI thread to become available.
 
     public async IAsyncEnumerable<ChatStreamEvent> StreamStructuredAsync(
         string message,
@@ -102,43 +109,97 @@ internal sealed class HermesChatService : IDisposable
         EnsureSession();
         _streamCts?.Dispose();
         _streamCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var streamToken = _streamCts.Token;
 
         var fullResponse = new System.Text.StringBuilder();
-        try
-        {
-            await foreach (var evt in _agent.StreamChatAsync(message, _currentSession!, _streamCts.Token))
+        var channel = System.Threading.Channels.Channel.CreateUnbounded<ChatStreamEvent>(
+            new System.Threading.Channels.UnboundedChannelOptions
             {
-                switch (evt)
+                SingleReader = true,
+                SingleWriter = true
+            });
+
+        var currentSession = _currentSession!;
+
+        // Producer — runs on thread pool, fully detached from UI sync context.
+        var producerTask = Task.Run(async () =>
+        {
+            try
+            {
+                await foreach (var evt in _agent.StreamChatAsync(message, currentSession, streamToken)
+                    .ConfigureAwait(false))
                 {
-                    case Hermes.Agent.LLM.StreamEvent.TokenDelta td:
-                        // Tool-calling status messages (e.g. "[Calling tool: bash]") are
-                        // informational — show in UI but don't accumulate into the saved response
-                        if (td.Text.StartsWith("\n[Calling tool:") && td.Text.TrimEnd().EndsWith("]"))
-                        {
-                            yield return new ChatStreamEvent(ChatStreamEventType.Thinking, td.Text.Trim());
-                        }
-                        else
-                        {
-                            fullResponse.Append(td.Text);
-                            yield return new ChatStreamEvent(ChatStreamEventType.Token, td.Text);
-                        }
-                        break;
+                    switch (evt)
+                    {
+                        case Hermes.Agent.LLM.StreamEvent.TokenDelta td:
+                            // Tool-calling status messages (e.g. "[Calling tool: bash]") are
+                            // informational — show in UI but don't accumulate into the saved response
+                            if (td.Text.StartsWith("\n[Calling tool:") && td.Text.TrimEnd().EndsWith("]"))
+                            {
+                                await channel.Writer.WriteAsync(
+                                    new ChatStreamEvent(ChatStreamEventType.Thinking, td.Text.Trim()),
+                                    streamToken).ConfigureAwait(false);
+                            }
+                            else
+                            {
+                                fullResponse.Append(td.Text);
+                                await channel.Writer.WriteAsync(
+                                    new ChatStreamEvent(ChatStreamEventType.Token, td.Text),
+                                    streamToken).ConfigureAwait(false);
+                            }
+                            break;
 
-                    case Hermes.Agent.LLM.StreamEvent.ThinkingDelta tk:
-                        yield return new ChatStreamEvent(ChatStreamEventType.Thinking, tk.Text);
-                        break;
+                        case Hermes.Agent.LLM.StreamEvent.ThinkingDelta tk:
+                            await channel.Writer.WriteAsync(
+                                new ChatStreamEvent(ChatStreamEventType.Thinking, tk.Text),
+                                streamToken).ConfigureAwait(false);
+                            break;
 
-                    case Hermes.Agent.LLM.StreamEvent.StreamError err:
-                        yield return new ChatStreamEvent(ChatStreamEventType.Error, err.Error.Message);
-                        break;
+                        case Hermes.Agent.LLM.StreamEvent.StreamError err:
+                            await channel.Writer.WriteAsync(
+                                new ChatStreamEvent(ChatStreamEventType.Error, err.Error.Message),
+                                streamToken).ConfigureAwait(false);
+                            break;
+                    }
                 }
             }
+            catch (OperationCanceledException)
+            {
+                // Expected on cancel — swallow so consumer can drain remaining events
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Agent stream failed");
+                try
+                {
+                    await channel.Writer.WriteAsync(
+                        new ChatStreamEvent(ChatStreamEventType.Error, ex.Message),
+                        CancellationToken.None).ConfigureAwait(false);
+                }
+                catch { /* channel may be closed */ }
+            }
+            finally
+            {
+                channel.Writer.TryComplete();
+            }
+        }, streamToken);
+
+        // Consumer — yields events from channel on the UI thread.
+        try
+        {
+            while (await channel.Reader.WaitToReadAsync(streamToken))
+            {
+                while (channel.Reader.TryRead(out var evt))
+                    yield return evt;
+            }
+
+            // Ensure producer task is observed (propagates any non-OCE exceptions)
+            try { await producerTask; }
+            catch (OperationCanceledException) { }
         }
         finally
         {
             // Save response (partial or complete) — handles normal completion and cancellation.
-            // Always save to avoid dangling user messages in the session, even if response is empty.
-            // Guard against null — session may have been deleted/reset during streaming.
             if (_currentSession is not null &&
                 _currentSession.Messages.LastOrDefault()?.Role != "assistant")
             {
