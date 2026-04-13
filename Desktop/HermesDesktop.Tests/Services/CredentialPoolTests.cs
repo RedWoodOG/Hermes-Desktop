@@ -309,9 +309,9 @@ public class CredentialPoolTests
     public void MarkFailed_With429StatusCode_UsesRateLimitCooldown()
     {
         var pool = new CredentialPool { RateLimitCooldown = TimeSpan.FromMilliseconds(1) };
-        pool.Add("sk-rate-limited");
+        pool.Add("sk-test-rate-limited");
 
-        pool.MarkFailed("sk-rate-limited", statusCode: 429, reason: "Rate limited");
+        pool.MarkFailed("sk-test-rate-limited", statusCode: 429, reason: "Rate limited");
 
         Assert.IsNull(pool.GetNext(), "Key should be failed immediately after marking with 429");
     }
@@ -322,7 +322,7 @@ public class CredentialPoolTests
         var pool = new CredentialPool();
         pool.Add("sk-real");
 
-        pool.MarkFailed("sk-nonexistent");
+        pool.MarkFailed("sk-test-nonexistent");
 
         Assert.IsTrue(pool.HasHealthyCredentials, "Real key should remain healthy");
     }
@@ -542,9 +542,9 @@ public class CredentialPoolTests
     public void MarkFailed_RateLimitError_KeyUnavailableImmediately()
     {
         var pool = new CredentialPool { RateLimitCooldown = TimeSpan.FromMilliseconds(1) };
-        pool.Add("sk-rate-limited");
+        pool.Add("sk-test-rate-limited");
 
-        pool.MarkFailed("sk-rate-limited", statusCode: 429, reason: "Rate limited");
+        pool.MarkFailed("sk-test-rate-limited", statusCode: 429, reason: "Rate limited");
 
         Assert.IsNull(pool.GetNext(), "Key should be failed immediately after marking");
     }
@@ -556,9 +556,9 @@ public class CredentialPoolTests
         {
             DefaultCooldown = TimeSpan.FromMilliseconds(1)
         };
-        pool.Add("sk-recovering");
+        pool.Add("sk-test-recovering");
 
-        pool.MarkFailed("sk-recovering", statusCode: 500);
+        pool.MarkFailed("sk-test-recovering", statusCode: 500);
 
         Thread.Sleep(50);
 
@@ -673,8 +673,8 @@ public class CredentialPoolTests
     public void GetNext_ConcurrentCalls_DoNotThrow()
     {
         var pool = new CredentialPool { Strategy = PoolStrategy.LeastUsed };
-        pool.Add("sk-concurrent-1");
-        pool.Add("sk-concurrent-2");
+        pool.Add("sk-test-concurrent-1");
+        pool.Add("sk-test-concurrent-2");
 
         var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
 
@@ -694,7 +694,7 @@ public class CredentialPoolTests
     public void AcquireAndReleaseLease_ConcurrentCalls_DoNotThrow()
     {
         var pool = new CredentialPool { MaxConcurrentLeases = 10 };
-        pool.Add("sk-thread-safe");
+        pool.Add("sk-test-thread-safe");
 
         var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
 

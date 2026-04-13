@@ -41,6 +41,18 @@ function Get-EventRange {
         if ($beforeSha -and $beforeSha -ne ('0' * 40) -and $headSha) {
             return "$beforeSha...$headSha"
         }
+
+        # New-branch push: `before` is all zeros and there is no prior commit
+        # on this ref to diff against. Fall back to diffing against the
+        # repository default branch so we only scan what this branch adds on
+        # top of main, not every tracked file in the repo.
+        $defaultBranch = $null
+        if ($event.repository -and $event.repository.default_branch) {
+            $defaultBranch = [string]$event.repository.default_branch
+        }
+        if ($defaultBranch -and $headSha) {
+            return "origin/$defaultBranch...$headSha"
+        }
     }
 
     return $null
@@ -52,7 +64,7 @@ function Test-IsPlaceholderValue {
         [string]$Value
     )
 
-    return $Value -match '(?i)(your[-_ ]?(key|token|secret|password)|example|placeholder|changeme|dummy|sample|fake|test[-_ ]?(key|token|secret|password)?|local[-_ ]?(key|token|secret|password)?)'
+    return $Value -match '(?i)(your[-_ ]?(key|token|secret|password)|example|placeholder|changeme|dummy|sample|fake|test[-_ ]?(key|token|secret|password)?|local[-_ ]?(key|token|secret|password)?|no[-_ ]?key)'
 }
 
 function Test-IsAllowedMatch {
@@ -82,11 +94,25 @@ function Test-IsAllowedMatch {
         return $true
     }
 
+    # Common placeholder shape: a vendor prefix followed by a run of X's,
+    # e.g. "sk-xxxxxxxxxxxxxxxxxxxx", "ghp_xxxxxxxxxxxxxxxxxxxx". Real keys
+    # do not end with 4+ consecutive x/X characters.
+    if ($Match -match '[xX]{4,}$') {
+        return $true
+    }
+
     if ($Match -match '(?i)^gh[pours]?_x+$') {
         return $true
     }
 
     if ($Match -match '^(?i)(access_token|refresh_token|id_token|token_type)$') {
+        return $true
+    }
+
+    # Bare type words captured from Authorization/Bearer or quoted-secret
+    # detectors (e.g. `Authorization: Bearer token`) are documentation
+    # placeholders, not real credentials.
+    if ($Match -match '(?i)^(token|bearer|apikey|api[-_]?key)$') {
         return $true
     }
 
@@ -139,8 +165,12 @@ $detectors = @(
         Regex = '-----BEGIN[A-Z ]*PRIVATE KEY-----'
     },
     @{
+        # Capture only token-shaped characters so we stop at the first quote,
+        # comma, or backslash. `\S+` was too greedy and was swallowing
+        # trailing `"` / `,X-Custom:` / `\` from curl and YAML examples,
+        # which then bypassed the `$VAR` / bare-word allowlists.
         Name = 'Authorization bearer token'
-        Regex = 'Authorization:\s*Bearer\s+(\S+)'
+        Regex = 'Authorization:\s*Bearer\s+([A-Za-z0-9$._-]+)'
         UsesCapture = $true
     },
     @{
