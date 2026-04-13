@@ -1036,6 +1036,134 @@ public class AgentActivityLogTests
             "beta_tool entry should be in ActivityLog");
     }
 
+    // ── PermissionPromptCallback regression tests ──
+    //
+    // These pin the contract that PermissionBehavior.Ask invokes
+    // PermissionPromptCallback with the toolCall.Arguments string as the
+    // third parameter. The PR that added the third argument (audit-the-
+    // command-before-running fix for v2.3.1 user feedback #1) is the only
+    // path through which the desktop UI sees what's about to execute, so a
+    // regression that silently drops the parameter would re-hide command
+    // auditing without any compile error.
+
+    [TestMethod]
+    public async Task PermissionPromptCallback_OnAsk_ReceivesToolNameMessageAndArguments()
+    {
+        // PermissionContext.Mode = Default → CheckPermissionsAsync returns
+        // Ask("Default: requires permission") for every tool that doesn't
+        // match an always_allow / always_deny / always_ask rule. That is the
+        // simplest way to force the Ask path without depending on rule DSL.
+        var permissions = new Hermes.Agent.Permissions.PermissionManager(
+            new Hermes.Agent.Permissions.PermissionContext
+            {
+                Mode = Hermes.Agent.Permissions.PermissionMode.Default
+            },
+            NullLogger<Hermes.Agent.Permissions.PermissionManager>.Instance);
+
+        var agent = new Agent(
+            _mockChatClient.Object,
+            NullLogger<Agent>.Instance,
+            permissions: permissions);
+
+        var tool = CreateMockTool("audited_tool");
+        tool.Setup(t => t.ExecuteAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ToolResult.Ok("ran"));
+        agent.RegisterTool(tool.Object);
+
+        // The exact arguments string the prompt UI must surface.
+        const string expectedArgs = "{\"command\":\"whoami\"}";
+
+        string? capturedToolName = null;
+        string? capturedMessage = null;
+        string? capturedToolArguments = null;
+        agent.PermissionPromptCallback = (toolName, message, toolArguments) =>
+        {
+            capturedToolName = toolName;
+            capturedMessage = message;
+            capturedToolArguments = toolArguments;
+            return Task.FromResult(true); // allow so the loop completes
+        };
+
+        var toolCall = new ToolCall
+        {
+            Id = "call-audit",
+            Name = "audited_tool",
+            Arguments = expectedArgs
+        };
+        var callSequence = new Queue<ChatResponse>(new[]
+        {
+            new ChatResponse { Content = null, ToolCalls = new List<ToolCall> { toolCall }, FinishReason = "tool_calls" },
+            new ChatResponse { Content = "done", FinishReason = "stop" }
+        });
+
+        _mockChatClient
+            .Setup(c => c.CompleteWithToolsAsync(
+                It.IsAny<IEnumerable<Message>>(),
+                It.IsAny<IEnumerable<ToolDefinition>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => callSequence.Dequeue());
+
+        await agent.ChatAsync("run audited tool", new Session { Id = "audit-sess" }, CancellationToken.None);
+
+        Assert.AreEqual("audited_tool", capturedToolName,
+            "Callback should receive the literal tool name being prompted for.");
+        Assert.IsFalse(string.IsNullOrEmpty(capturedMessage),
+            "Callback should receive a non-empty permission message.");
+        Assert.AreEqual(expectedArgs, capturedToolArguments,
+            "Callback must receive the raw toolCall.Arguments JSON so the UI can " +
+            "show the user the actual command before they approve. Regression in " +
+            "this assertion means the agent stopped forwarding the third parameter " +
+            "and the desktop dialog will silently fall back to hiding the command.");
+    }
+
+    [TestMethod]
+    public async Task PermissionPromptCallback_WhenCallbackDenies_ToolIsNotExecuted()
+    {
+        // Sanity check the deny path — the callback returning false should
+        // skip ExecuteAsync entirely and inject a denial tool message.
+        var permissions = new Hermes.Agent.Permissions.PermissionManager(
+            new Hermes.Agent.Permissions.PermissionContext
+            {
+                Mode = Hermes.Agent.Permissions.PermissionMode.Default
+            },
+            NullLogger<Hermes.Agent.Permissions.PermissionManager>.Instance);
+
+        var agent = new Agent(
+            _mockChatClient.Object,
+            NullLogger<Agent>.Instance,
+            permissions: permissions);
+
+        var executed = false;
+        var tool = CreateMockTool("denied_tool");
+        tool.Setup(t => t.ExecuteAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()))
+            .Callback(() => executed = true)
+            .ReturnsAsync(ToolResult.Ok("should not run"));
+        agent.RegisterTool(tool.Object);
+
+        agent.PermissionPromptCallback = (_, _, _) => Task.FromResult(false);
+
+        var toolCall = new ToolCall { Id = "call-deny", Name = "denied_tool", Arguments = "{}" };
+        var callSequence = new Queue<ChatResponse>(new[]
+        {
+            new ChatResponse { Content = null, ToolCalls = new List<ToolCall> { toolCall }, FinishReason = "tool_calls" },
+            new ChatResponse { Content = "stopped", FinishReason = "stop" }
+        });
+
+        _mockChatClient
+            .Setup(c => c.CompleteWithToolsAsync(
+                It.IsAny<IEnumerable<Message>>(),
+                It.IsAny<IEnumerable<ToolDefinition>>(),
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(() => callSequence.Dequeue());
+
+        await agent.ChatAsync("try denied tool", new Session { Id = "deny-sess" }, CancellationToken.None);
+
+        Assert.IsFalse(executed,
+            "Tool ExecuteAsync should not have been invoked when the permission callback returned false.");
+        Assert.IsTrue(agent.ActivityLog.Any(e => e.ToolName == "denied_tool" && e.Status == ActivityStatus.Denied),
+            "ActivityLog should contain a Denied entry for the user-denied tool call.");
+    }
+
     private sealed class EmptyToolParams { }
 }
 

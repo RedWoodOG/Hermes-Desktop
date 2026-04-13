@@ -100,13 +100,20 @@ public sealed partial class ReplayPanel : UserControl
     /// <summary>
     /// Load a full session's activity entries. Entries are inserted in
     /// descending-timestamp order so the most recent tool call ends up at index
-    /// 0 (top of the panel), matching live-add ordering.
+    /// 0 (top of the panel), matching live-add ordering. Sequence is the stable
+    /// secondary key — DateTime.UtcNow has ~16ms tick resolution on Windows so
+    /// two parallel tool entries can collide on Timestamp; without the
+    /// secondary sort the order between them would be implementation-defined.
     /// </summary>
     public void LoadSession(List<ActivityEntry> entries)
     {
         Activities.Clear();
-        foreach (var entry in entries.OrderByDescending(e => e.Timestamp))
+        foreach (var entry in entries
+            .OrderByDescending(e => e.Timestamp)
+            .ThenByDescending(e => e.Sequence))
+        {
             Activities.Add(new ActivityDisplayItem(entry));
+        }
         UpdateEmptyState();
     }
 
@@ -177,11 +184,15 @@ public sealed partial class ReplayPanel : UserControl
     {
         // Display order is newest-first, but playback should always run
         // chronologically (oldest → newest) so the user watches the agent's
-        // work unfold in the same order it actually happened. Snapshot to a
-        // local list so an Activities mutation mid-playback can't desync us.
-        // Sort by Timestamp first, then by Sequence to resolve collisions and
-        // maintain stable insertion order.
-        var ordered = Activities.OrderBy(a => a.Timestamp).ThenBy(a => a.Sequence).ToList();
+        // work unfold in the same order it actually happened. Sequence is the
+        // stable secondary key because DateTime.UtcNow has ~16ms tick
+        // resolution on Windows — two parallel tool entries created in the
+        // same tick would otherwise play in non-deterministic order. Snapshot
+        // to a local list so an Activities mutation mid-playback can't desync.
+        var ordered = Activities
+            .OrderBy(a => a.Timestamp)
+            .ThenBy(a => a.Sequence)
+            .ToList();
         foreach (var item in ordered)
         {
             ct.ThrowIfCancellationRequested();

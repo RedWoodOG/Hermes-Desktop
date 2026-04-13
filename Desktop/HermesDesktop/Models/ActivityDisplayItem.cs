@@ -40,7 +40,15 @@ public sealed class ActivityDisplayItem : INotifyPropertyChanged
 
     public string Id { get; }
     public DateTime Timestamp { get; }
+
+    /// <summary>
+    /// Process-monotonic creation sequence inherited from the source
+    /// ActivityEntry. ReplayPanel uses this as a stable secondary sort key
+    /// when ordering by Timestamp for chronological playback so two entries
+    /// with the same UTC tick still play back in insertion order.
+    /// </summary>
     public long Sequence { get; }
+
     public string ToolName { get; }
     public string? ToolCallId { get; }
     public string InputSummary { get; }

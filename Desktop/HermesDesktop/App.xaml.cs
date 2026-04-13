@@ -621,11 +621,20 @@ public partial class App : Application
     private static void WirePermissionCallback(IServiceProvider services)
     {
         var agent = services.GetRequiredService<Hermes.Agent.Core.Agent>();
+        // Resolve the dialog service once; it captures the active window's
+        // DispatcherQueue and XamlRoot internally and is safe to reuse across
+        // many permission prompts. PermissionDialogService is the dedicated
+        // dialog view + formatter extracted from this code-behind so this
+        // file stays focused on app lifecycle / DI orchestration only —
+        // see PermissionDialogService.cs for the construction logic plus the
+        // dispatcher-shutdown deadlock guard.
         agent.PermissionPromptCallback = async (toolName, message, toolArguments) =>
         {
             if (App.Current is App app && app._window is not null)
             {
-                var dialogService = new PermissionDialogService(app._window);
+                var dialogService = new HermesDesktop.Services.PermissionDialogService(
+                    app._window,
+                    TryGetAppLogger());
                 return await dialogService.ShowPermissionDialogAsync(message, toolName, toolArguments);
             }
             return false;
