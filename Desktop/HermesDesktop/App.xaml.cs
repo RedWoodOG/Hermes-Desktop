@@ -616,11 +616,15 @@ public partial class App : Application
 
     /// <summary>
     /// Wire the Agent's permission callback to show a WinUI ContentDialog when Ask is returned.
+    /// The dialog body shows the human-readable permission message followed by a
+    /// monospace block containing the actual tool arguments (for the bash tool that
+    /// is the literal shell command), so technical users can audit exactly what the
+    /// agent is about to run *before* approving.
     /// </summary>
     private static void WirePermissionCallback(IServiceProvider services)
     {
         var agent = services.GetRequiredService<Hermes.Agent.Core.Agent>();
-        agent.PermissionPromptCallback = async (toolName, message) =>
+        agent.PermissionPromptCallback = async (toolName, message, toolArguments) =>
         {
             // Must dispatch to UI thread for ContentDialog
             var tcs = new System.Threading.Tasks.TaskCompletionSource<bool>();
@@ -631,12 +635,59 @@ public partial class App : Application
                 {
                     try
                     {
+                        // Build a dialog body that shows: (1) the permission rule's
+                        // human-readable message, then (2) a monospace "Command"
+                        // section containing the actual tool arguments JSON. For
+                        // bash that JSON looks like {"command":"whoami"}, which is
+                        // the literal shell command — exactly what an auditor needs
+                        // to see before granting permission.
+                        var body = new Microsoft.UI.Xaml.Controls.StackPanel
+                        {
+                            Spacing = 12,
+                            Orientation = Microsoft.UI.Xaml.Controls.Orientation.Vertical
+                        };
+                        body.Children.Add(new Microsoft.UI.Xaml.Controls.TextBlock
+                        {
+                            Text = message,
+                            TextWrapping = Microsoft.UI.Xaml.TextWrapping.WrapWholeWords,
+                            IsTextSelectionEnabled = true
+                        });
+
+                        var formattedCommand = FormatToolArgumentsForPrompt(toolName, toolArguments);
+                        if (!string.IsNullOrEmpty(formattedCommand))
+                        {
+                            body.Children.Add(new Microsoft.UI.Xaml.Controls.TextBlock
+                            {
+                                Text = "Command",
+                                FontSize = 11,
+                                FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                                Opacity = 0.7,
+                                Margin = new Microsoft.UI.Xaml.Thickness(0, 4, 0, 0)
+                            });
+                            // Use a read-only, multiline TextBox so the user can copy the
+                            // command — TextBlock would still allow selection but TextBox
+                            // gives a familiar Ctrl+A / Ctrl+C affordance and scrolls
+                            // gracefully when the command is long.
+                            body.Children.Add(new Microsoft.UI.Xaml.Controls.TextBox
+                            {
+                                Text = formattedCommand,
+                                IsReadOnly = true,
+                                AcceptsReturn = true,
+                                TextWrapping = Microsoft.UI.Xaml.TextWrapping.Wrap,
+                                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Cascadia Mono, Consolas"),
+                                FontSize = 12,
+                                MinHeight = 60,
+                                MaxHeight = 240
+                            });
+                        }
+
                         var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
                         {
                             Title = $"Permission Required: {toolName}",
-                            Content = message,
+                            Content = body,
                             PrimaryButtonText = "Allow",
                             CloseButtonText = "Deny",
+                            DefaultButton = Microsoft.UI.Xaml.Controls.ContentDialogButton.Close,
                             XamlRoot = app._window.Content.XamlRoot
                         };
                         var result = await dialog.ShowAsync();
@@ -656,6 +707,46 @@ public partial class App : Application
 
             return await tcs.Task;
         };
+    }
+
+    /// <summary>
+    /// Format raw tool arguments for display in the permission dialog. For the
+    /// bash tool, parse the JSON and surface the literal command string so the
+    /// user sees `whoami` rather than `{"command":"whoami"}`. For other tools
+    /// pretty-print the JSON if possible, otherwise show the raw string.
+    /// Returns an empty string when there is nothing useful to display so the
+    /// caller can omit the Command section entirely.
+    /// </summary>
+    private static string FormatToolArgumentsForPrompt(string toolName, string? toolArguments)
+    {
+        if (string.IsNullOrWhiteSpace(toolArguments))
+            return string.Empty;
+
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(toolArguments);
+            var root = doc.RootElement;
+
+            // bash tool: surface the actual shell command verbatim so the user
+            // sees what will run, not the JSON wrapper around it.
+            if (string.Equals(toolName, "bash", StringComparison.OrdinalIgnoreCase) &&
+                root.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                root.TryGetProperty("command", out var commandProp) &&
+                commandProp.ValueKind == System.Text.Json.JsonValueKind.String)
+            {
+                return commandProp.GetString() ?? string.Empty;
+            }
+
+            // Everything else: pretty-print the JSON for readability.
+            return System.Text.Json.JsonSerializer.Serialize(
+                root,
+                new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            // Not JSON — show the raw string verbatim. Better than hiding it.
+            return toolArguments;
+        }
     }
 
     /// <summary>

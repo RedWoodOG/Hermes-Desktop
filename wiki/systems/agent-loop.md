@@ -38,7 +38,7 @@ The Agent class (`src/Core/agent.cs`, ~1040 lines) is the central orchestrator. 
 Three outcomes from `PermissionManager.CheckPermissionsAsync`:
 - **Allow** -- execute immediately
 - **Deny** -- log denial, inject denial message as tool result, skip
-- **Ask** -- invoke `PermissionPromptCallback(toolName, message)`. Null callback = deny.
+- **Ask** -- invoke `PermissionPromptCallback(toolName, message, toolArguments)` where `toolArguments` is the raw JSON args (e.g. the literal `command` for bash). Null callback = deny.
 
 ## Activity Logging
 

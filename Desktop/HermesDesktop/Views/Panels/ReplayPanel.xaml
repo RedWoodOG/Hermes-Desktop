@@ -83,7 +83,8 @@
                                     <TextBlock Text="{x:Bind InputFull}" FontSize="10"
                                                FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap"
                                                Foreground="{StaticResource AppTextSecondaryBrush}"
-                                               MaxLines="10"/>
+                                               MaxLines="10"
+                                               IsTextSelectionEnabled="True"/>
                                 </Border>
                             </StackPanel>
 
@@ -95,7 +96,8 @@
                                     <TextBlock Text="{x:Bind OutputFull, Mode=OneWay}" FontSize="10"
                                                FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap"
                                                Foreground="{StaticResource AppTextSecondaryBrush}"
-                                               MaxLines="10"/>
+                                               MaxLines="10"
+                                               IsTextSelectionEnabled="True"/>
                                 </Border>
                             </StackPanel>
 
@@ -107,7 +109,8 @@
                                     <TextBlock Text="{x:Bind DiffPreview, Mode=OneWay}" FontSize="10"
                                                FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap"
                                                Foreground="{StaticResource AppAccentTextBrush}"
-                                               MaxLines="20"/>
+                                               MaxLines="20"
+                                               IsTextSelectionEnabled="True"/>
                                 </Border>
                             </StackPanel>
 

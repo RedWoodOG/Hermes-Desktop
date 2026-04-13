@@ -48,7 +48,7 @@ Only `chatClient` and `logger` are required. All subsystems are optional -- Agen
 ## Key Properties
 
 - `MaxToolIterations` -- default 25, safety limit for tool loops
-- `PermissionPromptCallback` -- `Func<string, string, Task<bool>>?` for interactive permission prompts
+- `PermissionPromptCallback` -- `Func<string, string, string?, Task<bool>>?` for interactive permission prompts. Receives `(toolName, message, toolArguments)` so the host UI can surface the literal command/args being audited.
 - `ActivityLog` -- `List<ActivityEntry>` for current agent lifetime
 - `ActivityEntryAdded` -- `event Action<ActivityEntry>?`
 - `Tools` -- `IReadOnlyDictionary<string, ITool>`
