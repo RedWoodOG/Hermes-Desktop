@@ -95,7 +95,7 @@ if ($Configuration -eq "Release") {
 }
 
 Write-Host ""
-Write-Host "Publishing Hermes Desktop (portable, $rid, $Configuration)..." -ForegroundColor Cyan
+Write-Host "Publishing Hermes Desktop — portable, $rid, $Configuration ..." -ForegroundColor Cyan
 Write-Host "Output: $OutputDir" -ForegroundColor DarkGray
 Write-Host ""
 
