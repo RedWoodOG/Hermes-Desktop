@@ -1,0 +1,12 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# Repository-specific config
+reviews:
+  profile: assertive
+  high_level_summary: true
+  poem: true
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+chat:
+  art: true
