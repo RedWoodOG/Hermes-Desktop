@@ -77,10 +77,10 @@ Hermes Desktop is an **in-process agent runtime** with a native Windows UI &mdas
 
 | | |
 |---|---|
-| ![Chat](docs/screenshots/readme-grid-chat.png) | ![Agents](docs/screenshots/readme-grid-agents.png) |
-| ![Soul editor](docs/screenshots/readme-grid-soul-editor.png) | ![Soul templates](docs/screenshots/readme-grid-soul-templates.png) |
-| ![Skills](docs/screenshots/readme-grid-skills.png) | ![Memory](docs/screenshots/readme-grid-memory.png) |
-| ![Integrations](docs/screenshots/readme-grid-integrations.png) | ![Settings](docs/screenshots/readme-grid-settings.png) |
+| ![Chat](docs/screenshots/Screenshot%202026-04-12%20180315.png) | ![Agents](docs/screenshots/Screenshot%202026-04-12%20180348.png) |
+| ![Soul Editor](docs/screenshots/Screenshot%202026-04-12%20180428.png) | ![Soul Templates](docs/screenshots/Screenshot%202026-04-12%20180445.png) |
+| ![Skills](docs/screenshots/Screenshot%202026-04-12%20180517.png) | ![Memory](docs/screenshots/Screenshot%202026-04-12%20180529.png) |
+| ![Integrations](docs/screenshots/Screenshot%202026-04-12%20180602.png) | ![Settings](docs/screenshots/Screenshot%202026-04-12%20180629.png) |
 
 ### Agent Runtime
 
