@@ -1,0 +1,92 @@
+name: CI - Windows Portable Smoke Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  windows-portable-smoke:
+    runs-on: windows-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Prepare isolated smoke environment
+        shell: pwsh
+        run: |
+          $smokeHome = Join-Path $env:RUNNER_TEMP "hermes-smoke-home"
+          if (Test-Path $smokeHome) {
+            Remove-Item -Path $smokeHome -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $smokeHome | Out-Null
+
+          $startupLog = Join-Path $smokeHome "hermes-cs\logs\desktop-startup.log"
+          $probeReport = Join-Path $env:RUNNER_TEMP "hermes-smoke-probe-report.txt"
+
+          "HERMES_HOME=$smokeHome" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "HERMES_SMOKE_STARTUP_LOG=$startupLog" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "HERMES_SMOKE_PROBE_REPORT=$probeReport" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build and publish portable zip
+        shell: pwsh
+        run: .\scripts\publish-portable.ps1 -Zip
+
+      - name: Validate portable outputs
+        shell: pwsh
+        run: |
+          $portableExe = Join-Path $PWD "Desktop\HermesDesktop\bin\publish-portable\HermesDesktop.exe"
+          $portableZip = Join-Path $PWD "Desktop\HermesDesktop\bin\HermesDesktop-portable-x64.zip"
+
+          if (-not (Test-Path $portableExe)) {
+            throw "Portable executable missing at $portableExe"
+          }
+          if (-not (Test-Path $portableZip)) {
+            throw "Portable zip missing at $portableZip"
+          }
+
+          "HERMES_SMOKE_EXE=$portableExe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build smoke probe helper
+        shell: pwsh
+        run: dotnet build .\tools\Hermes.SmokeProbe\Hermes.SmokeProbe.csproj -c Release
+
+      - name: Launch and probe Hermes portable startup
+        shell: pwsh
+        run: |
+          dotnet run --project .\tools\Hermes.SmokeProbe\Hermes.SmokeProbe.csproj -c Release -- `
+            --exe "$env:HERMES_SMOKE_EXE" `
+            --startup-log "$env:HERMES_SMOKE_STARTUP_LOG" `
+            --report-path "$env:HERMES_SMOKE_PROBE_REPORT" `
+            --startup-timeout-seconds 90 `
+            --settle-seconds 8 `
+            --fatal-pattern "Fatal startup error" `
+            --fatal-pattern "constructor failed" `
+            --fatal-pattern "Cannot create instance of type ReplayPanel" `
+            --fatal-pattern "XamlParseException"
+
+      - name: Upload smoke diagnostics artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-portable-smoke-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            ${{ env.HERMES_SMOKE_PROBE_REPORT }}
+            ${{ env.HERMES_SMOKE_STARTUP_LOG }}
+            Desktop/HermesDesktop/bin/HermesDesktop-portable-x64.zip
