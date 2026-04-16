@@ -6,7 +6,7 @@
 
 The project has **22 test files** with **~479 test methods** covering primarily the Dreamer subsystem and core Agent loop. However, the overall coverage is uneven: the `src/` core library contains **~95 source files** of which only **~18 are directly tested**. Critical subsystems — security validators, execution backends, LLM providers, and the entire tool suite — have little to no test coverage.
 
-The testing documentation (`testing.instructions.md`) sets a goal of **80%+ coverage on business logic** and **100% on utilities**, but no coverage tooling is configured to measure this. The CI pipeline runs smoke tests only — **unit tests are not gated in CI**.
+The testing documentation (`testing.instructions.md`) sets a goal of **80%+ coverage on business logic** and **100% on utilities**, but no coverage tooling is configured to measure this. The CI pipeline builds successfully and runs startup smoke tests, but **`dotnet test` is not yet gated as a CI step** (no technical blocker — the WinUI trim issue that motivated the portable release only affects `dotnet publish`, not test execution).
 
 ---
 
@@ -103,9 +103,11 @@ All **27 tool implementations** in `src/Tools/` have **zero direct tests**. They
 
 ## Infrastructure Gaps
 
-### 1. No Unit Tests in CI
+### 1. Unit Tests Not Gated in CI
 
-The CI workflow (`ci-smoke-test.yml`) only validates that the app starts without crashing. There is no `dotnet test` step — a failing unit test won't block a PR merge.
+The CI workflow (`ci-smoke-test.yml`) validates that the app starts without crashing via a portable build and smoke probe. `dotnet build` runs successfully in CI (it's the build gate in `publish-portable.ps1`), so there is no technical blocker to adding `dotnet test` — it simply hasn't been added as a CI step yet. A failing unit test won't block a PR merge today.
+
+> **Note:** The portable release strategy exists because WinUI 3 compiled bindings (`x:Bind`) are not trim-safe — the IL linker strips members needed by `XamlTypeInfoProvider` at runtime, causing `XamlParseException` crashes. This is an MSIX/publish concern and does **not** affect `dotnet test`, which compiles and runs the test project against `Hermes.Core` without WinUI trim issues.
 
 ### 2. No Code Coverage Tooling
 
@@ -186,7 +188,7 @@ These manage persistent user data — corruption or loss is high-impact.
 
 ### Priority 7 — Infrastructure Improvements
 
-1. **Add `dotnet test` to CI** — Add a step in `ci-smoke-test.yml` to run `dotnet test` and fail the build on test failures.
+1. **Gate `dotnet test` in CI** — `dotnet build` already runs successfully in the CI smoke workflow. Adding a `dotnet test` step alongside it is straightforward — there's no technical blocker (the WinUI trim issue only affects `dotnet publish`, not `dotnet test`).
 
 2. **Add Coverlet for coverage measurement** — Add `coverlet.collector` to the test project and configure a coverage threshold gate in CI.
 
