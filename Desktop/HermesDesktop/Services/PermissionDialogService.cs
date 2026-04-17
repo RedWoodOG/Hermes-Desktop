@@ -10,6 +10,13 @@ using Microsoft.UI.Xaml.Media;
 
 namespace HermesDesktop.Services;
 
+public enum PermissionPromptDecision
+{
+    Deny = 0,
+    AllowOnce = 1,
+    AlwaysAllowTool = 2,
+}
+
 /// <summary>
 /// Renders the WinUI permission prompt that fires when the agent's
 /// PermissionManager returns <c>PermissionBehavior.Ask</c>. Extracted from
@@ -46,11 +53,21 @@ public sealed class PermissionDialogService
     }
 
     /// <summary>
-    /// Show a modal permission prompt for the given tool and return whether
-    /// the user approved it. Returns <c>false</c> on any failure (window
-    /// gone, dispatcher shutting down, dialog throws) so the agent loop
-    /// always gets a definite answer instead of hanging on an uncompleted
-    /// task.
+    /// Backward-compatible allow/deny API. Prefer <see cref="ShowPermissionDecisionAsync"/>
+    /// for callers that need richer decisions.
+    /// </summary>
+    public async Task<bool> ShowPermissionDialogAsync(string message, string toolName, string? toolArguments)
+    {
+        var decision = await ShowPermissionDecisionAsync(message, toolName, toolArguments);
+        return decision is PermissionPromptDecision.AllowOnce or PermissionPromptDecision.AlwaysAllowTool;
+    }
+
+    /// <summary>
+    /// Show a modal permission prompt for the given tool and return a rich
+    /// decision (deny / allow once / always allow this tool). Returns deny
+    /// on any failure (window gone, dispatcher shutting down, dialog throws)
+    /// so the agent loop always gets a definite answer instead of hanging on
+    /// an uncompleted task.
     /// </summary>
     /// <param name="message">
     /// Human-readable explanation of why permission is being requested.
@@ -68,14 +85,17 @@ public sealed class PermissionDialogService
     /// JSON wrapper. May be null/empty if the host doesn't have it, in
     /// which case the Command section is omitted entirely.
     /// </param>
-    public Task<bool> ShowPermissionDialogAsync(string message, string toolName, string? toolArguments)
+    public Task<PermissionPromptDecision> ShowPermissionDecisionAsync(
+        string message,
+        string toolName,
+        string? toolArguments)
     {
         // RunContinuationsAsynchronously: when the dialog completes on the UI
         // thread, the awaiting agent loop must NOT pick up its continuation
         // synchronously on that same UI thread — otherwise the next iteration
         // of the agent loop would run inside the dispatcher callback and
         // create a re-entrancy hazard for subsequent permission prompts.
-        var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var tcs = new TaskCompletionSource<PermissionPromptDecision>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // TryEnqueue can fail (return false) if the dispatcher has already
         // started shutting down — e.g. the user closed the window while the
@@ -89,7 +109,13 @@ public sealed class PermissionDialogService
             {
                 var dialog = BuildDialog(message, toolName, toolArguments);
                 var result = await dialog.ShowAsync();
-                tcs.TrySetResult(result == ContentDialogResult.Primary);
+                var decision = result switch
+                {
+                    ContentDialogResult.Primary => PermissionPromptDecision.AllowOnce,
+                    ContentDialogResult.Secondary => PermissionPromptDecision.AlwaysAllowTool,
+                    _ => PermissionPromptDecision.Deny
+                };
+                tcs.TrySetResult(decision);
             }
             catch (Exception ex)
             {
@@ -99,7 +125,7 @@ public sealed class PermissionDialogService
                         toolName);
                 else
                     Debug.WriteLine($"Permission prompt dialog failed for tool {toolName}: {ex}");
-                tcs.TrySetResult(false);
+                tcs.TrySetResult(PermissionPromptDecision.Deny);
             }
         });
 
@@ -112,7 +138,7 @@ public sealed class PermissionDialogService
             else
                 Debug.WriteLine(
                     $"DispatcherQueue.TryEnqueue refused permission prompt for tool {toolName}; denying by default");
-            tcs.TrySetResult(false);
+            tcs.TrySetResult(PermissionPromptDecision.Deny);
         }
 
         return tcs.Task;
@@ -172,7 +198,8 @@ public sealed class PermissionDialogService
         {
             Title = $"Permission Required: {toolName}",
             Content = body,
-            PrimaryButtonText = "Allow",
+            PrimaryButtonText = "Allow once",
+            SecondaryButtonText = "Always allow tool",
             CloseButtonText = "Deny",
             DefaultButton = ContentDialogButton.Close,
             XamlRoot = _window.Content.XamlRoot

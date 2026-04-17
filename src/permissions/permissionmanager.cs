@@ -12,6 +12,7 @@ public sealed class PermissionManager
 {
     private readonly PermissionContext _context;
     private readonly ILogger<PermissionManager> _logger;
+    private readonly object _rulesLock = new();
     
     public PermissionManager(PermissionContext context, ILogger<PermissionManager> logger)
     {
@@ -23,6 +24,54 @@ public sealed class PermissionManager
     {
         get => _context.Mode;
         set => _context.Mode = value;
+    }
+
+    /// <summary>
+    /// Add an always-allow rule for a tool (and optional pattern).
+    /// Returns false when an equivalent rule already exists.
+    /// </summary>
+    public bool AddAlwaysAllowRule(string toolName, string? pattern = null)
+    {
+        if (string.IsNullOrWhiteSpace(toolName))
+            throw new ArgumentException("Tool name is required.", nameof(toolName));
+
+        var normalizedToolName = toolName.Trim();
+        var normalizedPattern = string.IsNullOrWhiteSpace(pattern) ? null : pattern.Trim();
+
+        lock (_rulesLock)
+        {
+            if (RuleExists(_context.AlwaysAllow, normalizedToolName, normalizedPattern))
+                return false;
+
+            _context.AlwaysAllow.Add(new PermissionRule
+            {
+                ToolName = normalizedToolName,
+                Pattern = normalizedPattern
+            });
+        }
+
+        _logger.LogInformation(
+            "Added always-allow rule for tool {ToolName} (pattern: {Pattern})",
+            normalizedToolName,
+            normalizedPattern ?? "<none>");
+        return true;
+    }
+
+    /// <summary>
+    /// Check whether an always-allow rule already exists for the given tool and pattern.
+    /// </summary>
+    public bool HasAlwaysAllowRule(string toolName, string? pattern = null)
+    {
+        if (string.IsNullOrWhiteSpace(toolName))
+            return false;
+
+        var normalizedToolName = toolName.Trim();
+        var normalizedPattern = string.IsNullOrWhiteSpace(pattern) ? null : pattern.Trim();
+
+        lock (_rulesLock)
+        {
+            return RuleExists(_context.AlwaysAllow, normalizedToolName, normalizedPattern);
+        }
     }
     
     /// <summary>
@@ -57,22 +106,34 @@ public sealed class PermissionManager
             }
         }
         
+        // Snapshot rules before evaluation so list mutation from the UI thread
+        // can't invalidate enumeration mid-check.
+        PermissionRule[] alwaysAllowRules;
+        PermissionRule[] alwaysDenyRules;
+        PermissionRule[] alwaysAskRules;
+        lock (_rulesLock)
+        {
+            alwaysAllowRules = _context.AlwaysAllow.ToArray();
+            alwaysDenyRules = _context.AlwaysDeny.ToArray();
+            alwaysAskRules = _context.AlwaysAsk.ToArray();
+        }
+
         // 2. Check always_allow rules
-        if (MatchesRule(toolName, input, _context.AlwaysAllow))
+        if (MatchesRule(toolName, input, alwaysAllowRules))
         {
             _logger.LogDebug("Matched always_allow rule for {ToolName}", toolName);
             return Allow(input);
         }
         
         // 3. Check always_deny rules
-        if (MatchesRule(toolName, input, _context.AlwaysDeny))
+        if (MatchesRule(toolName, input, alwaysDenyRules))
         {
             _logger.LogDebug("Matched always_deny rule for {ToolName}", toolName);
             return Deny($"Blocked by permission rule");
         }
         
         // 4. Check always_ask rules
-        if (MatchesRule(toolName, input, _context.AlwaysAsk))
+        if (MatchesRule(toolName, input, alwaysAskRules))
         {
             _logger.LogDebug("Matched always_ask rule for {ToolName}", toolName);
             return Ask($"Requires permission: {toolName}");
@@ -98,7 +159,7 @@ public sealed class PermissionManager
         return decision;
     }
     
-    private bool MatchesRule<T>(string toolName, T input, List<PermissionRule> rules)
+    private static bool MatchesRule<T>(string toolName, T input, IReadOnlyCollection<PermissionRule> rules)
     {
         foreach (var rule in rules)
         {
@@ -117,8 +178,26 @@ public sealed class PermissionManager
         
         return false;
     }
+
+    private static bool RuleExists(
+        IReadOnlyCollection<PermissionRule> rules,
+        string toolName,
+        string? pattern)
+    {
+        foreach (var rule in rules)
+        {
+            if (!string.Equals(rule.ToolName, toolName, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var existingPattern = string.IsNullOrWhiteSpace(rule.Pattern) ? null : rule.Pattern.Trim();
+            if (string.Equals(existingPattern, pattern, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
     
-    private bool MatchesPattern<T>(T input, string pattern)
+    private static bool MatchesPattern<T>(T input, string pattern)
     {
         // Convert input to string for pattern matching
         var inputStr = input?.ToString() ?? "";
