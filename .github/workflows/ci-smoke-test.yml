@@ -4,9 +4,11 @@ on:
   pull_request:
     branches:
       - main
+      - Sanctum
   push:
     branches:
       - main
+      - Sanctum
 
 permissions:
   contents: read
