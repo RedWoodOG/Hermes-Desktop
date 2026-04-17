@@ -566,7 +566,7 @@ public sealed partial class ChatPage : Page
         flyout.Items.Add(new MenuFlyoutSeparator());
         var clearRememberedItem = new MenuFlyoutItem
         {
-            Text = ResourceLoader.GetString("ChatPermissionClearRemembered")
+            Text = ResourceLoader.GetString("ChatPermissionClearRememberedAction")
         };
         clearRememberedItem.Click += async (_, _) => await ClearRememberedPermissionsAsync();
         flyout.Items.Add(clearRememberedItem);
@@ -597,12 +597,15 @@ public sealed partial class ChatPage : Page
         try
         {
             _chatService.ClearRememberedWorkspacePermissions();
-            AppendSystemMessage(ResourceLoader.GetString("ChatPermissionRememberedCleared"));
+            AppendSystemMessage(ResourceLoader.GetString("ChatPermissionClearRememberedSuccess"));
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed clearing remembered workspace permissions.");
-            AppendSystemMessage(ResourceLoader.GetString("ChatPermissionRememberedClearFailed"));
+            AppendSystemMessage(string.Format(
+                CultureInfo.CurrentCulture,
+                ResourceLoader.GetString("ChatPermissionClearRememberedErrorFormat"),
+                ex.Message));
             await Task.CompletedTask;
         }
     }

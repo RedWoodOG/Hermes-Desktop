@@ -201,8 +201,9 @@ public sealed class PermissionManager
     {
         foreach (var rule in rules)
         {
-            // Check tool name match
-            if (rule.ToolName != toolName && rule.ToolName != "*")
+            // Check tool name match (case-insensitive; "*" is wildcard)
+            if (!string.Equals(rule.ToolName, "*", StringComparison.Ordinal)
+                && !string.Equals(rule.ToolName, toolName, StringComparison.OrdinalIgnoreCase))
                 continue;
             
             // If no pattern, tool name match is enough
