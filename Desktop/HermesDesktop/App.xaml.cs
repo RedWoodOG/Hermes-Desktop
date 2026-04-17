@@ -619,45 +619,28 @@ public partial class App : Application
 
     /// <summary>
     /// Wire the Agent's permission callback to show a WinUI ContentDialog when Ask is returned.
+    /// Delegates UI construction to PermissionDialogService for separation of concerns.
     /// </summary>
     private static void WirePermissionCallback(IServiceProvider services)
     {
         var agent = services.GetRequiredService<Hermes.Agent.Core.Agent>();
-        agent.PermissionPromptCallback = async (toolName, message) =>
+        // Resolve the dialog service once; it captures the active window's
+        // DispatcherQueue and XamlRoot internally and is safe to reuse across
+        // many permission prompts. PermissionDialogService is the dedicated
+        // dialog view + formatter extracted from this code-behind so this
+        // file stays focused on app lifecycle / DI orchestration only —
+        // see PermissionDialogService.cs for the construction logic plus the
+        // dispatcher-shutdown deadlock guard.
+        agent.PermissionPromptCallback = async (toolName, message, toolArguments) =>
         {
-            // Must dispatch to UI thread for ContentDialog
-            var tcs = new System.Threading.Tasks.TaskCompletionSource<bool>();
-
             if (App.Current is App app && app._window is not null)
             {
-                app._window.DispatcherQueue.TryEnqueue(async () =>
-                {
-                    try
-                    {
-                        var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
-                        {
-                            Title = $"Permission Required: {toolName}",
-                            Content = message,
-                            PrimaryButtonText = "Allow",
-                            CloseButtonText = "Deny",
-                            XamlRoot = app._window.Content.XamlRoot
-                        };
-                        var result = await dialog.ShowAsync();
-                        tcs.TrySetResult(result == Microsoft.UI.Xaml.Controls.ContentDialogResult.Primary);
-                    }
-                    catch (Exception ex)
-                    {
-                        BestEffort.LogFailure(TryGetAppLogger(), ex, "showing permission prompt dialog", $"tool={toolName}");
-                        tcs.TrySetResult(false);
-                    }
-                });
+                var dialogService = new HermesDesktop.Services.PermissionDialogService(
+                    app._window,
+                    TryGetAppLogger());
+                return await dialogService.ShowPermissionDialogAsync(message, toolName, toolArguments);
             }
-            else
-            {
-                tcs.TrySetResult(false);
-            }
-
-            return await tcs.Task;
+            return false;
         };
     }
 

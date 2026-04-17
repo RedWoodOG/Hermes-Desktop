@@ -173,8 +173,8 @@ public class DreamerStatusTests
     [TestMethod]
     public void DreamerStatusSnapshot_RecordEquality_SameValues_AreEqual()
     {
-        var a = new DreamerStatusSnapshot("idle", 5, "summary", "postcard", 3.5, "slug");
-        var b = new DreamerStatusSnapshot("idle", 5, "summary", "postcard", 3.5, "slug");
+        var a = new DreamerStatusSnapshot("idle", 5, "summary", "postcard", "", 3.5, "slug", "");
+        var b = new DreamerStatusSnapshot("idle", 5, "summary", "postcard", "", 3.5, "slug", "");
 
         Assert.AreEqual(a, b);
     }
@@ -182,8 +182,8 @@ public class DreamerStatusTests
     [TestMethod]
     public void DreamerStatusSnapshot_RecordEquality_DifferentPhase_AreNotEqual()
     {
-        var a = new DreamerStatusSnapshot("idle", 0, "", "", 0.0, "");
-        var b = new DreamerStatusSnapshot("walking", 0, "", "", 0.0, "");
+        var a = new DreamerStatusSnapshot("idle", 0, "", "", "", 0.0, "", "");
+        var b = new DreamerStatusSnapshot("walking", 0, "", "", "", 0.0, "", "");
 
         Assert.AreNotEqual(a, b);
     }
@@ -191,13 +191,15 @@ public class DreamerStatusTests
     [TestMethod]
     public void DreamerStatusSnapshot_AllPropertiesAccessible()
     {
-        var snap = new DreamerStatusSnapshot("building", 3, "my walk", "my postcard", 7.2, "my-slug");
+        var snap = new DreamerStatusSnapshot("building", 3, "my walk", "my postcard", "none", 7.2, "my-slug", "digest.md");
 
         Assert.AreEqual("building", snap.Phase);
         Assert.AreEqual(3, snap.WalkCount);
         Assert.AreEqual("my walk", snap.LastWalkSummary);
         Assert.AreEqual("my postcard", snap.LastPostcardPreview);
+        Assert.AreEqual("none", snap.StartupFailureMessage);
         Assert.AreEqual(7.2, snap.TopSignalScore, 0.001);
         Assert.AreEqual("my-slug", snap.TopSignalSlug);
+        Assert.AreEqual("digest.md", snap.LastLocalDigestHint);
     }
 }

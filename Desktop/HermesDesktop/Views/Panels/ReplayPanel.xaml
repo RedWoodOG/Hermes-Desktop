@@ -76,14 +76,22 @@
                         <StackPanel Grid.Row="1" Spacing="6" Margin="18,6,0,4"
                                     Visibility="{x:Bind IsExpanded, Mode=OneWay}">
                             <!-- Input args -->
+                            <!-- Each detail block uses a constrained-height ScrollViewer instead of
+                                 TextBlock.MaxLines: MaxLines visually truncates so text past the cap
+                                 is unreachable for selection / Ctrl-C, defeating the copy-paste fix.
+                                 ScrollViewer keeps the row size bounded but lets the user scroll AND
+                                 select the entire output. -->
                             <StackPanel Spacing="2">
                                 <TextBlock Text="Input" FontSize="10" FontWeight="SemiBold"
                                            Foreground="{StaticResource AppTextSecondaryBrush}"/>
                                 <Border Background="{StaticResource AppInsetBrush}" CornerRadius="4" Padding="8,6">
-                                    <TextBlock Text="{x:Bind InputFull}" FontSize="10"
-                                               FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap"
-                                               Foreground="{StaticResource AppTextSecondaryBrush}"
-                                               MaxLines="10"/>
+                                    <ScrollViewer MaxHeight="160" VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled">
+                                        <TextBlock Text="{x:Bind InputFull}" FontSize="10"
+                                                   FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap"
+                                                   Foreground="{StaticResource AppTextSecondaryBrush}"
+                                                   IsTextSelectionEnabled="True"/>
+                                    </ScrollViewer>
                                 </Border>
                             </StackPanel>
 
@@ -92,10 +100,13 @@
                                 <TextBlock Text="Output" FontSize="10" FontWeight="SemiBold"
                                            Foreground="{StaticResource AppTextSecondaryBrush}"/>
                                 <Border Background="{StaticResource AppInsetBrush}" CornerRadius="4" Padding="8,6">
-                                    <TextBlock Text="{x:Bind OutputFull, Mode=OneWay}" FontSize="10"
-                                               FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap"
-                                               Foreground="{StaticResource AppTextSecondaryBrush}"
-                                               MaxLines="10"/>
+                                    <ScrollViewer MaxHeight="220" VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled">
+                                        <TextBlock Text="{x:Bind OutputFull, Mode=OneWay}" FontSize="10"
+                                                   FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap"
+                                                   Foreground="{StaticResource AppTextSecondaryBrush}"
+                                                   IsTextSelectionEnabled="True"/>
+                                    </ScrollViewer>
                                 </Border>
                             </StackPanel>
 
@@ -104,10 +115,13 @@
                                 <TextBlock Text="Diff" FontSize="10" FontWeight="SemiBold"
                                            Foreground="{StaticResource AppTextSecondaryBrush}"/>
                                 <Border Background="{StaticResource AppInsetBrush}" CornerRadius="4" Padding="8,6">
-                                    <TextBlock Text="{x:Bind DiffPreview, Mode=OneWay}" FontSize="10"
-                                               FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap"
-                                               Foreground="{StaticResource AppAccentTextBrush}"
-                                               MaxLines="20"/>
+                                    <ScrollViewer MaxHeight="320" VerticalScrollBarVisibility="Auto"
+                                                  HorizontalScrollBarVisibility="Disabled">
+                                        <TextBlock Text="{x:Bind DiffPreview, Mode=OneWay}" FontSize="10"
+                                                   FontFamily="Cascadia Mono, Consolas" TextWrapping="Wrap"
+                                                   Foreground="{StaticResource AppAccentTextBrush}"
+                                                   IsTextSelectionEnabled="True"/>
+                                    </ScrollViewer>
                                 </Border>
                             </StackPanel>
 

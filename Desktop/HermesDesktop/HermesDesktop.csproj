@@ -89,7 +89,18 @@
   <PropertyGroup>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+    <!--
+      PublishTrimmed is OFF for all configurations. WinUI 3 / WinApp SDK 1.7
+      relies on runtime type activation in XamlTypeInfoProvider.Activate_*
+      and on PRI/MRT resource lookups that are invisible to the IL linker.
+      Enabling trimming without extensive TrimmerRootAssembly / DynamicDependency
+      annotations strips members the XAML activator needs and produces
+      "Cannot create instance of type <UserControl> [Line: 0 Position: 0]"
+      XamlParseException crashes at startup (seen on published portable
+      builds where a nested UserControl — e.g. ReplayPanel inside ChatPage —
+      fails to construct because its compiled-binding backing metadata was
+      trimmed). Revisit once WinApp SDK officially supports trim mode.
+    -->
+    <PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
 </Project>

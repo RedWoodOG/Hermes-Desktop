@@ -155,7 +155,7 @@ public class SignalScorerTests
     public void ProcessWalk_CoolingKeyword_AddsCoolingSignal_AndReducesScore()
     {
         // First, add a positive signal to have a score to reduce
-        _scorer.ProcessWalk("This is exciting!", 1, DefaultConfig(), out _);
+        _scorer.ProcessWalk("I am excited about this!", 1, DefaultConfig(), out _);
         var before = _scorer.LoadBoard().Projects["general"].Score;
 
         // Now cool down
@@ -213,7 +213,7 @@ public class SignalScorerTests
     public void ProcessWalk_HighEchoScore_ReducesDelta()
     {
         // Echo score 5 → echoFactor = (6-5)/5 = 0.2
-        _scorer.ProcessWalk("This is exciting!", 5, DefaultConfig(), out _);
+        _scorer.ProcessWalk("I am excited about this!", 5, DefaultConfig(), out _);
         var highEchoScore = _scorer.LoadBoard().Projects["general"].Score;
 
         // Reset
@@ -223,7 +223,7 @@ public class SignalScorerTests
         _scorer = new SignalScorer(_room, NullLogger<SignalScorer>.Instance);
 
         // Echo score 1 → echoFactor = (6-1)/5 = 1.0
-        _scorer.ProcessWalk("This is exciting!", 1, DefaultConfig(), out _);
+        _scorer.ProcessWalk("I am excited about this!", 1, DefaultConfig(), out _);
         var lowEchoScore = _scorer.LoadBoard().Projects["general"].Score;
 
         Assert.IsTrue(lowEchoScore > highEchoScore, "Low echo score should produce higher signal delta");

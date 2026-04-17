@@ -20,6 +20,35 @@ internal static class StartupDiagnostics
         TryShowStartupMessage(exception, logPath, overlayProcesses);
     }
 
+    /// <summary>
+    /// Append a control-construction failure to the startup log. WinUI's XAML loader
+    /// collapses any exception thrown from a UserControl constructor into an opaque
+    /// XamlParseException with no InnerException once the failure crosses the WinRT
+    /// ABI, so panels that wrap their ctor in try/catch should call this before
+    /// rethrowing to make the underlying root cause visible in crash reports.
+    /// </summary>
+    internal static void LogControlConstructorFailure(string controlName, Exception exception)
+    {
+        try
+        {
+            string logPath = GetStartupLogPath();
+            StringBuilder builder = new();
+            builder.AppendLine($"[{DateTimeOffset.Now:O}] {controlName} constructor failed");
+            builder.AppendLine($"Type: {exception.GetType().FullName}");
+            builder.AppendLine($"Message: {exception.Message}");
+            builder.AppendLine("Stack:");
+            builder.AppendLine(exception.ToString());
+            builder.AppendLine(new string('-', 80));
+            File.AppendAllText(logPath, builder.ToString());
+        }
+        catch (Exception loggingEx)
+        {
+            // Logging is best-effort; never let the diagnostic path swallow the real
+            // failure or throw a secondary exception that masks it.
+            Debug.WriteLine($"StartupDiagnostics.LogControlConstructorFailure failed for {controlName}: {loggingEx}");
+        }
+    }
+
     private static string WriteStartupLog(Exception exception, string[] overlayProcesses)
     {
         string logPath = GetStartupLogPath();

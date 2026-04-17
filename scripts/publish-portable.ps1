@@ -86,6 +86,13 @@ $publishArgs = @(
     "-p:WindowsPackageType=None",
     "-p:WindowsAppSDKSelfContained=true",
     "-p:WindowsAppSdkDeploymentManagerInitialize=false",
+    # PublishTrimmed MUST stay false: WinUI 3 / WinApp SDK 1.7 compiled bindings
+    # (x:Bind with x:DataType) and XamlTypeInfoProvider activation are not trim-safe
+    # and the linker silently strips members the activator needs at runtime,
+    # producing "Cannot create instance of type <UserControl>" XamlParseException
+    # at startup. Pass explicitly so a future csproj edit can't silently re-enable
+    # trimming for the portable release.
+    "-p:PublishTrimmed=false",
     "-o", $OutputDir,
     "-v:minimal"
 )

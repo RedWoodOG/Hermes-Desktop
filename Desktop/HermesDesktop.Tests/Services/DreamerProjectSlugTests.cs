@@ -26,7 +26,7 @@ public sealed class DreamerProjectSlugTests
     [TestMethod]
     public void TryNormalize_ReturnsFalse_ForRootedPath()
     {
-        var ok = DreamerProjectSlug.TryNormalize("C:\\temp\\dream", out var normalized);
+        var ok = DreamerProjectSlug.TryNormalize("/tmp/dream", out var normalized);
 
         Assert.IsFalse(ok);
         Assert.AreEqual(string.Empty, normalized);
@@ -42,7 +42,7 @@ public sealed class DreamerProjectSlugTests
             room.EnsureLayout();
             var sprint = new BuildSprint(room, NullLogger<BuildSprint>.Instance);
 
-            await sprint.RunAsync("C:\\temp\\dream", "walk excerpt", "ideas", CancellationToken.None);
+            await sprint.RunAsync("/tmp/dream", "walk excerpt", "ideas", CancellationToken.None);
 
             Assert.AreEqual(0, Directory.EnumerateDirectories(room.ProjectsDir).Count());
         }

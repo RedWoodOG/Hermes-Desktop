@@ -1,14 +1,12 @@
-# Hermes Desktop
+# Hermes Desktop Updated
 
 <p align="center">
   <img src="docs/logo.png" alt="Hermes Desktop Logo" width="128" />
 </p>
 
-![Hermes Agent Banner](docs/screenshots/banner.png)
-
 A **Windows-native AI agent** that lives on your desktop. Chat with it, give it tools, let it learn who you are. Built with WinUI 3 and .NET 10.
 
-**v2.3.0** &mdash; [Download](https://github.com/RedWoodOG/Hermes-Desktop/releases/latest) | [Changelog](#changelog) | [Discussion](https://github.com/RedWoodOG/Hermes-Desktop/discussions/10)
+**v2.3.1** &mdash; [Download](https://github.com/RedWoodOG/Hermes-Desktop/releases/latest) | [Changelog](#changelog) | [Discussion](https://github.com/RedWoodOG/Hermes-Desktop/discussions/10)
 
 ---
 
@@ -79,10 +77,10 @@ Hermes Desktop is an **in-process agent runtime** with a native Windows UI &mdas
 
 | | |
 |---|---|
-| ![Chat](docs/screenshots/readme-grid-chat.png) | ![Agents](docs/screenshots/readme-grid-agents.png) |
-| ![Soul editor](docs/screenshots/readme-grid-soul-editor.png) | ![Soul templates](docs/screenshots/readme-grid-soul-templates.png) |
-| ![Skills](docs/screenshots/readme-grid-skills.png) | ![Memory](docs/screenshots/readme-grid-memory.png) |
-| ![Integrations](docs/screenshots/readme-grid-integrations.png) | ![Settings](docs/screenshots/readme-grid-settings.png) |
+| ![Chat](docs/screenshots/Screenshot%202026-04-12%20180315.png) | ![Agents](docs/screenshots/Screenshot%202026-04-12%20180348.png) |
+| ![Soul Editor](docs/screenshots/Screenshot%202026-04-12%20180428.png) | ![Soul Templates](docs/screenshots/Screenshot%202026-04-12%20180445.png) |
+| ![Skills](docs/screenshots/Screenshot%202026-04-12%20180517.png) | ![Memory](docs/screenshots/Screenshot%202026-04-12%20180529.png) |
+| ![Integrations](docs/screenshots/Screenshot%202026-04-12%20180602.png) | ![Settings](docs/screenshots/Screenshot%202026-04-12%20180629.png) |
 
 ### Agent Runtime
 
@@ -223,7 +221,8 @@ Hermes.CS/
 
 | Version | Date | Highlights |
 |---------|------|------------|
-| **v2.3.0** | 2026-04-12 | Portable release (self-contained zip, no MSIX required), compiled memory stack, wiki tool, Dev launch profile, `publish-portable.ps1` |
+| **v2.3.1** | 2026-04-13 | Fix v2.3.0 source zip `DreamerStatusSnapshot.LastLocalDigestHint` compile error, fix portable startup `XamlParseException` on `ReplayPanel` (disable `PublishTrimmed`), add `ReplayPanel` constructor diagnostic capture, refresh readme screenshots |
+| v2.3.0 | 2026-04-12 | Portable release (self-contained zip, no MSIX required), compiled memory stack, wiki tool, Dev launch profile, `publish-portable.ps1` |
 | v2.2.1 | 2026-04-10 | Fix startup crash on fresh clone, safe file ops, one-click installer |
 | v2.2.0 | 2026-04-10 | User Profile section in Settings |
 | v2.1.0 | 2026-04-10 | Native C# gateway &mdash; Telegram and Discord without Python CLI |

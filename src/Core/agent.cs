@@ -66,10 +66,18 @@ public sealed class Agent : IAgent
 
     /// <summary>
     /// Optional callback for interactive permission prompts.
-    /// When PermissionBehavior.Ask is returned, this callback is invoked with (toolName, message).
-    /// Returns true to allow, false to deny. If null, Ask defaults to deny.
+    /// When PermissionBehavior.Ask is returned, this callback is invoked with
+    /// (toolName, message, toolArguments). The third argument is the raw JSON
+    /// arguments string the model passed to the tool — for the bash tool that
+    /// is the actual shell command about to run, for read/write/edit it is the
+    /// path and contents, etc. Surfacing it in the prompt UI lets technical
+    /// users audit exactly what the agent is about to execute *before*
+    /// approving it, instead of only seeing it after the fact in the activity
+    /// log. May be null if the host did not capture the arguments.
+    /// Returns true to allow, false to deny. If the callback itself is null,
+    /// Ask defaults to deny.
     /// </summary>
-    public Func<string, string, Task<bool>>? PermissionPromptCallback { get; set; }
+    public Func<string, string, string?, Task<bool>>? PermissionPromptCallback { get; set; }
 
     public Agent(
         IChatClient chatClient,
@@ -370,7 +378,11 @@ public sealed class Agent : IAgent
                             {
                                 try
                                 {
-                                    allowed = await PermissionPromptCallback(toolCall.Name, permissionMessage);
+                                    // Pass the raw tool arguments (the actual command/path/payload
+                                    // the model wants the tool to run) to the prompt UI so the user
+                                    // can audit it before approving — see PermissionPromptCallback
+                                    // doc above.
+                                    allowed = await PermissionPromptCallback(toolCall.Name, permissionMessage, toolCall.Arguments);
                                 }
                                 catch (Exception promptEx)
                                 {
@@ -689,7 +701,7 @@ public sealed class Agent : IAgent
                             {
                                 try
                                 {
-                                    allowed = await PermissionPromptCallback(toolCall.Name, permissionMessage);
+                                    allowed = await PermissionPromptCallback(toolCall.Name, permissionMessage, toolCall.Arguments);
                                 }
                                 catch (Exception promptEx)
                                 {

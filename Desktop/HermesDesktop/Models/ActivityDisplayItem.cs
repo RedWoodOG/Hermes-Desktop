@@ -15,6 +15,7 @@ public sealed class ActivityDisplayItem : INotifyPropertyChanged
     private ActivityStatus _status;
     private long _durationMs;
     private string _outputSummary = "";
+    private string _outputFull = "";
     private bool _isExpanded;
     private string? _diffPreview;
     private string? _screenshotPath;
@@ -24,12 +25,13 @@ public sealed class ActivityDisplayItem : INotifyPropertyChanged
     {
         Id = entry.Id;
         Timestamp = entry.Timestamp;
+        Sequence = entry.Sequence;
         ToolName = entry.ToolName;
         ToolCallId = entry.ToolCallId;
         InputSummary = entry.InputSummary;
         InputFull = entry.InputSummary;
         _outputSummary = entry.OutputSummary;
-        OutputFull = entry.OutputSummary;
+        _outputFull = entry.OutputSummary;
         _status = entry.Status;
         _durationMs = entry.DurationMs;
         _diffPreview = entry.DiffPreview;
@@ -38,11 +40,38 @@ public sealed class ActivityDisplayItem : INotifyPropertyChanged
 
     public string Id { get; }
     public DateTime Timestamp { get; }
+
+    /// <summary>
+    /// Process-monotonic creation sequence inherited from the source
+    /// ActivityEntry. ReplayPanel uses this as a stable secondary sort key
+    /// when ordering by Timestamp for chronological playback so two entries
+    /// with the same UTC tick still play back in insertion order.
+    /// </summary>
+    public long Sequence { get; }
+
     public string ToolName { get; }
     public string? ToolCallId { get; }
     public string InputSummary { get; }
     public string InputFull { get; set; }
-    public string OutputFull { get; set; }
+
+    /// <summary>
+    /// Full tool result text shown in the expanded activity row. Notifies on
+    /// change so x:Bind OneWay updates fire when the agent finishes a tool call
+    /// and the row transitions from Running → Success/Failed via UpdateFrom.
+    /// Without PropertyChanged here the expanded "Output" panel stays empty
+    /// even when the tool returned data (the original "missing terminal output"
+    /// bug — InputFull/OutputFull were plain auto-properties so the OneWay
+    /// binding only saw the empty initial value).
+    /// </summary>
+    public string OutputFull
+    {
+        get => _outputFull;
+        set
+        {
+            _outputFull = value;
+            OnPropertyChanged();
+        }
+    }
 
     public string FormattedTime => Timestamp.ToLocalTime().ToString("HH:mm:ss");
 

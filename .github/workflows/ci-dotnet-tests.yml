@@ -1,0 +1,57 @@
+name: CI - .NET Unit Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  dotnet-tests-and-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore test project dependencies
+        run: dotnet restore ./Desktop/HermesDesktop.Tests/HermesDesktop.Tests.csproj
+
+      - name: Run unit tests with Coverlet coverage
+        run: >
+          dotnet test ./Desktop/HermesDesktop.Tests/HermesDesktop.Tests.csproj
+          -c Release
+          --no-restore
+          --collect:"XPlat Code Coverage"
+          --results-directory ./TestResults
+          --logger "trx;LogFileName=test-results.trx"
+
+      - name: Verify coverage output exists
+        shell: bash
+        run: |
+          coverage_files="$(find TestResults -name coverage.cobertura.xml -type f 2>/dev/null || true)"
+          if [ -z "$coverage_files" ]; then
+            echo "Expected coverage.cobertura.xml but none was generated."
+            exit 1
+          fi
+          echo "Coverage files:"
+          echo "$coverage_files"
+
+      - name: Upload test and coverage artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dotnet-test-results-${{ github.run_id }}
+          if-no-files-found: warn
+          path: TestResults

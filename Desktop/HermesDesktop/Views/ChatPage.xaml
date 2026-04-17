@@ -78,10 +78,12 @@
                                             </Expander.Header>
                                             <TextBlock Text="{x:Bind ThinkingContent, Mode=OneWay}" TextWrapping="WrapWholeWords"
                                                        FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"
-                                                       FontStyle="Italic" Padding="8,4"/>
+                                                       FontStyle="Italic" Padding="8,4"
+                                                       IsTextSelectionEnabled="True"/>
                                         </Expander>
 
-                                        <TextBlock Text="{x:Bind Content, Mode=OneWay}" TextWrapping="WrapWholeWords" />
+                                        <TextBlock Text="{x:Bind Content, Mode=OneWay}" TextWrapping="WrapWholeWords"
+                                                   IsTextSelectionEnabled="True"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>

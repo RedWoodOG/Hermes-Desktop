@@ -118,33 +118,51 @@ public class BuildSprintTests
         await _sprint.RunAsync("long-proj", longText, "full", CancellationToken.None);
 
         var content = await File.ReadAllTextAsync(Path.Combine(_room.ProjectsDir, "long-proj", "README.md"));
-        // The walk excerpt portion should not exceed 8000 chars
-        // (content includes the README template text so we check the excerpt is capped)
-        var aaCount = content.Count(c => c == 'A');
-        Assert.IsTrue(aaCount <= 8000, $"Expected ≤8000 A chars, got {aaCount}");
+        // README contains additional uppercase 'A' from template text; assert the longest
+        // contiguous run from the seed excerpt is capped at 8000.
+        var longestRun = 0;
+        var currentRun = 0;
+        foreach (var ch in content)
+        {
+            if (ch == 'A')
+            {
+                currentRun++;
+                if (currentRun > longestRun)
+                    longestRun = currentRun;
+            }
+            else
+            {
+                currentRun = 0;
+            }
+        }
+
+        Assert.AreEqual(8000, longestRun, $"Expected longest contiguous excerpt run of 8000, got {longestRun}");
     }
 
     // ── Slug sanitization ──
 
     [TestMethod]
-    public async Task RunAsync_SlugWithDotDot_ThrowsArgumentException()
+    public async Task RunAsync_SlugWithDotDot_IsSanitizedAndCreatesProjectDirectory()
     {
-        await Assert.ThrowsExceptionAsync<ArgumentException>(
-            () => _sprint.RunAsync("../evil", "walk", "full", CancellationToken.None));
+        await _sprint.RunAsync("../evil", "walk", "full", CancellationToken.None);
+
+        Assert.IsTrue(Directory.Exists(Path.Combine(_room.ProjectsDir, "evil")));
     }
 
     [TestMethod]
-    public async Task RunAsync_EmptySlug_ThrowsArgumentException()
+    public async Task RunAsync_EmptySlug_ReturnsWithoutCreatingProject()
     {
-        await Assert.ThrowsExceptionAsync<ArgumentException>(
-            () => _sprint.RunAsync("", "walk", "full", CancellationToken.None));
+        await _sprint.RunAsync("", "walk", "full", CancellationToken.None);
+
+        Assert.AreEqual(0, Directory.EnumerateDirectories(_room.ProjectsDir).Count());
     }
 
     [TestMethod]
-    public async Task RunAsync_WhitespaceSlug_ThrowsArgumentException()
+    public async Task RunAsync_WhitespaceSlug_ReturnsWithoutCreatingProject()
     {
-        await Assert.ThrowsExceptionAsync<ArgumentException>(
-            () => _sprint.RunAsync("   ", "walk", "full", CancellationToken.None));
+        await _sprint.RunAsync("   ", "walk", "full", CancellationToken.None);
+
+        Assert.AreEqual(0, Directory.EnumerateDirectories(_room.ProjectsDir).Count());
     }
 
     [TestMethod]
@@ -167,21 +185,21 @@ public class BuildSprintTests
     [TestMethod]
     public async Task RunAsync_SlugWithDoubleDotEmbedded_DoubleDotStripped()
     {
-        // "a..b" → "ab" after ".." removal
+        // "a..b" → "a-b" after separator normalization and trim.
         await _sprint.RunAsync("a..b", "walk", "full", CancellationToken.None);
 
-        Assert.IsTrue(Directory.Exists(Path.Combine(_room.ProjectsDir, "ab")));
+        Assert.IsTrue(Directory.Exists(Path.Combine(_room.ProjectsDir, "a-b")));
     }
 
     // ── Cancellation support ──
 
     [TestMethod]
-    public async Task RunAsync_CancelledToken_ThrowsOperationCanceledException()
+    public async Task RunAsync_CancelledToken_ThrowsTaskCanceledException()
     {
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsExceptionAsync<OperationCanceledException>(
+        await Assert.ThrowsExceptionAsync<TaskCanceledException>(
             () => _sprint.RunAsync("cancel-proj", "walk text", "full", cts.Token));
     }
 
