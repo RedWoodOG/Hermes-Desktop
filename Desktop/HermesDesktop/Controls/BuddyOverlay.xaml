@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="HermesDesktop.Controls.BuddyOverlay"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    IsHitTestVisible="True"
+    Loaded="OnLoaded">
+
+    <StackPanel HorizontalAlignment="Center" Spacing="4" Padding="8">
+        <TextBlock x:Name="BuddyArt"
+                   FontFamily="{StaticResource JetBrainsMonoFont}"
+                   FontSize="13" Foreground="#60D4A017"
+                   TextAlignment="Center" LineHeight="14.3"
+                   Text=" /\_/\&#10;( o.o )&#10; > ^ &lt;"
+                   IsTextSelectionEnabled="False"/>
+        <TextBlock x:Name="MoodLabel"
+                   Text="curious" FontSize="9" Foreground="#2A3545"
+                   HorizontalAlignment="Center"/>
+    </StackPanel>
+</UserControl>

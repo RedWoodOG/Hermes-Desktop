@@ -5,260 +5,185 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:HermesDesktop.Controls"
     Background="Transparent"
     Loaded="OnPageLoaded"
     mc:Ignorable="d"
     NavigationCacheMode="Required">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="32,24,32,40" Spacing="20">
 
-            <!-- ═══ KPI Stats Row ═══ -->
-            <Grid ColumnSpacing="16">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+    <Grid RowDefinitions="Auto,*,Auto">
 
-                <!-- Sessions -->
-                <Border Style="{StaticResource SurfaceCardStyle}">
-                    <StackPanel Spacing="4">
-                        <TextBlock x:Uid="DashOverviewKpiSessionsTitle" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                        <TextBlock x:Name="SessionCountText" Text="0" FontSize="28" FontWeight="Bold"
-                                   Foreground="{StaticResource AppAccentTextBrush}"/>
-                        <TextBlock x:Uid="DashOverviewKpiSessionsSub" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
-                    </StackPanel>
-                </Border>
+        <!-- ═══ Header ═══ -->
+        <Grid Padding="48,28,48,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
 
-                <!-- Tools -->
-                <Border Grid.Column="1" Style="{StaticResource SurfaceCardStyle}">
-                    <StackPanel Spacing="4">
-                        <TextBlock x:Uid="DashOverviewKpiToolsTitle" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                        <TextBlock x:Name="ToolCountText" Text="0" FontSize="28" FontWeight="Bold"
-                                   Foreground="#6BCB77"/>
-                        <TextBlock x:Uid="DashOverviewKpiToolsSub" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- Skills -->
-                <Border Grid.Column="2" Style="{StaticResource SurfaceCardStyle}">
-                    <StackPanel Spacing="4">
-                        <TextBlock x:Uid="DashOverviewKpiSkillsTitle" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                        <TextBlock x:Name="SkillCountText" Text="0" FontSize="28" FontWeight="Bold"
-                                   Foreground="#818CF8"/>
-                        <TextBlock x:Uid="DashOverviewKpiSkillsSub" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- LLM Status -->
-                <Border Grid.Column="3" Style="{StaticResource SurfaceCardStyle}">
-                    <StackPanel Spacing="4">
-                        <TextBlock x:Uid="DashOverviewKpiLlmTitle" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Ellipse x:Name="LlmStatusDot" Width="10" Height="10" Fill="#6BCB77" VerticalAlignment="Center"/>
-                            <TextBlock x:Name="LlmStatusText" x:Uid="DashOverviewLlmStatusInitial" FontSize="20" FontWeight="Bold"/>
-                        </StackPanel>
-                        <TextBlock x:Name="LlmModelText" Text="" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
-                    </StackPanel>
-                </Border>
-            </Grid>
-
-            <!-- Dreamer status -->
-            <Border Style="{StaticResource SurfaceCardStyle}">
-                <StackPanel Spacing="8">
-                    <TextBlock x:Uid="DashDreamerCardTitle" FontSize="16" FontWeight="SemiBold"/>
-                    <TextBlock x:Name="DreamerPhaseText" x:Uid="DashDreamerPhaseInitial" FontSize="13"
-                               Foreground="{StaticResource AppTextSecondaryBrush}"
-                               AutomationProperties.Name="{Binding Text, ElementName=DreamerPhaseText}"
-                               AutomationProperties.LiveSetting="Polite"/>
-                    <TextBlock x:Name="DreamerWalkCountText" x:Uid="DashDreamerWalksInitial" FontSize="13"
-                               Foreground="{StaticResource AppTextSecondaryBrush}"
-                               AutomationProperties.Name="{Binding Text, ElementName=DreamerWalkCountText}"
-                               AutomationProperties.LiveSetting="Polite"/>
-                    <TextBlock x:Name="DreamerSignalText" x:Uid="DashDreamerSignalInitial" FontSize="13"
-                               Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"
-                               AutomationProperties.Name="{Binding Text, ElementName=DreamerSignalText}"
-                               AutomationProperties.LiveSetting="Polite"/>
-                    <TextBlock x:Name="DreamerLocalDigestText" x:Uid="DashDreamerLocalDigestInitial" FontSize="13"
-                               Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"
-                               AutomationProperties.Name="{Binding Text, ElementName=DreamerLocalDigestText}"
-                               AutomationProperties.LiveSetting="Polite"/>
-                    <TextBlock x:Name="DreamerPostcardText" x:Uid="DashDreamerPostcardInitial" FontSize="12"
-                               Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap" MaxHeight="80"
-                               AutomationProperties.Name="{Binding Text, ElementName=DreamerPostcardText}"
-                               AutomationProperties.LiveSetting="Polite"/>
+            <StackPanel Spacing="4">
+                <!-- Eyebrow with decorative line -->
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Border Width="20" Height="1" VerticalAlignment="Center">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#D4A017" Offset="0"/>
+                                <GradientStop Color="Transparent" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <TextBlock x:Name="EyebrowText" Text="THE CROSSROADS"
+                               Style="{StaticResource PageEyebrowTextStyle}"/>
                 </StackPanel>
-            </Border>
 
-            <!-- ═══ Platforms & Model Row ═══ -->
-            <Grid ColumnSpacing="20">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+                <!-- Title -->
+                <TextBlock x:Name="PageTitle" Text="Hermes"
+                           Style="{StaticResource PageTitleTextStyle}"/>
 
-                <!-- Platforms & Services -->
-                <Border Style="{StaticResource SurfaceCardStyle}">
-                    <StackPanel Spacing="14">
-                        <TextBlock x:Uid="DashPlatformsCardTitle" FontSize="16" FontWeight="SemiBold"/>
+                <!-- Subtitle -->
+                <TextBlock x:Name="PageSubtitle" Text=""
+                           FontFamily="{StaticResource InterFont}"
+                           FontSize="13" Foreground="#4A5565" FontWeight="Light"/>
 
-                        <!-- Platform badges -->
-                        <StackPanel Spacing="4">
-                            <TextBlock x:Uid="DashPlatformsMessaging" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                            <StackPanel x:Name="PlatformBadges" Orientation="Horizontal" Spacing="8">
-                                <!-- Populated in code-behind -->
-                            </StackPanel>
-                        </StackPanel>
-
-                        <!-- Services -->
-                        <StackPanel Spacing="4">
-                            <TextBlock x:Uid="DashPlatformsServices" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                            <StackPanel x:Name="ServiceBadges" Orientation="Horizontal" Spacing="8">
-                                <!-- Populated in code-behind -->
-                            </StackPanel>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-
-                <!-- Model Info -->
-                <Border Grid.Column="1" Style="{StaticResource SurfaceCardStyle}">
-                    <StackPanel Spacing="12">
-                        <TextBlock x:Uid="DashModelCardTitle" FontSize="16" FontWeight="SemiBold"/>
-
-                        <StackPanel Spacing="4">
-                            <TextBlock x:Uid="DashboardProviderLabel" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                            <TextBlock x:Name="ProviderText" FontSize="14" FontWeight="SemiBold"
-                                       Foreground="{StaticResource AppAccentTextBrush}"/>
-                        </StackPanel>
-
-                        <StackPanel Spacing="4">
-                            <TextBlock x:Uid="ChatConnectionModelLabel" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                            <TextBlock x:Name="ModelNameText" FontSize="14" FontWeight="SemiBold"/>
-                        </StackPanel>
-
-                        <StackPanel Spacing="4">
-                            <TextBlock x:Uid="DashOverviewEndpointField" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                            <TextBlock x:Name="EndpointText" FontSize="12" TextWrapping="Wrap"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                        </StackPanel>
-
-                        <Button x:Uid="DashTestConnectionButton" Click="TestConnection_Click"
-                                Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D"
-                                Padding="16,8" FontSize="12"/>
-                        <TextBlock x:Name="TestConnectionResult" FontSize="11" TextWrapping="Wrap"
-                                   Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                    </StackPanel>
-                </Border>
-            </Grid>
-
-            <!-- ═══ Recent Activity & Paths Row ═══ -->
-            <Grid ColumnSpacing="20">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="2*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
-
-                <!-- Recent Sessions -->
-                <Border Style="{StaticResource SurfaceCardStyle}">
-                    <StackPanel Spacing="8">
-                        <StackPanel Orientation="Horizontal" Spacing="12">
-                            <TextBlock x:Uid="DashRecentActivityTitle" FontSize="16" FontWeight="SemiBold"/>
-                            <Button x:Uid="DashOpenChatButton" Click="LaunchHermesChat_Click" FontSize="11" Padding="10,4"
-                                    Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D" VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <ListView x:Name="RecentSessionsList" Background="Transparent" SelectionMode="None" MaxHeight="250">
-                            <ListView.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid Margin="0,4" ColumnDefinitions="Auto,*,Auto">
-                                        <Ellipse Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                        <StackPanel Grid.Column="1">
-                                            <TextBlock Text="{Binding Preview}" FontSize="13" MaxLines="1" TextTrimming="CharacterEllipsis"/>
-                                            <TextBlock Text="{Binding MessageCount}" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                                        </StackPanel>
-                                        <TextBlock Grid.Column="2" Text="{Binding TimeAgo}" FontSize="11"
-                                                   Foreground="{StaticResource AppTextSecondaryBrush}" VerticalAlignment="Center"/>
-                                    </Grid>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
-                        <TextBlock x:Name="NoSessionsText" x:Uid="DashNoSessionsText"
-                                   FontSize="12" Opacity="0.5" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                    </StackPanel>
-                </Border>
-
-                <!-- System Paths -->
-                <Border Grid.Column="1" Style="{StaticResource SurfaceCardStyle}">
-                    <StackPanel Spacing="12">
-                        <TextBlock x:Uid="DashSystemCardTitle" FontSize="16" FontWeight="SemiBold"/>
-
-                        <StackPanel Spacing="4">
-                            <TextBlock x:Uid="DashboardHermesHomeLabel" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                            <TextBlock Text="{x:Bind HermesHomePath, Mode=OneTime}" FontSize="12" TextWrapping="Wrap" FontFamily="Consolas"/>
-                        </StackPanel>
-
-                        <StackPanel Spacing="4">
-                            <TextBlock x:Uid="DashboardConfigLabel" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                            <TextBlock Text="{x:Bind HermesConfigPath, Mode=OneTime}" FontSize="12" TextWrapping="Wrap" FontFamily="Consolas"/>
-                        </StackPanel>
-
-                        <StackPanel Spacing="4">
-                            <TextBlock x:Uid="DashSystemSoulsLabel" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                            <TextBlock x:Name="ActiveSoulText" FontSize="12" FontFamily="Consolas"
-                                       Foreground="{StaticResource AppAccentTextBrush}"/>
-                        </StackPanel>
-
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button x:Uid="DashOpenLogsSmallButton" Click="OpenLogs_Click" FontSize="11" Padding="10,4"
-                                    Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
-                            <Button x:Uid="DashOpenConfigSmallButton" Click="OpenConfig_Click" FontSize="11" Padding="10,4"
-                                    Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
-                        </StackPanel>
-                    </StackPanel>
-                </Border>
-            </Grid>
-            <!-- ═══ Usage Insights ═══ -->
-            <Border x:Name="InsightsPanel" Style="{StaticResource SurfaceCardStyle}" Visibility="Collapsed">
-                <StackPanel Spacing="14">
-                    <TextBlock x:Uid="DashInsightsTitle" FontSize="16" FontWeight="SemiBold"/>
-
-                    <Grid ColumnSpacing="16">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-
-                        <!-- Total Messages -->
-                        <StackPanel Spacing="2">
-                            <TextBlock x:Uid="DashInsightsTotalTurns" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                            <TextBlock x:Name="InsightsTurnsText" Text="0" FontSize="22" FontWeight="Bold"
-                                       Foreground="{StaticResource AppAccentTextBrush}"/>
-                        </StackPanel>
-
-                        <!-- Total Tool Calls -->
-                        <StackPanel Grid.Column="1" Spacing="2">
-                            <TextBlock x:Uid="DashInsightsToolCalls" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                            <TextBlock x:Name="InsightsToolCallsText" Text="0" FontSize="22" FontWeight="Bold"
-                                       Foreground="#6BCB77"/>
-                        </StackPanel>
-
-                        <!-- Avg Response Time -->
-                        <StackPanel Grid.Column="2" Spacing="2">
-                            <TextBlock x:Uid="DashInsightsEstCost" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                            <TextBlock x:Name="InsightsCostText" Text="$0.00" FontSize="22" FontWeight="Bold"
-                                       Foreground="#818CF8"/>
-                        </StackPanel>
-                    </Grid>
-
-                    <!-- Top Tools -->
-                    <StackPanel Spacing="4">
-                        <TextBlock x:Uid="DashInsightsTopTools" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                        <StackPanel x:Name="TopToolsList" Spacing="2"/>
-                    </StackPanel>
+                <!-- Breadcrumb -->
+                <StackPanel x:Name="BreadcrumbPanel" Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                    <TextBlock Text="BRAIN"
+                               FontFamily="{StaticResource JetBrainsMonoFont}"
+                               FontSize="10" Foreground="#3A4555"/>
+                    <TextBlock Text="▸" FontSize="10" Foreground="#1A2535"/>
+                    <TextBlock x:Name="BreadcrumbWorkspace" Text=""
+                               FontFamily="{StaticResource JetBrainsMonoFont}"
+                               FontSize="10" Foreground="#3A4555"/>
+                    <TextBlock Text="▸" FontSize="10" Foreground="#1A2535"/>
+                    <TextBlock x:Name="BreadcrumbProject" Text=""
+                               FontFamily="{StaticResource JetBrainsMonoFont}"
+                               FontSize="10" Foreground="#D4A017"/>
                 </StackPanel>
-            </Border>
+            </StackPanel>
 
-        </StackPanel>
-    </ScrollViewer>
+            <!-- Zoom Controls -->
+            <StackPanel Grid.Column="1" Spacing="6" HorizontalAlignment="Center" Margin="0,12,0,0">
+                <Button Width="36" Height="36" Padding="0" CornerRadius="10"
+                        Background="#0E1420" BorderBrush="#1A2535"
+                        Content="⬚" FontSize="16" Foreground="#4A5565"
+                        ToolTipService.ToolTip="Full brain view"/>
+                <Button Width="36" Height="36" Padding="0" CornerRadius="10"
+                        Background="#10D4A017" BorderBrush="#60D4A017"
+                        Content="⬥" FontSize="16" Foreground="#FFD700"
+                        ToolTipService.ToolTip="Project view"/>
+                <TextBlock Text="SCOPE"
+                           FontFamily="{StaticResource JetBrainsMonoFont}"
+                           FontSize="8" Foreground="#2A3545" CharacterSpacing="50"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- ═══ Brain Graph Canvas ═══ -->
+        <controls:BrainGraphCanvas x:Name="BrainCanvas" Grid.Row="1" Margin="32,0"/>
+
+        <!-- ═══ Bottom Panel ═══ -->
+        <Grid Grid.Row="2" Padding="48,0,48,24" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- Project Vitals -->
+            <StackPanel Spacing="10">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="PROJECT VITALS" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <Border Height="1" VerticalAlignment="Center" HorizontalAlignment="Stretch" Width="200">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#20161C25" Offset="0"/>
+                                <GradientStop Color="Transparent" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                </StackPanel>
+
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Sessions -->
+                    <Border Background="#0E1218" BorderBrush="#161C25" BorderThickness="1"
+                            CornerRadius="14" Padding="16,16,20,16">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="SESSIONS" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Name="StatSessions" Text="0"
+                                       Style="{StaticResource MetricValueTextStyle}"
+                                       Foreground="{StaticResource AppAccentTextBrush}"/>
+                            <TextBlock x:Name="StatSessionsSub" Text=""
+                                       Style="{StaticResource DataLabelTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Tools -->
+                    <Border Grid.Column="1" Background="#0E1218" BorderBrush="#161C25" BorderThickness="1"
+                            CornerRadius="14" Padding="16,16,20,16">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="TOOLS" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Name="StatTools" Text="0"
+                                       Style="{StaticResource MetricValueTextStyle}"
+                                       Foreground="{StaticResource SessionGreenBrush}"/>
+                            <TextBlock x:Name="StatToolsSub" Text=""
+                                       Style="{StaticResource DataLabelTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Memories -->
+                    <Border Grid.Column="2" Background="#0E1218" BorderBrush="#161C25" BorderThickness="1"
+                            CornerRadius="14" Padding="16,16,20,16">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="MEMORIES" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock x:Name="StatMemories" Text="0"
+                                       Style="{StaticResource MetricValueTextStyle}"
+                                       Foreground="{StaticResource MemoryPurpleBrush}"/>
+                            <TextBlock x:Name="StatMemoriesSub" Text=""
+                                       Style="{StaticResource DataLabelTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </StackPanel>
+
+            <!-- Recent Journeys -->
+            <StackPanel Grid.Column="1" Spacing="10">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="RECENT JOURNEYS" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <Border Height="1" VerticalAlignment="Center" HorizontalAlignment="Stretch" Width="200">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#20161C25" Offset="0"/>
+                                <GradientStop Color="Transparent" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                </StackPanel>
+
+                <ListView x:Name="JourneysList" Background="Transparent" SelectionMode="None" MaxHeight="140">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="#0C1018" BorderBrush="#12181F" BorderThickness="1"
+                                    CornerRadius="10" Padding="10,10,16,10" Margin="0,1">
+                                <Grid ColumnDefinitions="Auto,*,Auto">
+                                    <Ellipse Width="6" Height="6" Fill="{Binding StatusColor}"
+                                             VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Grid.Column="1" Text="{Binding Title}"
+                                               FontSize="12" FontWeight="Medium" Foreground="#8A95A5"
+                                               MaxLines="1" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="2" Text="{Binding Meta}"
+                                               FontSize="9" Foreground="#2A3545"
+                                               FontFamily="{StaticResource JetBrainsMonoFont}"
+                                               VerticalAlignment="Center"/>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </StackPanel>
+        </Grid>
+    </Grid>
 </Page>

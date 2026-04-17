@@ -10,19 +10,31 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
-            <!-- Force light text in dark theme for all controls -->
-            <SolidColorBrush x:Key="AppTextPrimaryBrush" Color="#ECECEC" />
-            <SolidColorBrush x:Key="AppWindowBackgroundBrush" Color="#0F1318" />
-            <SolidColorBrush x:Key="AppPaneBackgroundBrush" Color="#141920" />
-            <SolidColorBrush x:Key="AppSurfaceBrush" Color="#1B2129" />
-            <SolidColorBrush x:Key="AppInsetBrush" Color="#11161C" />
-            <SolidColorBrush x:Key="AppPanelBrush" Color="#202731" />
-            <SolidColorBrush x:Key="AppStrokeBrush" Color="#2A313C" />
-            <SolidColorBrush x:Key="AppSubtleStrokeBrush" Color="#202731" />
+            <!-- ═══ Fonts ═══ -->
+            <FontFamily x:Key="PlayfairDisplayFont">ms-appx:///Assets/Fonts/PlayfairDisplay.ttf#Playfair Display</FontFamily>
+            <FontFamily x:Key="InterFont">ms-appx:///Assets/Fonts/Inter-Regular.ttf#Inter</FontFamily>
+            <FontFamily x:Key="JetBrainsMonoFont">ms-appx:///Assets/Fonts/JetBrainsMono.ttf#JetBrains Mono</FontFamily>
+            <!-- ═══ Brushes — Sanctum v2 palette ═══ -->
+            <SolidColorBrush x:Key="AppTextPrimaryBrush" Color="#EAEEF4" />
+            <SolidColorBrush x:Key="AppWindowBackgroundBrush" Color="#0B0E14" />
+            <SolidColorBrush x:Key="AppPaneBackgroundBrush" Color="#080B10" />
+            <SolidColorBrush x:Key="AppSurfaceBrush" Color="#0E1218" />
+            <SolidColorBrush x:Key="AppInsetBrush" Color="#0C1018" />
+            <SolidColorBrush x:Key="AppPanelBrush" Color="#0E1420" />
+            <SolidColorBrush x:Key="AppStrokeBrush" Color="#161C25" />
+            <SolidColorBrush x:Key="AppSubtleStrokeBrush" Color="#12181F" />
             <!-- Hermes gradient palette: caramel → goldenrod → golden yellow -->
             <SolidColorBrush x:Key="AppAccentBrush" Color="#D4A017" />
             <SolidColorBrush x:Key="AppAccentTextBrush" Color="#FFD700" />
-            <SolidColorBrush x:Key="AppTextSecondaryBrush" Color="#95A2B1" />
+            <SolidColorBrush x:Key="AppTextSecondaryBrush" Color="#4A5565" />
+            <SolidColorBrush x:Key="AppTextMutedBrush" Color="#2A3545" />
+            <!-- Node-type semantic colors -->
+            <SolidColorBrush x:Key="SessionGreenBrush" Color="#49C27D" />
+            <SolidColorBrush x:Key="MemoryPurpleBrush" Color="#818CF8" />
+            <SolidColorBrush x:Key="ToolOrangeBrush" Color="#FF8A65" />
+            <SolidColorBrush x:Key="SkillRedBrush" Color="#E05555" />
+            <SolidColorBrush x:Key="GhostBrush" Color="#2A3545" />
+            <SolidColorBrush x:Key="FileGreenBrush" Color="#5A7555" />
             <LinearGradientBrush x:Key="AppUserBubbleBrush" StartPoint="0,0" EndPoint="1,1">
                 <GradientStop Color="#1E1A0A" Offset="0.0" />
                 <GradientStop Color="#2A2210" Offset="0.5" />
@@ -44,11 +56,12 @@
             <SolidColorBrush x:Key="ConnectionOnlineBrush" Color="#49C27D" />
             <SolidColorBrush x:Key="ConnectionOfflineBrush" Color="#FF8A65" />
 
+            <!-- ═══ Card Styles ═══ -->
             <Style x:Key="SurfaceCardStyle" TargetType="Border">
                 <Setter Property="Background" Value="{StaticResource AppSurfaceBrush}" />
-                <Setter Property="BorderBrush" Value="{StaticResource AppSubtleStrokeBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource AppStrokeBrush}" />
                 <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="CornerRadius" Value="12" />
+                <Setter Property="CornerRadius" Value="14" />
                 <Setter Property="Padding" Value="18" />
             </Style>
             <Style x:Key="InsetCardStyle" TargetType="Border">
@@ -58,37 +71,55 @@
                 <Setter Property="CornerRadius" Value="10" />
                 <Setter Property="Padding" Value="14" />
             </Style>
+            <!-- ═══ Typography — Sanctum v2 ═══ -->
             <Style x:Key="PageEyebrowTextStyle" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="12" />
-                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="FontFamily" Value="{StaticResource JetBrainsMonoFont}" />
+                <Setter Property="FontSize" Value="10" />
+                <Setter Property="FontWeight" Value="Normal" />
                 <Setter Property="Foreground" Value="{StaticResource AppAccentTextBrush}" />
-                <Setter Property="CharacterSpacing" Value="32" />
+                <Setter Property="CharacterSpacing" Value="200" />
                 <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
             <Style x:Key="PageTitleTextStyle" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="30" />
-                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="FontFamily" Value="{StaticResource PlayfairDisplayFont}" />
+                <Setter Property="FontSize" Value="38" />
+                <Setter Property="FontWeight" Value="Normal" />
+                <Setter Property="Foreground" Value="#EAEEF4" />
                 <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
             <Style x:Key="SectionTitleTextStyle" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="18" />
-                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="FontFamily" Value="{StaticResource JetBrainsMonoFont}" />
+                <Setter Property="FontSize" Value="9" />
+                <Setter Property="FontWeight" Value="Normal" />
+                <Setter Property="Foreground" Value="#3A4555" />
+                <Setter Property="CharacterSpacing" Value="150" />
                 <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
             <Style x:Key="BodySecondaryTextStyle" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource InterFont}" />
+                <Setter Property="FontSize" Value="13" />
                 <Setter Property="Foreground" Value="{StaticResource AppTextSecondaryBrush}" />
                 <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
             <Style x:Key="LabelTextStyle" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="11" />
-                <Setter Property="FontWeight" Value="SemiBold" />
-                <Setter Property="Foreground" Value="{StaticResource AppTextSecondaryBrush}" />
-                <Setter Property="CharacterSpacing" Value="20" />
+                <Setter Property="FontFamily" Value="{StaticResource JetBrainsMonoFont}" />
+                <Setter Property="FontSize" Value="10" />
+                <Setter Property="FontWeight" Value="Normal" />
+                <Setter Property="Foreground" Value="#3A4555" />
+                <Setter Property="CharacterSpacing" Value="50" />
                 <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
             <Style x:Key="MetricValueTextStyle" TargetType="TextBlock">
-                <Setter Property="FontSize" Value="22" />
-                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="FontFamily" Value="{StaticResource PlayfairDisplayFont}" />
+                <Setter Property="FontSize" Value="28" />
+                <Setter Property="FontWeight" Value="Normal" />
+                <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+            <Style x:Key="DataLabelTextStyle" TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="{StaticResource JetBrainsMonoFont}" />
+                <Setter Property="FontSize" Value="9" />
+                <Setter Property="FontWeight" Value="Normal" />
+                <Setter Property="Foreground" Value="#2A3545" />
                 <Setter Property="TextWrapping" Value="Wrap" />
             </Style>
         </ResourceDictionary>

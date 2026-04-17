@@ -458,6 +458,9 @@ public partial class App : Application
             insightsDir,
             sp.GetRequiredService<ILogger<InsightsService>>()));
 
+        // Brain graph (dashboard constellation visualization)
+        services.AddSingleton<BrainGraphService>();
+
         // Dreamer (background free-association worker) — status for Dashboard; loop started post-build
         services.AddSingleton(_ => new DreamerStatus());
 

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using HermesDesktop.Views;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
 using Microsoft.Windows.ApplicationModel.Resources;
 using Windows.Graphics;
 
@@ -35,16 +34,14 @@ public sealed partial class MainWindow : Window
         AppWindow.Resize(new SizeInt32(1480, 960));
         AppWindow.SetIcon("Assets/AppIcon.ico");
 
-        ShellNavigation.SelectedItem = ChatNavItem;
+        GlyphNav.SetSelected("chat");
         NavigateToTag("chat");
     }
 
-    private void OnNavigationSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    private void OnGlyphNavRequested(object? sender, string tag)
     {
-        if (args.SelectedItemContainer?.Tag is string tag)
-        {
-            NavigateToTag(tag);
-        }
+        NavigateToTag(tag);
+        GlyphNav.SetSelected(tag);
     }
 
     private void NavigateToTag(string tag)

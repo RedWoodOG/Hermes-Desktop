@@ -5,10 +5,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:controls="using:HermesDesktop.Controls"
     mc:Ignorable="d">
-    <Window.SystemBackdrop>
-        <MicaBackdrop />
-    </Window.SystemBackdrop>
 
     <Grid Background="{StaticResource AppWindowBackgroundBrush}">
         <Grid.RowDefinitions>
@@ -22,99 +20,30 @@
             </TitleBar.IconSource>
         </TitleBar>
 
-        <NavigationView
-            x:Name="ShellNavigation"
-            x:Uid="ShellNavigation"
-            Grid.Row="1"
-            AlwaysShowHeader="False"
-            Background="{StaticResource AppWindowBackgroundBrush}"
-            CompactPaneLength="46"
-            IsBackButtonVisible="Collapsed"
-            IsSettingsVisible="False"
-            OpenPaneLength="228"
-            PaneDisplayMode="Left"
-            SelectionChanged="OnNavigationSelectionChanged">
-            <NavigationView.Resources>
-                <SolidColorBrush x:Key="NavigationViewExpandedPaneBackground" Color="#141920" />
-                <SolidColorBrush x:Key="NavigationViewDefaultPaneBackground" Color="#141920" />
-                <SolidColorBrush x:Key="NavigationViewTopPaneBackground" Color="#141920" />
-                <SolidColorBrush x:Key="NavigationViewContentBackground" Color="#0F1318" />
-                <SolidColorBrush x:Key="NavigationViewContentGridBorderBrush" Color="#202731" />
-                <SolidColorBrush x:Key="NavigationViewItemForeground" Color="#E8EEF7" />
-                <SolidColorBrush x:Key="NavigationViewItemForegroundSelected" Color="#FFFFFF" />
-                <SolidColorBrush x:Key="NavigationViewItemForegroundPointerOver" Color="#FFFFFF" />
-                <SolidColorBrush x:Key="NavigationViewItemBackgroundSelected" Color="#1E252D" />
-                <SolidColorBrush x:Key="NavigationViewItemBackgroundPointerOver" Color="#1A2028" />
-                <SolidColorBrush x:Key="NavigationViewSelectionIndicatorForeground" Color="#D4A017" />
-            </NavigationView.Resources>
-            <NavigationView.MenuItems>
-                <NavigationViewItem
-                    x:Name="DashboardNavItem"
-                    x:Uid="DashboardNavItem"
-                    Tag="dashboard">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Home" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem
-                    x:Name="ChatNavItem"
-                    x:Uid="ChatNavItem"
-                    Tag="chat">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Message" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem
-                    x:Name="AgentNavItem"
-                    x:Uid="AgentNavItem"
-                    Tag="agent">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="ContactInfo" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem
-                    x:Name="SkillsNavItem"
-                    x:Uid="SkillsNavItem"
-                    Tag="skills">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Library" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem
-                    x:Name="MemoryNavItem"
-                    x:Uid="MemoryNavItem"
-                    Tag="memory">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Document" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem
-                    x:Name="BuddyNavItem"
-                    x:Uid="BuddyNavItem"
-                    Tag="buddy">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Emoji2" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem
-                    x:Name="IntegrationsNavItem"
-                    x:Uid="IntegrationsNavItem"
-                    Tag="integrations">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="People" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-                <NavigationViewItem
-                    x:Name="SettingsNavItem"
-                    x:Uid="SettingsNavItem"
-                    Tag="settings">
-                    <NavigationViewItem.Icon>
-                        <SymbolIcon Symbol="Setting" />
-                    </NavigationViewItem.Icon>
-                </NavigationViewItem>
-            </NavigationView.MenuItems>
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,*">
+            <!-- Glyph Sidebar -->
+            <controls:GlyphSidebar x:Name="GlyphNav"
+                                   NavigationRequested="OnGlyphNavRequested" />
 
-            <Frame x:Name="ContentFrame" />
-        </NavigationView>
+            <!-- Content + Ambient Overlays -->
+            <Grid Grid.Column="1">
+                <Frame x:Name="ContentFrame" />
+                <!-- Ambient buddy — visible on all pages -->
+                <controls:BuddyOverlay HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                       Margin="0,0,24,20"/>
+
+                <!-- Ambient background glow -->
+                <Canvas IsHitTestVisible="False" Opacity="0.7">
+                    <Ellipse Width="1200" Height="800" Canvas.Left="-200" Canvas.Top="300">
+                        <Ellipse.Fill>
+                            <RadialGradientBrush>
+                                <GradientStop Color="#06D4A017" Offset="0" />
+                                <GradientStop Color="Transparent" Offset="0.7" />
+                            </RadialGradientBrush>
+                        </Ellipse.Fill>
+                    </Ellipse>
+                </Canvas>
+            </Grid>
+        </Grid>
     </Grid>
 </Window>
