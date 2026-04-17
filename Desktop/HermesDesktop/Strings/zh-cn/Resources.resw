@@ -495,6 +495,12 @@
   <data name="ChatPermissionModeChange.Content" xml:space="preserve">
     <value>更改</value>
   </data>
+  <data name="ChatPermissionModeClearWorkspacePermissions" xml:space="preserve">
+    <value>清除此工作区的记忆权限</value>
+  </data>
+  <data name="ChatPermissionModeClearWorkspacePermissionsConfirm" xml:space="preserve">
+    <value>已清除此工作区的记忆权限。</value>
+  </data>
   <data name="ChatPageDisclaimer.Text" xml:space="preserve">
     <value>Hermes 可能出错。重要信息请自行核实。</value>
   </data>

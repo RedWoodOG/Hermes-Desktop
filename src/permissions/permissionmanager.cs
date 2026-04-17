@@ -90,6 +90,27 @@ public sealed class PermissionManager
                 .ToArray();
         }
     }
+
+    /// <summary>
+    /// Clears all always-allow rules currently loaded in memory.
+    /// Returns the number of removed rules.
+    /// </summary>
+    public int ClearAlwaysAllowRules()
+    {
+        int removedCount;
+        lock (_rulesLock)
+        {
+            removedCount = _context.AlwaysAllow.Count;
+            _context.AlwaysAllow.Clear();
+        }
+
+        if (removedCount > 0)
+        {
+            _logger.LogInformation("Cleared {RuleCount} always-allow permission rules.", removedCount);
+        }
+
+        return removedCount;
+    }
     
     /// <summary>
     /// Check permissions for a tool call.

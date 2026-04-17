@@ -552,6 +552,18 @@
   <data name="ChatPermissionModeNameBypass" xml:space="preserve">
     <value>Bypass</value>
   </data>
+  <data name="ChatPermissionClearRememberedAction" xml:space="preserve">
+    <value>Clear remembered tool permissions (workspace)</value>
+  </data>
+  <data name="ChatPermissionClearRememberedSuccess" xml:space="preserve">
+    <value>Cleared remembered tool permissions for this workspace.</value>
+  </data>
+  <data name="ChatPermissionClearRememberedNoop" xml:space="preserve">
+    <value>No remembered workspace tool permissions to clear.</value>
+  </data>
+  <data name="ChatPermissionClearRememberedErrorFormat" xml:space="preserve">
+    <value>Could not clear remembered workspace tool permissions: {0}</value>
+  </data>
   <data name="DashOverviewKpiSessionsTitle.Text" xml:space="preserve">
     <value>Sessions</value>
   </data>

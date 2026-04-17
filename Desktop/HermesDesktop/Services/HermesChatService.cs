@@ -21,6 +21,7 @@ internal sealed class HermesChatService : IDisposable
     private readonly IChatClient _chatClient;
     private readonly TranscriptStore _transcriptStore;
     private readonly PermissionManager _permissionManager;
+    private readonly WorkspacePermissionRuleStore _permissionRuleStore;
     private readonly ILogger<HermesChatService> _logger;
 
     private Session? _currentSession;
@@ -32,12 +33,14 @@ internal sealed class HermesChatService : IDisposable
         IChatClient chatClient,
         TranscriptStore transcriptStore,
         PermissionManager permissionManager,
+        WorkspacePermissionRuleStore permissionRuleStore,
         ILogger<HermesChatService> logger)
     {
         _agent = agent;
         _chatClient = chatClient;
         _transcriptStore = transcriptStore;
         _permissionManager = permissionManager;
+        _permissionRuleStore = permissionRuleStore;
         _logger = logger;
         CurrentPermissionMode = _permissionManager.Mode;
     }
@@ -221,6 +224,12 @@ internal sealed class HermesChatService : IDisposable
     {
         _permissionManager.Mode = mode;
         CurrentPermissionMode = mode;
+    }
+
+    public void ClearRememberedPermissionsForWorkspace()
+    {
+        _permissionManager.ClearAlwaysAllowRules();
+        _permissionRuleStore.ClearAlwaysAllowRules();
     }
 
     // ── Tool Registration ──

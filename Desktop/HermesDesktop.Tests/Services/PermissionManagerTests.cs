@@ -257,4 +257,18 @@ public class PermissionManagerTests
 
         Assert.IsTrue(manager.HasAlwaysAllowRule("WRITE_FILE"));
     }
+
+    [TestMethod]
+    public void ClearAlwaysAllowRules_RemovesAllRememberedRules()
+    {
+        var manager = CreateManager(PermissionMode.Default);
+        manager.AddAlwaysAllowRule("write_file");
+        manager.AddAlwaysAllowRule("bash");
+
+        manager.ClearAlwaysAllowRules();
+
+        Assert.IsFalse(manager.HasAlwaysAllowRule("write_file"));
+        Assert.IsFalse(manager.HasAlwaysAllowRule("bash"));
+        Assert.AreEqual(0, manager.GetAlwaysAllowRulesSnapshot().Count);
+    }
 }

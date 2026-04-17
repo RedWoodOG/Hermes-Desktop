@@ -14,6 +14,7 @@ using Hermes.Agent.Transcript;
 using HermesDesktop.Models;
 using HermesDesktop.Services;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -33,6 +34,7 @@ public sealed partial class ChatPage : Page
     private readonly SessionRecorder _sessionRecorder = new();
     private readonly SoulService _soulService = App.Services.GetRequiredService<SoulService>();
     private readonly ChatClientFactory _clientFactory = App.Services.GetRequiredService<ChatClientFactory>();
+    private readonly ILogger<ChatPage> _logger = App.Services.GetRequiredService<ILogger<ChatPage>>();
     private bool _suppressModelSwitch;
     private readonly Brush _assistantBackgroundBrush;
     private readonly Brush _assistantBorderBrush;
@@ -561,6 +563,13 @@ public sealed partial class ChatPage : Page
             item.Click += (_, _) => SetPermissionModeUi(captured);
             flyout.Items.Add(item);
         }
+        flyout.Items.Add(new MenuFlyoutSeparator());
+        var clearRememberedItem = new MenuFlyoutItem
+        {
+            Text = ResourceLoader.GetString("ChatPermissionClearRemembered")
+        };
+        clearRememberedItem.Click += async (_, _) => await ClearRememberedPermissionsAsync();
+        flyout.Items.Add(clearRememberedItem);
         flyout.ShowAt((FrameworkElement)sender);
     }
 
@@ -582,6 +591,21 @@ public sealed partial class ChatPage : Page
         PermissionMode.BypassPermissions => ResourceLoader.GetString("ChatPermissionModeNameBypass"),
         _ => ResourceLoader.GetString("ChatPermissionModeNameDefault"),
     };
+
+    private async Task ClearRememberedPermissionsAsync()
+    {
+        try
+        {
+            _chatService.ClearRememberedWorkspacePermissions();
+            AppendSystemMessage(ResourceLoader.GetString("ChatPermissionRememberedCleared"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed clearing remembered workspace permissions.");
+            AppendSystemMessage(ResourceLoader.GetString("ChatPermissionRememberedClearFailed"));
+            await Task.CompletedTask;
+        }
+    }
 
     private void UpdateSessionFooterLabel()
     {

@@ -128,6 +128,32 @@ public sealed class WorkspacePermissionRuleStoreTests
         }
     }
 
+    [TestMethod]
+    public void ClearAlwaysAllowRules_RemovesWorkspaceFile_AndReturnsNoRules()
+    {
+        var root = CreateTempDirectory();
+        try
+        {
+            var store = CreateStore(root, "/tmp/workspace-a");
+            store.SaveAlwaysAllowRules(new[]
+            {
+                new PermissionRule { ToolName = "bash" }
+            });
+
+            Assert.IsTrue(File.Exists(store.WorkspaceFilePath));
+
+            store.ClearAlwaysAllowRules();
+            var reloaded = store.LoadAlwaysAllowRules();
+
+            Assert.IsFalse(File.Exists(store.WorkspaceFilePath));
+            Assert.AreEqual(0, reloaded.Count);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
     private static WorkspacePermissionRuleStore CreateStore(string root, string workspacePath)
     {
         return new WorkspacePermissionRuleStore(

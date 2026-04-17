@@ -130,6 +130,22 @@ public sealed class WorkspacePermissionRuleStore
         }
     }
 
+    public void ClearAlwaysAllowRules()
+    {
+        try
+        {
+            if (File.Exists(_workspaceFilePath))
+                File.Delete(_workspaceFilePath);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Failed clearing workspace permission rules at {Path}.",
+                _workspaceFilePath);
+        }
+    }
+
     private static string NormalizeWorkspacePath(string workspacePath)
     {
         return Path.GetFullPath(workspacePath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
