@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="SanctumPreview.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:SanctumPreview.Controls"
+    xmlns:views="using:SanctumPreview.Views">
+
+    <Grid Background="{StaticResource AppWindowBackgroundBrush}" ColumnDefinitions="Auto,*">
+        <controls:GlyphSidebar x:Name="GlyphNav"/>
+
+        <Grid Grid.Column="1">
+            <views:DashboardPage x:Name="Dashboard"/>
+
+            <controls:BuddyOverlay HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                   Margin="0,0,24,20"/>
+
+            <Canvas IsHitTestVisible="False" Opacity="0.7">
+                <Ellipse Width="1200" Height="800" Canvas.Left="-200" Canvas.Top="300">
+                    <Ellipse.Fill>
+                        <RadialGradientBrush>
+                            <GradientStop Color="#06D4A017" Offset="0" />
+                            <GradientStop Color="Transparent" Offset="0.7" />
+                        </RadialGradientBrush>
+                    </Ellipse.Fill>
+                </Ellipse>
+            </Canvas>
+        </Grid>
+    </Grid>
+</Window>

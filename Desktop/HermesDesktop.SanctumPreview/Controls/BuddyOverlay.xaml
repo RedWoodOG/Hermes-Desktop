@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="SanctumPreview.Controls.BuddyOverlay"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    IsHitTestVisible="True">
+
+    <StackPanel HorizontalAlignment="Center" Spacing="4" Padding="8">
+        <TextBlock x:Name="BuddyArt"
+                   FontFamily="{StaticResource JetBrainsMonoFont}"
+                   FontSize="13" Foreground="#60D4A017"
+                   TextAlignment="Center" LineHeight="14.3"
+                   Text=" /\_/\&#10;( o.o )&#10; &gt; ^ &lt;"
+                   IsTextSelectionEnabled="False"/>
+        <TextBlock x:Name="MoodLabel"
+                   Text="curious" FontSize="9" Foreground="#2A3545"
+                   HorizontalAlignment="Center"/>
+    </StackPanel>
+</UserControl>

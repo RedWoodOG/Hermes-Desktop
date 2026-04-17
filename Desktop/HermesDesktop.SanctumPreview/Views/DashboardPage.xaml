@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="SanctumPreview.Views.DashboardPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:SanctumPreview.Controls"
+    Background="Transparent"
+    Loaded="OnPageLoaded">
+
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <!-- Header -->
+        <Grid Padding="48,28,48,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Border Width="20" Height="1" VerticalAlignment="Center">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#D4A017" Offset="0"/>
+                                <GradientStop Color="Transparent" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                    <TextBlock Text="THE CROSSROADS" Style="{StaticResource PageEyebrowTextStyle}"/>
+                </StackPanel>
+
+                <TextBlock Text="Hermes.CS" Style="{StaticResource PageTitleTextStyle}"/>
+
+                <TextBlock Text="workspace-han &#x2014; 3 active sessions &#x2014; v0.9.0"
+                           FontFamily="{StaticResource InterFont}"
+                           FontSize="13" Foreground="#4A5565"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,8,0,0">
+                    <TextBlock Text="BRAIN" FontFamily="{StaticResource JetBrainsMonoFont}"
+                               FontSize="10" Foreground="#3A4555"/>
+                    <TextBlock Text="&#x25B8;" FontSize="10" Foreground="#1A2535"/>
+                    <TextBlock Text="workspace-han" FontFamily="{StaticResource JetBrainsMonoFont}"
+                               FontSize="10" Foreground="#3A4555"/>
+                    <TextBlock Text="&#x25B8;" FontSize="10" Foreground="#1A2535"/>
+                    <TextBlock Text="Hermes.CS" FontFamily="{StaticResource JetBrainsMonoFont}"
+                               FontSize="10" Foreground="#D4A017"/>
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Spacing="6" HorizontalAlignment="Center" Margin="0,12,0,0">
+                <Button Width="36" Height="36" Padding="0" CornerRadius="10"
+                        Background="#0E1420" BorderBrush="#1A2535"
+                        Content="&#x2B1A;" FontSize="16" Foreground="#4A5565"
+                        ToolTipService.ToolTip="Full brain view"/>
+                <Button Width="36" Height="36" Padding="0" CornerRadius="10"
+                        Background="#10D4A017" BorderBrush="#60D4A017"
+                        Content="&#x2B25;" FontSize="16" Foreground="#FFD700"
+                        ToolTipService.ToolTip="Project view"/>
+                <TextBlock Text="SCOPE" FontFamily="{StaticResource JetBrainsMonoFont}"
+                           FontSize="8" Foreground="#2A3545" CharacterSpacing="50"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Brain Graph -->
+        <controls:BrainGraphCanvas x:Name="BrainCanvas" Grid.Row="1" Margin="32,0"/>
+
+        <!-- Bottom Panel -->
+        <Grid Grid.Row="2" Padding="48,0,48,24" ColumnSpacing="16">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Spacing="10">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="PROJECT VITALS" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <Border Height="1" VerticalAlignment="Center" Width="200">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#20161C25" Offset="0"/>
+                                <GradientStop Color="Transparent" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                </StackPanel>
+
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Border Background="#0E1218" BorderBrush="#161C25" BorderThickness="1"
+                            CornerRadius="14" Padding="16,16,20,16">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="SESSIONS" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock Text="3" Style="{StaticResource MetricValueTextStyle}"
+                                       Foreground="{StaticResource AppAccentTextBrush}"/>
+                            <TextBlock Text="2 cli &#x2022; 1 telegram" Style="{StaticResource DataLabelTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Background="#0E1218" BorderBrush="#161C25" BorderThickness="1"
+                            CornerRadius="14" Padding="16,16,20,16">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="TOOLS" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock Text="24" Style="{StaticResource MetricValueTextStyle}"
+                                       Foreground="{StaticResource SessionGreenBrush}"/>
+                            <TextBlock Text="8 fs &#x2022; 6 web &#x2022; 10 custom" Style="{StaticResource DataLabelTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="2" Background="#0E1218" BorderBrush="#161C25" BorderThickness="1"
+                            CornerRadius="14" Padding="16,16,20,16">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="MEMORIES" Style="{StaticResource LabelTextStyle}"/>
+                            <TextBlock Text="142" Style="{StaticResource MetricValueTextStyle}"
+                                       Foreground="{StaticResource MemoryPurpleBrush}"/>
+                            <TextBlock Text="18 this project" Style="{StaticResource DataLabelTextStyle}"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Spacing="10">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="RECENT JOURNEYS" Style="{StaticResource SectionTitleTextStyle}"/>
+                    <Border Height="1" VerticalAlignment="Center" Width="200">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#20161C25" Offset="0"/>
+                                <GradientStop Color="Transparent" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Spacing="3">
+                    <Border Background="#0C1018" BorderBrush="#12181F" BorderThickness="1"
+                            CornerRadius="10" Padding="10,10,16,10">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Ellipse Width="6" Height="6" Fill="#49C27D"
+                                     VerticalAlignment="Center" Margin="0,0,12,0"/>
+                            <TextBlock Grid.Column="1" Text="UI/UX overhaul mockups"
+                                       FontSize="12" FontWeight="Medium" Foreground="#8A95A5"/>
+                            <TextBlock Grid.Column="2" Text="39t &#x2022; now"
+                                       FontSize="9" Foreground="#2A3545"
+                                       FontFamily="{StaticResource JetBrainsMonoFont}"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    <Border Background="#0C1018" BorderBrush="#12181F" BorderThickness="1"
+                            CornerRadius="10" Padding="10,10,16,10">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Ellipse Width="6" Height="6" Fill="#D4A017"
+                                     VerticalAlignment="Center" Margin="0,0,12,0"/>
+                            <TextBlock Grid.Column="1" Text="Greeting exchange"
+                                       FontSize="12" FontWeight="Medium" Foreground="#8A95A5"/>
+                            <TextBlock Grid.Column="2" Text="39t &#x2022; 5d"
+                                       FontSize="9" Foreground="#2A3545"
+                                       FontFamily="{StaticResource JetBrainsMonoFont}"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                    <Border Background="#0C1018" BorderBrush="#12181F" BorderThickness="1"
+                            CornerRadius="10" Padding="10,10,16,10">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Ellipse Width="6" Height="6" Fill="#2A3545"
+                                     VerticalAlignment="Center" Margin="0,0,12,0"/>
+                            <TextBlock Grid.Column="1" Text="App lifecycle handler"
+                                       FontSize="12" FontWeight="Medium" Foreground="#8A95A5"/>
+                            <TextBlock Grid.Column="2" Text="50t &#x2022; 11d"
+                                       FontSize="9" Foreground="#2A3545"
+                                       FontFamily="{StaticResource JetBrainsMonoFont}"
+                                       VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Page>

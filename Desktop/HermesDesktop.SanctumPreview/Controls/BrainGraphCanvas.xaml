@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="SanctumPreview.Controls.BrainGraphCanvas"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:canvas="using:Microsoft.Graphics.Canvas.UI.Xaml">
+
+    <Grid>
+        <canvas:CanvasAnimatedControl x:Name="GraphCanvas"
+            Draw="OnGraphDraw"
+            CreateResources="OnCreateResources"
+            ClearColor="#0B0E14"
+            TargetElapsedTime="0:0:0.016" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom" Margin="16,0,0,12" Spacing="16"
+                    IsHitTestVisible="False">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+                <Ellipse Width="6" Height="6" Fill="#D4A017" VerticalAlignment="Center"/>
+                <TextBlock Text="project" FontSize="9" Foreground="#2A3545"
+                           FontFamily="{StaticResource JetBrainsMonoFont}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="5">
+                <Ellipse Width="6" Height="6" Fill="#49C27D" VerticalAlignment="Center"/>
+                <TextBlock Text="session" FontSize="9" Foreground="#2A3545"
+                           FontFamily="{StaticResource JetBrainsMonoFont}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="5">
+                <Ellipse Width="6" Height="6" Fill="#818CF8" VerticalAlignment="Center"/>
+                <TextBlock Text="memory" FontSize="9" Foreground="#2A3545"
+                           FontFamily="{StaticResource JetBrainsMonoFont}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="5">
+                <Ellipse Width="6" Height="6" Fill="#FF8A65" VerticalAlignment="Center"/>
+                <TextBlock Text="tool" FontSize="9" Foreground="#2A3545"
+                           FontFamily="{StaticResource JetBrainsMonoFont}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="5">
+                <Ellipse Width="6" Height="6" Fill="#E05555" VerticalAlignment="Center"/>
+                <TextBlock Text="skill" FontSize="9" Foreground="#2A3545"
+                           FontFamily="{StaticResource JetBrainsMonoFont}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="5">
+                <Ellipse Width="6" Height="6" Fill="#2A3545" VerticalAlignment="Center"/>
+                <TextBlock Text="other workspace" FontSize="9" Foreground="#2A3545"
+                           FontFamily="{StaticResource JetBrainsMonoFont}"/>
+            </StackPanel>
+        </StackPanel>
+
+        <Border Width="120" Height="80" HorizontalAlignment="Right"
+                VerticalAlignment="Top" Margin="0,12,16,0"
+                Background="#80080B10" BorderBrush="#161C25"
+                BorderThickness="1" CornerRadius="8"
+                IsHitTestVisible="False">
+            <Grid>
+                <canvas:CanvasControl x:Name="MinimapCanvas"
+                    Draw="OnMinimapDraw"
+                    ClearColor="Transparent" />
+                <TextBlock Text="FULL BRAIN" FontSize="7" Foreground="#2A3545"
+                           FontFamily="{StaticResource JetBrainsMonoFont}"
+                           HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                           Margin="0,0,6,4" CharacterSpacing="50"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
