@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes — Mission Control</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0d11;
+  color: #c8d0da;
+  font-family: 'JetBrains Mono', monospace;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─── Top Command Bar ─── */
+.command-bar {
+  display: flex;
+  align-items: center;
+  background: #0e1218;
+  border-bottom: 1px solid #1a2030;
+  padding: 0 20px;
+  height: 48px;
+  gap: 0;
+}
+.logo {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #d4a017;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-right: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.logo .wing { font-size: 18px; opacity: 0.8; }
+.tab-group {
+  display: flex;
+  height: 100%;
+}
+.tab {
+  padding: 0 18px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #5a6575;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  position: relative;
+}
+.tab:hover { color: #8a95a5; }
+.tab.active {
+  color: #ffd700;
+  border-bottom-color: #d4a017;
+}
+.tab .hotkey {
+  font-size: 9px;
+  opacity: 0.4;
+  background: #1a2030;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.tab .indicator {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #49c27d;
+  box-shadow: 0 0 6px #49c27d88;
+}
+.tab .indicator.warn { background: #ff8a65; box-shadow: 0 0 6px #ff8a6588; }
+.tab .indicator.off { background: #3a4050; box-shadow: none; }
+
+.spacer { flex: 1; }
+
+.clock {
+  font-size: 12px;
+  color: #5a6575;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Main Content ─── */
+.main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: auto 1fr 1fr;
+  gap: 2px;
+  background: #111820;
+  padding: 2px;
+  overflow: hidden;
+}
+
+/* ─── Instrument Panels ─── */
+.panel {
+  background: #0c1018;
+  padding: 16px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #d4a01730, transparent);
+}
+.panel-label {
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: #4a5565;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.panel-label .live {
+  font-size: 8px;
+  color: #49c27d;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.panel-label .live::before {
+  content: '';
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: #49c27d;
+  animation: pulse 2s infinite;
+}
+
+/* ─── Ring Gauge ─── */
+.gauge-row {
+  grid-column: 1 / 4;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+  background: #111820;
+}
+.gauge-panel {
+  background: #0c1018;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.ring-gauge {
+  width: 72px;
+  height: 72px;
+  position: relative;
+}
+.ring-gauge svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.ring-gauge .track {
+  fill: none;
+  stroke: #1a2535;
+  stroke-width: 4;
+}
+.ring-gauge .fill {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 188;
+  transition: stroke-dashoffset 1s ease;
+}
+.ring-gauge .value {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  font-weight: 700;
+}
+.gauge-info {
+  flex: 1;
+}
+.gauge-title {
+  font-size: 11px;
+  color: #6a7585;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.gauge-sub {
+  font-size: 10px;
+  color: #3a4555;
+}
+
+/* ─── Signal Trace (Dreamer) ─── */
+.signal-panel {
+  grid-column: 1 / 3;
+}
+.signal-trace {
+  height: 100px;
+  background: #080c12;
+  border: 1px solid #1a2030;
+  border-radius: 4px;
+  margin-top: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.signal-trace canvas {
+  width: 100%;
+  height: 100%;
+}
+.signal-grid {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-image:
+    linear-gradient(#1a203010 1px, transparent 1px),
+    linear-gradient(90deg, #1a203010 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+.signal-readout {
+  display: flex;
+  gap: 24px;
+  margin-top: 10px;
+  font-size: 10px;
+}
+.readout-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.readout-item .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+.readout-item .label { color: #4a5565; }
+.readout-item .val { color: #8a95a5; font-weight: 600; }
+
+/* ─── Mission Log ─── */
+.mission-log {
+  font-size: 11px;
+  line-height: 1.8;
+  overflow-y: auto;
+  max-height: calc(100% - 40px);
+}
+.log-entry {
+  display: flex;
+  gap: 12px;
+  padding: 2px 0;
+  border-bottom: 1px solid #0e1420;
+}
+.log-time { color: #3a4555; white-space: nowrap; }
+.log-type {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 2px;
+  white-space: nowrap;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+.log-type.session { background: #d4a01720; color: #d4a017; }
+.log-type.tool { background: #49c27d20; color: #49c27d; }
+.log-type.llm { background: #818cf820; color: #818cf8; }
+.log-type.sys { background: #ff8a6520; color: #ff8a65; }
+.log-msg { color: #7a8595; flex: 1; }
+
+/* ─── Platform Status Grid ─── */
+.platform-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+.platform-item {
+  background: #080c12;
+  border: 1px solid #1a2030;
+  border-radius: 4px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+.platform-item .status {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+.platform-item .status.on { background: #49c27d; box-shadow: 0 0 8px #49c27d44; }
+.platform-item .status.off { background: #2a3040; }
+.platform-item .name { color: #7a8595; }
+.platform-item .name.active { color: #c8d0da; }
+
+/* ─── Model Status ─── */
+.model-block {
+  background: #080c12;
+  border: 1px solid #1a2030;
+  border-radius: 4px;
+  padding: 14px;
+  margin-top: 8px;
+}
+.model-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 11px;
+}
+.model-row .k { color: #4a5565; }
+.model-row .v { color: #c8d0da; }
+.model-row .v.gold { color: #ffd700; }
+
+/* ─── Bottom Telemetry Bar ─── */
+.telemetry-bar {
+  display: flex;
+  align-items: center;
+  background: #080c12;
+  border-top: 1px solid #1a2030;
+  padding: 0 20px;
+  height: 28px;
+  gap: 24px;
+  font-size: 10px;
+  color: #3a4555;
+}
+.telemetry-bar .item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.telemetry-bar .val { color: #6a7585; }
+.telemetry-bar .status-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: #49c27d;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- Command Bar -->
+<div class="command-bar">
+  <div class="logo"><span class="wing">&#x2727;</span> HERMES</div>
+  <div class="tab-group">
+    <div class="tab active">
+      <span class="indicator"></span>
+      STATUS
+      <span class="hotkey">1</span>
+    </div>
+    <div class="tab">
+      <span class="indicator"></span>
+      SESSIONS
+      <span class="hotkey">2</span>
+    </div>
+    <div class="tab">
+      <span class="indicator off"></span>
+      ANALYTICS
+      <span class="hotkey">3</span>
+    </div>
+    <div class="tab">
+      LOGS
+      <span class="hotkey">4</span>
+    </div>
+    <div class="tab">
+      <span class="indicator warn"></span>
+      GATEWAY
+      <span class="hotkey">5</span>
+    </div>
+    <div class="tab">
+      SKILLS
+      <span class="hotkey">6</span>
+    </div>
+    <div class="tab">
+      CONFIG
+      <span class="hotkey">7</span>
+    </div>
+    <div class="tab">
+      KEYS
+      <span class="hotkey">8</span>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="clock" id="clock">14:32:07 UTC</div>
+</div>
+
+<!-- Main Grid -->
+<div class="main">
+
+  <!-- Gauge Row -->
+  <div class="gauge-row">
+    <div class="gauge-panel">
+      <div class="ring-gauge">
+        <svg viewBox="0 0 64 64">
+          <circle class="track" cx="32" cy="32" r="28"/>
+          <circle class="fill" cx="32" cy="32" r="28" stroke="#ffd700" stroke-dashoffset="120"/>
+        </svg>
+        <div class="value" style="color:#ffd700">3</div>
+      </div>
+      <div class="gauge-info">
+        <div class="gauge-title">Active Sessions</div>
+        <div class="gauge-sub">2 CLI &bull; 1 Telegram</div>
+      </div>
+    </div>
+
+    <div class="gauge-panel">
+      <div class="ring-gauge">
+        <svg viewBox="0 0 64 64">
+          <circle class="track" cx="32" cy="32" r="28"/>
+          <circle class="fill" cx="32" cy="32" r="28" stroke="#49c27d" stroke-dashoffset="40"/>
+        </svg>
+        <div class="value" style="color:#49c27d">24</div>
+      </div>
+      <div class="gauge-info">
+        <div class="gauge-title">Tools Loaded</div>
+        <div class="gauge-sub">8 filesystem &bull; 6 web &bull; 10 custom</div>
+      </div>
+    </div>
+
+    <div class="gauge-panel">
+      <div class="ring-gauge">
+        <svg viewBox="0 0 64 64">
+          <circle class="track" cx="32" cy="32" r="28"/>
+          <circle class="fill" cx="32" cy="32" r="28" stroke="#818cf8" stroke-dashoffset="80"/>
+        </svg>
+        <div class="value" style="color:#818cf8">12</div>
+      </div>
+      <div class="gauge-info">
+        <div class="gauge-title">Skills</div>
+        <div class="gauge-sub">3 active &bull; 9 standby</div>
+      </div>
+    </div>
+
+    <div class="gauge-panel">
+      <div class="ring-gauge">
+        <svg viewBox="0 0 64 64">
+          <circle class="track" cx="32" cy="32" r="28"/>
+          <circle class="fill" cx="32" cy="32" r="28" stroke="#49c27d" stroke-dashoffset="0"/>
+        </svg>
+        <div class="value" style="color:#49c27d; font-size:12px;">&#x2713;</div>
+      </div>
+      <div class="gauge-info">
+        <div class="gauge-title">LLM Status</div>
+        <div class="gauge-sub" style="color:#49c27d">ONLINE &bull; 142ms latency</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signal Panel (Dreamer) -->
+  <div class="panel signal-panel">
+    <div class="panel-label">
+      DREAMER SIGNAL
+      <span class="live">LIVE</span>
+    </div>
+    <div class="signal-trace">
+      <div class="signal-grid"></div>
+      <canvas id="signalCanvas"></canvas>
+    </div>
+    <div class="signal-readout">
+      <div class="readout-item">
+        <div class="dot" style="background:#ffd700"></div>
+        <span class="label">Phase:</span>
+        <span class="val">Walking</span>
+      </div>
+      <div class="readout-item">
+        <div class="dot" style="background:#49c27d"></div>
+        <span class="label">Walks:</span>
+        <span class="val">847</span>
+      </div>
+      <div class="readout-item">
+        <div class="dot" style="background:#818cf8"></div>
+        <span class="label">Signal:</span>
+        <span class="val">contemplative stillness</span>
+      </div>
+      <div class="readout-item">
+        <div class="dot" style="background:#ff8a65"></div>
+        <span class="label">Digest:</span>
+        <span class="val">3 entries</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Model Status -->
+  <div class="panel">
+    <div class="panel-label">MODEL CONFIGURATION</div>
+    <div class="model-block">
+      <div class="model-row">
+        <span class="k">Provider</span>
+        <span class="v gold">Anthropic</span>
+      </div>
+      <div class="model-row">
+        <span class="k">Model</span>
+        <span class="v">claude-sonnet-4-6</span>
+      </div>
+      <div class="model-row">
+        <span class="k">Endpoint</span>
+        <span class="v" style="font-size:10px">api.anthropic.com</span>
+      </div>
+      <div class="model-row">
+        <span class="k">Latency</span>
+        <span class="v" style="color:#49c27d">142ms avg</span>
+      </div>
+      <div class="model-row">
+        <span class="k">Token Budget</span>
+        <span class="v">128k context</span>
+      </div>
+    </div>
+    <div class="platform-grid" style="margin-top:16px">
+      <div class="platform-item"><div class="status on"></div><span class="name active">CLI</span></div>
+      <div class="platform-item"><div class="status on"></div><span class="name active">Telegram</span></div>
+      <div class="platform-item"><div class="status off"></div><span class="name">Discord</span></div>
+      <div class="platform-item"><div class="status off"></div><span class="name">Matrix</span></div>
+      <div class="platform-item"><div class="status on"></div><span class="name active">Web UI</span></div>
+      <div class="platform-item"><div class="status off"></div><span class="name">Webhook</span></div>
+    </div>
+  </div>
+
+  <!-- Mission Log -->
+  <div class="panel" style="grid-column: 1 / 3;">
+    <div class="panel-label">
+      MISSION LOG
+      <span class="live">STREAMING</span>
+    </div>
+    <div class="mission-log">
+      <div class="log-entry">
+        <span class="log-time">14:31:42</span>
+        <span class="log-type session">SESSION</span>
+        <span class="log-msg">New session initiated via Telegram — user:redwood</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">14:31:38</span>
+        <span class="log-type tool">TOOL</span>
+        <span class="log-msg">file_read executed — /src/agents/dreamer.cs (247 lines)</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">14:31:35</span>
+        <span class="log-type llm">LLM</span>
+        <span class="log-msg">Completion received — 1,247 tokens in 1.8s — claude-sonnet-4-6</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">14:31:30</span>
+        <span class="log-type tool">TOOL</span>
+        <span class="log-msg">web_search executed — "WinUI 3 custom navigation styling"</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">14:31:22</span>
+        <span class="log-type sys">SYS</span>
+        <span class="log-msg">Dreamer walk #847 completed — phase: contemplation</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">14:31:15</span>
+        <span class="log-type session">SESSION</span>
+        <span class="log-msg">CLI session resumed — session_abc123</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">14:30:58</span>
+        <span class="log-type llm">LLM</span>
+        <span class="log-msg">Completion received — 832 tokens in 1.2s — claude-sonnet-4-6</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">14:30:44</span>
+        <span class="log-type tool">TOOL</span>
+        <span class="log-msg">memory_recall — retrieved 3 relevant fragments (score > 0.82)</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">14:30:30</span>
+        <span class="log-type sys">SYS</span>
+        <span class="log-msg">Gateway heartbeat OK — all platforms nominal</span>
+      </div>
+      <div class="log-entry">
+        <span class="log-time">14:30:12</span>
+        <span class="log-type tool">TOOL</span>
+        <span class="log-msg">wiki_search — "authentication flow" — 2 results</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Paths -->
+  <div class="panel">
+    <div class="panel-label">SYSTEM</div>
+    <div class="model-block">
+      <div class="model-row">
+        <span class="k">Version</span>
+        <span class="v gold">v0.9.0</span>
+      </div>
+      <div class="model-row">
+        <span class="k">Uptime</span>
+        <span class="v">4h 23m</span>
+      </div>
+      <div class="model-row">
+        <span class="k">Soul</span>
+        <span class="v" style="color:#ffd700">Hermes-Default</span>
+      </div>
+      <div class="model-row">
+        <span class="k">Memory</span>
+        <span class="v">142 fragments</span>
+      </div>
+      <div class="model-row">
+        <span class="k">Home</span>
+        <span class="v" style="font-size:9px; color:#4a5565">%LOCALAPPDATA%\Hermes</span>
+      </div>
+    </div>
+    <div style="margin-top:16px; display:flex; gap:8px;">
+      <button style="background:#1a2030; border:1px solid #2a3545; color:#7a8595; padding:6px 14px; font-family:'JetBrains Mono'; font-size:10px; cursor:pointer; border-radius:3px;">OPEN LOGS</button>
+      <button style="background:#1a2030; border:1px solid #2a3545; color:#7a8595; padding:6px 14px; font-family:'JetBrains Mono'; font-size:10px; cursor:pointer; border-radius:3px;">CONFIG</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Telemetry Bar -->
+<div class="telemetry-bar">
+  <div class="item"><div class="status-dot"></div> <span class="val">AGENT ONLINE</span></div>
+  <div class="item">UPTIME: <span class="val">4h 23m 17s</span></div>
+  <div class="item">TOKENS: <span class="val">47,832 today</span></div>
+  <div class="item">COST: <span class="val">$2.14</span></div>
+  <div class="item">MEMORY: <span class="val">142 frags</span></div>
+  <div class="item">MODEL: <span class="val">claude-sonnet-4-6</span></div>
+  <div class="spacer" style="flex:1"></div>
+  <div class="item">v0.9.0</div>
+</div>
+
+<script>
+// Animate clock
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toISOString().slice(11,19) + ' UTC';
+}
+setInterval(updateClock, 1000);
+
+// Signal trace animation
+const canvas = document.getElementById('signalCanvas');
+const ctx = canvas.getContext('2d');
+let t = 0;
+
+function resizeCanvas() {
+  canvas.width = canvas.offsetWidth * 2;
+  canvas.height = canvas.offsetHeight * 2;
+  ctx.scale(2, 2);
+}
+resizeCanvas();
+
+function drawSignal() {
+  const w = canvas.offsetWidth;
+  const h = canvas.offsetHeight;
+  ctx.clearRect(0, 0, w, h);
+
+  ctx.beginPath();
+  ctx.strokeStyle = '#d4a01760';
+  ctx.lineWidth = 1.5;
+  for (let x = 0; x < w; x++) {
+    const y = h/2 + Math.sin((x + t) * 0.03) * 15
+      + Math.sin((x + t) * 0.07) * 8
+      + Math.sin((x + t) * 0.15) * 4;
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Second trace
+  ctx.beginPath();
+  ctx.strokeStyle = '#49c27d30';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < w; x++) {
+    const y = h/2 + Math.cos((x + t*0.7) * 0.04) * 12
+      + Math.sin((x + t*1.2) * 0.09) * 6;
+    x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  t += 1.5;
+  requestAnimationFrame(drawSignal);
+}
+drawSignal();
+</script>
+</body>
+</html>

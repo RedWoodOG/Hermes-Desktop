@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes — Terminal</title>
+<link href="https://fonts.googleapis.com/css2?family=Cascadia+Code:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0a0a0c;
+  color: #8a8a8e;
+  font-family: 'JetBrains Mono', 'Cascadia Code', monospace;
+  font-size: 12px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─── Top Bar ─── */
+.top-bar {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid #1a1a1e;
+  height: 36px;
+  padding: 0 16px;
+  background: #0d0d10;
+}
+.brand {
+  font-weight: 700;
+  font-size: 11px;
+  color: #d4a017;
+  letter-spacing: 3px;
+  margin-right: 24px;
+}
+.nav-tabs {
+  display: flex;
+  height: 100%;
+}
+.nav-tab {
+  padding: 0 14px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #3a3a40;
+  cursor: pointer;
+  border-bottom: 1px solid transparent;
+  transition: all 0.15s;
+}
+.nav-tab:hover { color: #6a6a70; }
+.nav-tab.active {
+  color: #d4a017;
+  border-bottom-color: #d4a017;
+}
+.nav-tab .key {
+  color: #2a2a30;
+  font-size: 9px;
+}
+.spacer { flex: 1; }
+.top-status {
+  font-size: 10px;
+  color: #2a2a30;
+}
+
+/* ─── Main Grid ─── */
+.main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  grid-template-rows: auto auto 1fr auto;
+  overflow: hidden;
+}
+
+/* ─── Cells ─── */
+.cell {
+  border-right: 1px solid #141416;
+  border-bottom: 1px solid #141416;
+  padding: 12px 16px;
+}
+.cell:last-child { border-right: none; }
+.cell-header {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: #2a2a30;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* ─── Metric Cells ─── */
+.metric {
+  display: flex;
+  flex-direction: column;
+}
+.metric-value {
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.metric-value.gold { color: #d4a017; }
+.metric-value.green { color: #49c27d; }
+.metric-value.purple { color: #818cf8; }
+.metric-value.white { color: #c0c0c4; }
+.metric-sub {
+  font-size: 10px;
+  color: #2a2a30;
+}
+
+/* ─── Status Grid ─── */
+.status-grid {
+  grid-column: 1 / 5;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  border-bottom: 1px solid #141416;
+}
+.status-cell {
+  padding: 10px 12px;
+  border-right: 1px solid #141416;
+  text-align: center;
+}
+.status-cell:last-child { border-right: none; }
+.status-name {
+  font-size: 9px;
+  color: #2a2a30;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+}
+.status-indicator.on {
+  background: #49c27d;
+  box-shadow: 0 0 6px #49c27d66;
+}
+.status-indicator.off {
+  background: #1a1a1e;
+  border: 1px solid #2a2a30;
+}
+.status-indicator.warn {
+  background: #d4a017;
+  box-shadow: 0 0 6px #d4a01766;
+}
+
+/* ─── Log Feed ─── */
+.log-area {
+  grid-column: 1 / 4;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.log-feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 12px;
+}
+.log-line {
+  display: flex;
+  gap: 8px;
+  line-height: 1.9;
+  white-space: nowrap;
+}
+.log-ts { color: #1a1a20; }
+.log-level { width: 40px; text-align: right; }
+.log-level.info { color: #3a3a40; }
+.log-level.ok { color: #49c27d; }
+.log-level.warn { color: #d4a017; }
+.log-level.err { color: #e05555; }
+.log-level.tool { color: #818cf8; }
+.log-sep { color: #1a1a20; }
+.log-body { color: #5a5a60; }
+.log-body .highlight { color: #8a8a8e; }
+.log-body .gold { color: #d4a017; }
+.log-body .green { color: #49c27d; }
+
+/* ─── Side Panel ─── */
+.side-panel {
+  grid-row: 3 / 5;
+  border-left: 1px solid #141416;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.panel-section {
+  padding: 12px 16px;
+  border-bottom: 1px solid #141416;
+}
+.kv-row {
+  display: flex;
+  justify-content: space-between;
+  line-height: 1.8;
+}
+.kv-row .k { color: #2a2a30; }
+.kv-row .v { color: #5a5a60; }
+.kv-row .v.gold { color: #d4a017; }
+.kv-row .v.green { color: #49c27d; }
+
+/* ─── Session Tree ─── */
+.session-tree {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 12px;
+}
+.tree-node {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.8;
+  cursor: pointer;
+}
+.tree-node:hover .tree-label { color: #8a8a8e; }
+.tree-branch {
+  color: #1a1a20;
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+.tree-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.tree-dot.live { background: #49c27d; }
+.tree-dot.idle { background: #d4a017; }
+.tree-dot.dead { background: #1a1a20; }
+.tree-label { color: #3a3a40; font-size: 11px; }
+.tree-meta { color: #1a1a20; font-size: 10px; }
+
+/* ─── Bottom Bar ─── */
+.bottom-bar {
+  grid-column: 1 / 4;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  height: 28px;
+  border-top: 1px solid #141416;
+  gap: 16px;
+  font-size: 10px;
+  color: #1a1a20;
+}
+.bottom-bar .val { color: #3a3a40; }
+.bottom-bar .dot {
+  width: 5px; height: 5px;
+  background: #49c27d;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #1a1a20; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="top-bar">
+  <span class="brand">HERMES</span>
+  <div class="nav-tabs">
+    <div class="nav-tab active">STATUS <span class="key">^1</span></div>
+    <div class="nav-tab">SESSIONS <span class="key">^2</span></div>
+    <div class="nav-tab">LOGS <span class="key">^3</span></div>
+    <div class="nav-tab">SKILLS <span class="key">^4</span></div>
+    <div class="nav-tab">MEMORY <span class="key">^5</span></div>
+    <div class="nav-tab">CONFIG <span class="key">^6</span></div>
+    <div class="nav-tab">KEYS <span class="key">^7</span></div>
+  </div>
+  <div class="spacer"></div>
+  <div class="top-status" id="clock">14:32:07</div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- Metric Row -->
+  <div class="cell metric">
+    <div class="cell-header">sessions</div>
+    <div class="metric-value gold">3</div>
+    <div class="metric-sub">2 cli / 1 telegram</div>
+  </div>
+  <div class="cell metric">
+    <div class="cell-header">tools</div>
+    <div class="metric-value green">24</div>
+    <div class="metric-sub">all registered</div>
+  </div>
+  <div class="cell metric">
+    <div class="cell-header">skills</div>
+    <div class="metric-value purple">12</div>
+    <div class="metric-sub">3 active</div>
+  </div>
+  <div class="cell metric">
+    <div class="cell-header">llm</div>
+    <div class="metric-value white">OK</div>
+    <div class="metric-sub" style="color:#49c27d">142ms</div>
+  </div>
+
+  <!-- Status Grid -->
+  <div class="status-grid">
+    <div class="status-cell">
+      <div class="status-name">CLI</div>
+      <div class="status-indicator on"></div>
+    </div>
+    <div class="status-cell">
+      <div class="status-name">Telegram</div>
+      <div class="status-indicator on"></div>
+    </div>
+    <div class="status-cell">
+      <div class="status-name">Discord</div>
+      <div class="status-indicator off"></div>
+    </div>
+    <div class="status-cell">
+      <div class="status-name">Matrix</div>
+      <div class="status-indicator off"></div>
+    </div>
+    <div class="status-cell">
+      <div class="status-name">Web UI</div>
+      <div class="status-indicator on"></div>
+    </div>
+    <div class="status-cell">
+      <div class="status-name">Webhook</div>
+      <div class="status-indicator off"></div>
+    </div>
+    <div class="status-cell">
+      <div class="status-name">Dreamer</div>
+      <div class="status-indicator warn"></div>
+    </div>
+    <div class="status-cell">
+      <div class="status-name">Cron</div>
+      <div class="status-indicator on"></div>
+    </div>
+  </div>
+
+  <!-- Log Feed -->
+  <div class="log-area">
+    <div class="cell-header" style="padding: 12px 16px 4px;">event log</div>
+    <div class="log-feed">
+      <div class="log-line"><span class="log-ts">14:31:42</span><span class="log-level ok">OK</span><span class="log-sep">|</span><span class="log-body">session <span class="gold">tg-8f2a</span> initiated by <span class="highlight">redwood</span></span></div>
+      <div class="log-line"><span class="log-ts">14:31:38</span><span class="log-level tool">TOOL</span><span class="log-sep">|</span><span class="log-body">file_read <span class="highlight">/src/agents/dreamer.cs</span> 247 lines</span></div>
+      <div class="log-line"><span class="log-ts">14:31:35</span><span class="log-level info">LLM</span><span class="log-sep">|</span><span class="log-body">completion <span class="green">1247tok</span> 1.8s claude-sonnet-4-6</span></div>
+      <div class="log-line"><span class="log-ts">14:31:30</span><span class="log-level tool">TOOL</span><span class="log-sep">|</span><span class="log-body">web_search <span class="highlight">"WinUI 3 custom navigation"</span></span></div>
+      <div class="log-line"><span class="log-ts">14:31:22</span><span class="log-level warn">SYS</span><span class="log-sep">|</span><span class="log-body">dreamer walk <span class="gold">#847</span> phase:contemplation</span></div>
+      <div class="log-line"><span class="log-ts">14:31:15</span><span class="log-level ok">OK</span><span class="log-sep">|</span><span class="log-body">cli session <span class="highlight">abc123</span> resumed</span></div>
+      <div class="log-line"><span class="log-ts">14:30:58</span><span class="log-level info">LLM</span><span class="log-sep">|</span><span class="log-body">completion <span class="green">832tok</span> 1.2s claude-sonnet-4-6</span></div>
+      <div class="log-line"><span class="log-ts">14:30:44</span><span class="log-level tool">TOOL</span><span class="log-sep">|</span><span class="log-body">memory_recall 3 fragments score&gt;0.82</span></div>
+      <div class="log-line"><span class="log-ts">14:30:30</span><span class="log-level ok">OK</span><span class="log-sep">|</span><span class="log-body">gateway heartbeat nominal</span></div>
+      <div class="log-line"><span class="log-ts">14:30:12</span><span class="log-level tool">TOOL</span><span class="log-sep">|</span><span class="log-body">wiki_search <span class="highlight">"auth flow"</span> 2 results</span></div>
+      <div class="log-line"><span class="log-ts">14:29:55</span><span class="log-level info">LLM</span><span class="log-sep">|</span><span class="log-body">completion <span class="green">2103tok</span> 2.4s claude-sonnet-4-6</span></div>
+      <div class="log-line"><span class="log-ts">14:29:40</span><span class="log-level ok">OK</span><span class="log-sep">|</span><span class="log-body">skill <span class="gold">code-review</span> loaded</span></div>
+      <div class="log-line"><span class="log-ts">14:29:22</span><span class="log-level tool">TOOL</span><span class="log-sep">|</span><span class="log-body">file_write <span class="highlight">/views/Dashboard.xaml</span> 265 lines</span></div>
+      <div class="log-line"><span class="log-ts">14:29:08</span><span class="log-level err">ERR</span><span class="log-sep">|</span><span class="log-body">telegram gateway: WinError 87 parameter incorrect</span></div>
+      <div class="log-line"><span class="log-ts">14:28:55</span><span class="log-level warn">SYS</span><span class="log-sep">|</span><span class="log-body">gateway restart attempt 2/3</span></div>
+      <div class="log-line"><span class="log-ts">14:28:40</span><span class="log-level ok">OK</span><span class="log-sep">|</span><span class="log-body">config reload complete</span></div>
+    </div>
+  </div>
+
+  <!-- Side Panel -->
+  <div class="side-panel">
+    <div class="panel-section">
+      <div class="cell-header">system</div>
+      <div class="kv-row"><span class="k">version</span><span class="v gold">v0.9.0</span></div>
+      <div class="kv-row"><span class="k">uptime</span><span class="v">4h 23m</span></div>
+      <div class="kv-row"><span class="k">soul</span><span class="v gold">hermes-default</span></div>
+      <div class="kv-row"><span class="k">provider</span><span class="v">anthropic</span></div>
+      <div class="kv-row"><span class="k">model</span><span class="v">claude-sonnet-4-6</span></div>
+      <div class="kv-row"><span class="k">latency</span><span class="v green">142ms</span></div>
+      <div class="kv-row"><span class="k">tokens/day</span><span class="v">47,832</span></div>
+      <div class="kv-row"><span class="k">cost/day</span><span class="v">$2.14</span></div>
+      <div class="kv-row"><span class="k">memory</span><span class="v">142 frags</span></div>
+    </div>
+    <div class="panel-section">
+      <div class="cell-header">sessions</div>
+    </div>
+    <div class="session-tree">
+      <div class="tree-node">
+        <span class="tree-branch">&#x251C;</span>
+        <span><span class="tree-dot live"></span><span class="tree-label">ui-overhaul-discussion</span></span>
+        <span class="tree-meta">39t cli</span>
+      </div>
+      <div class="tree-node">
+        <span class="tree-branch">&#x251C;</span>
+        <span><span class="tree-dot live"></span><span class="tree-label">greeting-exchange</span></span>
+        <span class="tree-meta">39t cli</span>
+      </div>
+      <div class="tree-node">
+        <span class="tree-branch">&#x251C;</span>
+        <span><span class="tree-dot idle"></span><span class="tree-label">minimax-test-1</span></span>
+        <span class="tree-meta">2t mm</span>
+      </div>
+      <div class="tree-node">
+        <span class="tree-branch">&#x251C;</span>
+        <span><span class="tree-dot idle"></span><span class="tree-label">minimax-test-2</span></span>
+        <span class="tree-meta">2t mm</span>
+      </div>
+      <div class="tree-node">
+        <span class="tree-branch">&#x251C;</span>
+        <span><span class="tree-dot dead"></span><span class="tree-label">app-lifecycle-handler</span></span>
+        <span class="tree-meta">50t tg</span>
+      </div>
+      <div class="tree-node">
+        <span class="tree-branch">&#x2514;</span>
+        <span><span class="tree-dot dead"></span><span class="tree-label">integrations-view</span></span>
+        <span class="tree-meta">60t tg</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Bar -->
+  <div class="bottom-bar">
+    <span><span class="dot"></span><span class="val">ONLINE</span></span>
+    <span>UP <span class="val">4h23m</span></span>
+    <span>TOK <span class="val">47,832</span></span>
+    <span>COST <span class="val">$2.14</span></span>
+    <span>MEM <span class="val">142</span></span>
+    <span>MOD <span class="val">claude-sonnet-4-6</span></span>
+  </div>
+
+</div>
+
+<script>
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toTimeString().slice(0, 8);
+}
+setInterval(updateClock, 1000);
+</script>
+</body>
+</html>

@@ -1,0 +1,803 @@
+<!--
+  ══════════════════════════════════════════════════════════════
+  HERMES DESKTOP — UI/UX DESIGN TEMPLATE
+  Direction: "The Sanctum v2" — Brain Graph
+  Approved: 2026-04-14
+  ══════════════════════════════════════════════════════════════
+
+  DESIGN PRINCIPLES:
+  1. Project-specific constellation graph as the dashboard centerpiece
+  2. Nodes represent real entities: sessions, files, memories, tools, skills
+  3. Ghost workspace nodes at edges show connection to the larger brain
+  4. Glyph-based sidebar navigation with gold selection glow
+  5. Typography: Playfair Display (titles) + Inter (UI) + JetBrains Mono (data)
+  6. Ambient atmosphere — subtle gradients, pulsing nodes, organic movement
+  7. Buddy companion as persistent ambient presence (not siloed)
+  8. Dark theme with gold (#D4A017 / #FFD700) accent palette
+
+  COLOR SYSTEM:
+  - Background:     #0b0e14
+  - Surface:        #0e1218
+  - Card:           #0c1018
+  - Border:         #161c25
+  - Accent Gold:    #d4a017 / #ffd700
+  - Session Green:  #49c27d
+  - Memory Purple:  #818cf8
+  - Tool Orange:    #ff8a65
+  - Skill Red:      #e05555
+  - Ghost:          #2a3545
+  - Text Primary:   #eaeef4
+  - Text Secondary: #4a5565
+  - Text Muted:     #2a3545
+
+  TYPOGRAPHY:
+  - Page titles:    Playfair Display, 38px, weight 400
+  - Eyebrow:        JetBrains Mono, 10px, letter-spacing 4px, uppercase, gold
+  - Section titles: JetBrains Mono, 9px, letter-spacing 3px, uppercase
+  - Body:           Inter, 12-13px, weight 400-500
+  - Data/Mono:      JetBrains Mono, 9-12px
+  - Stat values:    Playfair Display, 28px, weight 400
+
+  NAVIGATION:
+  - 64px compact glyph sidebar
+  - Gold glow + left indicator bar on active item
+  - Tooltips on hover
+  - Unicode glyphs (not system icons)
+
+  GRAPH NODE SIZES:
+  - Project (center): 28px diameter
+  - Workspace (ghost): 18px
+  - Session: 14px
+  - Skill: 10px
+  - Memory: 10px
+  - Tool: 8px
+  - File: 6px
+  ══════════════════════════════════════════════════════════════
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes — The Sanctum v2 — Brain Graph</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0b0e14;
+  color: #d0d5dd;
+  font-family: 'Inter', sans-serif;
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ─── Ambient ─── */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 30% 70%, #d4a01706 0%, transparent 70%),
+    radial-gradient(ellipse 50% 50% at 70% 30%, #1a253506 0%, transparent 70%);
+  pointer-events: none;
+  animation: ambient 12s ease-in-out infinite alternate;
+}
+@keyframes ambient {
+  0% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* ─── Glyph Sidebar ─── */
+.sidebar {
+  width: 64px;
+  background: #080b10;
+  border-right: 1px solid #161c25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+  gap: 4px;
+  z-index: 10;
+}
+.sidebar-logo {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+}
+.sidebar-logo .glyph {
+  font-size: 22px; color: #d4a017;
+  filter: drop-shadow(0 0 8px #d4a01740);
+}
+.nav-glyph {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-radius: 12px;
+  transition: all 0.3s; position: relative;
+  color: #3a4555; font-size: 18px;
+}
+.nav-glyph:hover { color: #7a8595; background: #ffffff06; }
+.nav-glyph.active {
+  color: #ffd700; background: #d4a01710;
+  box-shadow: 0 0 20px #d4a01710;
+}
+.nav-glyph.active::after {
+  content: ''; position: absolute; left: -10px; top: 50%;
+  transform: translateY(-50%); width: 3px; height: 20px;
+  background: linear-gradient(180deg, #ffd700, #d4a017);
+  border-radius: 2px; box-shadow: 0 0 8px #d4a01760;
+}
+.nav-glyph .tooltip {
+  position: absolute; left: 58px; background: #1a2030;
+  border: 1px solid #2a3545; padding: 6px 12px; font-size: 11px;
+  white-space: nowrap; border-radius: 8px; color: #c0c8d4;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.nav-glyph:hover .tooltip { opacity: 1; }
+.sidebar-spacer { flex: 1; }
+
+/* ─── Main Content ─── */
+.content {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+/* ─── Header ─── */
+.page-header {
+  padding: 28px 48px 0;
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.header-left {}
+.page-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 4px; text-transform: uppercase;
+  color: #d4a017; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.page-eyebrow::before {
+  content: ''; width: 20px; height: 1px;
+  background: linear-gradient(90deg, #d4a017, transparent);
+}
+.page-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 38px; font-weight: 400; color: #eaeef4;
+}
+.page-subtitle {
+  font-size: 13px; color: #4a5565; margin-top: 4px; font-weight: 300;
+}
+
+/* Breadcrumb path */
+.brain-breadcrumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: #2a3545; margin-top: 12px;
+}
+.brain-breadcrumb .crumb { color: #3a4555; cursor: pointer; transition: color 0.2s; }
+.brain-breadcrumb .crumb:hover { color: #d4a017; }
+.brain-breadcrumb .crumb.current { color: #d4a017; }
+.brain-breadcrumb .sep { color: #1a2535; }
+
+/* Zoom control */
+.zoom-control {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding-top: 12px;
+}
+.zoom-btn {
+  width: 36px; height: 36px;
+  background: #0e1420; border: 1px solid #1a2535; border-radius: 10px;
+  color: #4a5565; font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; font-family: 'Inter';
+}
+.zoom-btn:hover { border-color: #d4a01740; color: #d4a017; }
+.zoom-btn.active { border-color: #d4a01760; color: #ffd700; background: #d4a01710; }
+.zoom-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px; letter-spacing: 1px; color: #2a3545; text-transform: uppercase;
+}
+
+/* ─── Brain Canvas Area ─── */
+.brain-area {
+  flex: 1; position: relative; overflow: hidden;
+  margin: 0 32px;
+}
+.brain-canvas {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+}
+
+/* ─── Bottom Panel ─── */
+.bottom-panel {
+  padding: 0 48px 24px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+
+/* Stat cards */
+.stat-row {
+  display: flex; gap: 12px;
+}
+.stat-card {
+  flex: 1;
+  background: #0e1218; border: 1px solid #161c25; border-radius: 14px;
+  padding: 16px 20px; position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent, #d4a01730), transparent);
+}
+.stat-card .label {
+  font-size: 10px; color: #3a4555; text-transform: uppercase; letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.stat-card .value {
+  font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 400;
+  color: var(--color, #eaeef4);
+}
+.stat-card .sub {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #2a3545; margin-top: 2px;
+}
+
+/* Activity */
+.activity-compact {
+  display: flex; flex-direction: column; gap: 3px;
+}
+.activity-item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  background: #0c1018; border: 1px solid #12181f; border-radius: 10px;
+  transition: all 0.2s; cursor: pointer;
+}
+.activity-item:hover { border-color: #1a2535; background: #0e1420; }
+.activity-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.activity-dot.live { background: #49c27d; box-shadow: 0 0 6px #49c27d44; }
+.activity-dot.idle { background: #d4a017; }
+.activity-dot.closed { background: #2a3545; }
+.activity-title { font-size: 12px; font-weight: 500; color: #8a95a5; flex: 1; }
+.activity-meta {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #2a3545;
+}
+
+/* ─── Buddy ─── */
+.buddy-ambient {
+  position: fixed; bottom: 20px; right: 24px;
+  text-align: center; z-index: 100; cursor: pointer; transition: transform 0.3s;
+}
+.buddy-ambient:hover { transform: translateY(-4px); }
+.buddy-art {
+  font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  color: #d4a01760; line-height: 1.1; transition: color 0.3s; white-space: pre;
+}
+.buddy-ambient:hover .buddy-art { color: #ffd700; }
+.buddy-mood { font-size: 9px; color: #2a3545; margin-top: 4px; }
+
+/* ─── Section header ─── */
+.section-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+}
+.section-title {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  letter-spacing: 3px; text-transform: uppercase; color: #3a4555;
+}
+.section-line { flex: 1; height: 1px; background: #161c2540; }
+
+/* ─── Legend ─── */
+.graph-legend {
+  position: absolute; bottom: 12px; left: 16px;
+  display: flex; gap: 16px; z-index: 10;
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+}
+.legend-item {
+  display: flex; align-items: center; gap: 5px; color: #2a3545;
+}
+.legend-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+
+/* Mini brain map */
+.minimap {
+  position: absolute; top: 12px; right: 16px; z-index: 10;
+  width: 120px; height: 80px;
+  background: #080b1080; border: 1px solid #161c25;
+  border-radius: 8px; overflow: hidden;
+  cursor: pointer; transition: all 0.2s;
+}
+.minimap:hover { border-color: #d4a01740; }
+.minimap-label {
+  position: absolute; bottom: 4px; right: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 7px; letter-spacing: 1px; color: #2a3545; text-transform: uppercase;
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo"><span class="glyph">&#x2727;</span></div>
+  <div class="nav-glyph active">&#x2302;<span class="tooltip">Dashboard</span></div>
+  <div class="nav-glyph">&#x2709;<span class="tooltip">Chat</span></div>
+  <div class="nav-glyph">&#x2605;<span class="tooltip">Agent</span></div>
+  <div class="nav-glyph">&#x2726;<span class="tooltip">Skills</span></div>
+  <div class="nav-glyph">&#x25C7;<span class="tooltip">Memory</span></div>
+  <div class="nav-glyph">&#x263C;<span class="tooltip">Buddy</span></div>
+  <div class="nav-glyph">&#x2194;<span class="tooltip">Integrations</span></div>
+  <div class="sidebar-spacer"></div>
+  <div class="nav-glyph">&#x2699;<span class="tooltip">Settings</span></div>
+</div>
+
+<!-- Main -->
+<div class="content">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <div class="page-eyebrow">THE CROSSROADS</div>
+      <div class="page-title">Hermes.CS</div>
+      <div class="page-subtitle">workspace-han &mdash; 3 active sessions &mdash; v0.9.0</div>
+      <div class="brain-breadcrumb">
+        <span class="crumb">BRAIN</span>
+        <span class="sep">&#x25B8;</span>
+        <span class="crumb">workspace-han</span>
+        <span class="sep">&#x25B8;</span>
+        <span class="crumb current">Hermes.CS</span>
+      </div>
+    </div>
+    <div class="zoom-control">
+      <div class="zoom-btn" title="Zoom out to full brain" id="btnBrain">&#x2B1A;</div>
+      <div class="zoom-btn active" title="Project view" id="btnProject">&#x2B25;</div>
+      <div class="zoom-label">SCOPE</div>
+    </div>
+  </div>
+
+  <!-- Brain Graph Canvas -->
+  <div class="brain-area">
+    <canvas class="brain-canvas" id="brainCanvas"></canvas>
+
+    <!-- Legend -->
+    <div class="graph-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#d4a017"></div> project</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#49c27d"></div> session</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#818cf8"></div> memory</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ff8a65"></div> tool</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e05555"></div> skill</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2a3545"></div> other workspace</div>
+    </div>
+
+    <!-- Minimap -->
+    <div class="minimap" id="minimap" title="Click to zoom out to full brain">
+      <canvas id="minimapCanvas" width="120" height="80"></canvas>
+      <div class="minimap-label">FULL BRAIN</div>
+    </div>
+  </div>
+
+  <!-- Bottom -->
+  <div class="bottom-panel">
+    <div>
+      <div class="section-header">
+        <span class="section-title">Project Vitals</span>
+        <div class="section-line"></div>
+      </div>
+      <div class="stat-row">
+        <div class="stat-card" style="--accent:#ffd70030; --color:#ffd700;">
+          <div class="label">Sessions</div>
+          <div class="value">3</div>
+          <div class="sub">2 cli &bull; 1 telegram</div>
+        </div>
+        <div class="stat-card" style="--accent:#49c27d30; --color:#49c27d;">
+          <div class="label">Tools</div>
+          <div class="value">24</div>
+          <div class="sub">8 fs &bull; 6 web &bull; 10 custom</div>
+        </div>
+        <div class="stat-card" style="--accent:#818cf830; --color:#818cf8;">
+          <div class="label">Memories</div>
+          <div class="value">142</div>
+          <div class="sub">18 this project</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="section-header">
+        <span class="section-title">Recent Journeys</span>
+        <div class="section-line"></div>
+      </div>
+      <div class="activity-compact">
+        <div class="activity-item">
+          <div class="activity-dot live"></div>
+          <span class="activity-title">UI/UX overhaul mockups</span>
+          <span class="activity-meta">39t &bull; now</span>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot idle"></div>
+          <span class="activity-title">Greeting exchange</span>
+          <span class="activity-meta">39t &bull; 5d</span>
+        </div>
+        <div class="activity-item">
+          <div class="activity-dot closed"></div>
+          <span class="activity-title">App lifecycle handler</span>
+          <span class="activity-meta">50t &bull; 11d</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Buddy -->
+<div class="buddy-ambient">
+  <div class="buddy-art"> /\_/\
+( o.o )
+ > ^ <</div>
+  <div class="buddy-mood">curious</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+// BRAIN GRAPH — project-specific constellation
+// that's visually part of a larger neural network
+// ══════════════════════════════════════════
+
+const canvas = document.getElementById('brainCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, dpr;
+let time = 0;
+
+// Node types
+const NODE_TYPES = {
+  project:  { color: '#d4a017', glow: '#d4a01730', size: 28 },
+  session:  { color: '#49c27d', glow: '#49c27d20', size: 14 },
+  memory:   { color: '#818cf8', glow: '#818cf820', size: 10 },
+  tool:     { color: '#ff8a65', glow: '#ff8a6520', size: 8 },
+  skill:    { color: '#e05555', glow: '#e0555520', size: 10 },
+  workspace:{ color: '#2a3545', glow: '#2a354510', size: 18 },
+  file:     { color: '#5a7555', glow: '#5a755520', size: 6 },
+};
+
+// ── Project-level nodes ──
+const projectNodes = [];
+const projectEdges = [];
+
+function buildProjectGraph() {
+  const cx = 0, cy = 0;
+
+  // Center: current project
+  projectNodes.push({
+    id: 'hermes-cs', type: 'project', label: 'Hermes.CS',
+    x: cx, y: cy, baseX: cx, baseY: cy,
+    sublabel: 'v0.9.0 · ONLINE'
+  });
+
+  // Sessions (inner ring, top)
+  const sessions = [
+    { id: 's1', label: 'UI Overhaul', sub: '39 turns · active' },
+    { id: 's2', label: 'Greeting', sub: '39 turns · 5d ago' },
+    { id: 's3', label: 'Lifecycle', sub: '50 turns · telegram' },
+  ];
+  sessions.forEach((s, i) => {
+    const angle = -Math.PI/2 + (i - 1) * 0.7;
+    const r = 140;
+    projectNodes.push({
+      id: s.id, type: 'session', label: s.label,
+      x: cx + Math.cos(angle)*r, y: cy + Math.sin(angle)*r,
+      baseX: cx + Math.cos(angle)*r, baseY: cy + Math.sin(angle)*r,
+      sublabel: s.sub
+    });
+    projectEdges.push({ from: 'hermes-cs', to: s.id, strength: 0.8 });
+  });
+
+  // Memories (right cluster)
+  const memories = [
+    { id: 'm1', label: 'Soul config' },
+    { id: 'm2', label: 'User prefs' },
+    { id: 'm3', label: 'Architecture' },
+    { id: 'm4', label: 'WinUI patterns' },
+    { id: 'm5', label: 'Dreamer logic' },
+  ];
+  memories.forEach((m, i) => {
+    const angle = 0.3 + (i - 2) * 0.45;
+    const r = 160 + (i % 2) * 40;
+    projectNodes.push({
+      id: m.id, type: 'memory', label: m.label,
+      x: cx + Math.cos(angle)*r, y: cy + Math.sin(angle)*r,
+      baseX: cx + Math.cos(angle)*r, baseY: cy + Math.sin(angle)*r,
+    });
+    projectEdges.push({ from: 'hermes-cs', to: m.id, strength: 0.4 });
+  });
+  projectEdges.push({ from: 'm1', to: 'm2', strength: 0.2 });
+  projectEdges.push({ from: 'm3', to: 'm4', strength: 0.3 });
+  projectEdges.push({ from: 'm4', to: 'm5', strength: 0.15 });
+
+  // Tools (bottom-left cluster)
+  const tools = [
+    { id: 't1', label: 'file_read' },
+    { id: 't2', label: 'file_write' },
+    { id: 't3', label: 'web_search' },
+    { id: 't4', label: 'memory_recall' },
+    { id: 't5', label: 'wiki_search' },
+    { id: 't6', label: 'code_exec' },
+  ];
+  tools.forEach((t, i) => {
+    const angle = Math.PI - 0.8 + i * 0.32;
+    const r = 140 + (i % 3) * 30;
+    projectNodes.push({
+      id: t.id, type: 'tool', label: t.label,
+      x: cx + Math.cos(angle)*r, y: cy + Math.sin(angle)*r,
+      baseX: cx + Math.cos(angle)*r, baseY: cy + Math.sin(angle)*r,
+    });
+    projectEdges.push({ from: 'hermes-cs', to: t.id, strength: 0.3 });
+  });
+  projectEdges.push({ from: 's1', to: 't1', strength: 0.5 });
+  projectEdges.push({ from: 's1', to: 't3', strength: 0.4 });
+  projectEdges.push({ from: 's3', to: 't2', strength: 0.3 });
+  projectEdges.push({ from: 's1', to: 't4', strength: 0.3 });
+
+  // Skills (bottom-right)
+  const skills = [
+    { id: 'sk1', label: 'code-review' },
+    { id: 'sk2', label: 'dreamer' },
+    { id: 'sk3', label: 'summarize' },
+  ];
+  skills.forEach((s, i) => {
+    const angle = Math.PI/2 + 0.5 + i * 0.5;
+    const r = 155;
+    projectNodes.push({
+      id: s.id, type: 'skill', label: s.label,
+      x: cx + Math.cos(angle)*r, y: cy + Math.sin(angle)*r,
+      baseX: cx + Math.cos(angle)*r, baseY: cy + Math.sin(angle)*r,
+    });
+    projectEdges.push({ from: 'hermes-cs', to: s.id, strength: 0.5 });
+  });
+  projectEdges.push({ from: 'sk2', to: 'm5', strength: 0.4 });
+
+  // Ghost workspaces (the "larger brain")
+  const ghosts = [
+    { id: 'ws1', label: 'a9n-wiki', x: -380, y: -180 },
+    { id: 'ws2', label: 'openclaw-core', x: -340, y: 140 },
+    { id: 'ws3', label: 'aegis-desktop', x: 350, y: -160 },
+    { id: 'ws4', label: 'hermes-py', x: 380, y: 120 },
+    { id: 'ws5', label: 'atomic-bot', x: -100, y: 260 },
+    { id: 'ws6', label: 'factory', x: 200, y: 250 },
+  ];
+  ghosts.forEach(g => {
+    projectNodes.push({
+      id: g.id, type: 'workspace', label: g.label,
+      x: g.x, y: g.y, baseX: g.x, baseY: g.y,
+      ghost: true
+    });
+    projectEdges.push({ from: 'hermes-cs', to: g.id, strength: 0.1 });
+  });
+  projectEdges.push({ from: 'ws4', to: 'hermes-cs', strength: 0.15 });
+  projectEdges.push({ from: 'ws1', to: 'ws2', strength: 0.05 });
+  projectEdges.push({ from: 'ws3', to: 'ws4', strength: 0.08 });
+  projectEdges.push({ from: 'ws5', to: 'ws6', strength: 0.05 });
+  projectEdges.push({ from: 'ws2', to: 'ws5', strength: 0.06 });
+
+  // Recent files
+  const files = [
+    { id: 'f1', label: 'App.xaml', angle: -1.8, r: 80 },
+    { id: 'f2', label: 'Dashboard.xaml', angle: -2.2, r: 90 },
+    { id: 'f3', label: 'MainWindow.xaml', angle: -1.4, r: 85 },
+    { id: 'f4', label: 'ChatPage.xaml', angle: -2.5, r: 75 },
+  ];
+  files.forEach(f => {
+    projectNodes.push({
+      id: f.id, type: 'file', label: f.label,
+      x: cx + Math.cos(f.angle)*f.r, y: cy + Math.sin(f.angle)*f.r,
+      baseX: cx + Math.cos(f.angle)*f.r, baseY: cy + Math.sin(f.angle)*f.r,
+    });
+    projectEdges.push({ from: 'hermes-cs', to: f.id, strength: 0.2 });
+  });
+  projectEdges.push({ from: 's1', to: 'f1', strength: 0.3 });
+  projectEdges.push({ from: 's1', to: 'f2', strength: 0.4 });
+}
+
+buildProjectGraph();
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = canvas.offsetWidth;
+  H = canvas.offsetHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+function getNode(id) {
+  return projectNodes.find(n => n.id === id);
+}
+
+function animateNodes() {
+  projectNodes.forEach((n, i) => {
+    const speed = 0.0003 + (i % 5) * 0.0001;
+    const amp = n.type === 'project' ? 2 : (n.ghost ? 3 : 5);
+    n.x = n.baseX + Math.sin(time * speed + i * 1.7) * amp;
+    n.y = n.baseY + Math.cos(time * speed * 0.7 + i * 2.3) * amp;
+  });
+}
+
+function draw() {
+  time++;
+  animateNodes();
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(W/2, H/2);
+
+  // Edges
+  projectEdges.forEach(e => {
+    const a = getNode(e.from);
+    const b = getNode(e.to);
+    if (!a || !b) return;
+
+    const isGhost = a.ghost || b.ghost;
+    const baseAlpha = isGhost ? e.strength * 0.4 : e.strength * 0.5;
+    const isActive = (a.type === 'session' && a.id === 's1') ||
+                     (b.type === 'session' && b.id === 's1');
+
+    ctx.beginPath();
+    ctx.moveTo(a.x, a.y);
+    const mx = (a.x + b.x) / 2 + (a.y - b.y) * 0.1;
+    const my = (a.y + b.y) / 2 + (b.x - a.x) * 0.1;
+    ctx.quadraticCurveTo(mx, my, b.x, b.y);
+
+    if (isActive) {
+      const pulse = 0.3 + Math.sin(time * 0.03) * 0.15;
+      ctx.strokeStyle = `rgba(212, 160, 23, ${baseAlpha + pulse})`;
+      ctx.lineWidth = 1.5;
+    } else {
+      const type = NODE_TYPES[a.type] || NODE_TYPES[b.type];
+      const col = type ? type.color : '#2a3545';
+      ctx.strokeStyle = hexToRgba(col, baseAlpha);
+      ctx.lineWidth = isGhost ? 0.5 : 1;
+    }
+    ctx.stroke();
+  });
+
+  // Nodes
+  projectNodes.forEach(n => {
+    const type = NODE_TYPES[n.type];
+    const size = type.size;
+    const isCenter = n.type === 'project';
+    const isGhost = n.ghost;
+
+    if (!isGhost) {
+      const grad = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, size * 2.5);
+      grad.addColorStop(0, type.glow);
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.fillRect(n.x - size*3, n.y - size*3, size*6, size*6);
+    }
+
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, size / 2, 0, Math.PI * 2);
+
+    if (isCenter) {
+      const pulse = 0.7 + Math.sin(time * 0.02) * 0.3;
+      ctx.fillStyle = hexToRgba(type.color, pulse * 0.3);
+      ctx.fill();
+      ctx.strokeStyle = hexToRgba(type.color, pulse * 0.6);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, size / 5, 0, Math.PI * 2);
+      ctx.fillStyle = hexToRgba(type.color, pulse);
+      ctx.fill();
+    } else if (isGhost) {
+      ctx.fillStyle = hexToRgba(type.color, 0.15);
+      ctx.fill();
+      ctx.strokeStyle = hexToRgba(type.color, 0.2);
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = hexToRgba(type.color, 0.25);
+      ctx.fill();
+      ctx.strokeStyle = hexToRgba(type.color, 0.5);
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    const showLabel = isCenter || n.type === 'session' || n.type === 'workspace' ||
+                      n.type === 'skill' || (n.type === 'memory' && size >= 10);
+    if (showLabel) {
+      ctx.font = isCenter
+        ? "600 12px 'JetBrains Mono', monospace"
+        : isGhost
+          ? "400 9px 'JetBrains Mono', monospace"
+          : "500 9px 'Inter', sans-serif";
+      ctx.fillStyle = isGhost
+        ? hexToRgba(type.color, 0.3)
+        : hexToRgba('#c0c8d4', isCenter ? 1 : 0.7);
+      ctx.textAlign = 'center';
+      ctx.fillText(n.label, n.x, n.y + size/2 + 14);
+
+      if (n.sublabel && !isGhost) {
+        ctx.font = "400 8px 'JetBrains Mono', monospace";
+        ctx.fillStyle = hexToRgba('#4a5565', 0.7);
+        ctx.fillText(n.sublabel, n.x, n.y + size/2 + 26);
+      }
+    }
+  });
+
+  // Data flow particles
+  projectEdges.forEach(e => {
+    const a = getNode(e.from);
+    const b = getNode(e.to);
+    if (!a || !b) return;
+    if (a.ghost || b.ghost) return;
+    if (e.strength < 0.3) return;
+
+    const progress = (time * 0.005 * e.strength + e.strength * 100) % 1;
+    const px = a.x + (b.x - a.x) * progress;
+    const py = a.y + (b.y - a.y) * progress;
+
+    ctx.beginPath();
+    ctx.arc(px, py, 1.5, 0, Math.PI * 2);
+    const type = NODE_TYPES[b.type] || NODE_TYPES[a.type];
+    ctx.fillStyle = hexToRgba(type.color, 0.6);
+    ctx.fill();
+  });
+
+  ctx.restore();
+  requestAnimationFrame(draw);
+}
+
+function hexToRgba(hex, alpha) {
+  const r = parseInt(hex.slice(1,3), 16);
+  const g = parseInt(hex.slice(3,5), 16);
+  const b = parseInt(hex.slice(5,7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+draw();
+
+// Minimap
+const mmCanvas = document.getElementById('minimapCanvas');
+const mmCtx = mmCanvas.getContext('2d');
+
+function drawMinimap() {
+  mmCtx.clearRect(0, 0, 120, 80);
+  const scale = 0.12;
+  const ox = 60, oy = 40;
+
+  projectEdges.forEach(e => {
+    const a = getNode(e.from);
+    const b = getNode(e.to);
+    if (!a || !b) return;
+    mmCtx.beginPath();
+    mmCtx.moveTo(ox + a.baseX * scale, oy + a.baseY * scale);
+    mmCtx.lineTo(ox + b.baseX * scale, oy + b.baseY * scale);
+    mmCtx.strokeStyle = 'rgba(42,53,69,0.3)';
+    mmCtx.lineWidth = 0.5;
+    mmCtx.stroke();
+  });
+
+  projectNodes.forEach(n => {
+    const type = NODE_TYPES[n.type];
+    const px = ox + n.baseX * scale;
+    const py = oy + n.baseY * scale;
+    const sz = n.type === 'project' ? 3 : (n.ghost ? 2 : 1.5);
+    mmCtx.beginPath();
+    mmCtx.arc(px, py, sz, 0, Math.PI * 2);
+    mmCtx.fillStyle = hexToRgba(type.color, n.ghost ? 0.3 : 0.6);
+    mmCtx.fill();
+  });
+
+  mmCtx.strokeStyle = '#d4a01740';
+  mmCtx.lineWidth = 1;
+  mmCtx.strokeRect(ox - 25, oy - 18, 50, 36);
+
+  requestAnimationFrame(drawMinimap);
+}
+drawMinimap();
+
+// Zoom toggle
+document.getElementById('btnBrain').addEventListener('click', () => {
+  document.getElementById('btnBrain').classList.add('active');
+  document.getElementById('btnProject').classList.remove('active');
+});
+document.getElementById('btnProject').addEventListener('click', () => {
+  document.getElementById('btnProject').classList.add('active');
+  document.getElementById('btnBrain').classList.remove('active');
+});
+</script>
+</body>
+</html>

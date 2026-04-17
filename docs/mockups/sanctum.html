@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes — The Sanctum</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0b0e14;
+  color: #d0d5dd;
+  font-family: 'Inter', sans-serif;
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ─── Ambient background ─── */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 80%, #d4a01708 0%, transparent 70%),
+    radial-gradient(ellipse 60% 80% at 80% 20%, #1a253508 0%, transparent 70%);
+  pointer-events: none;
+  animation: ambient 12s ease-in-out infinite alternate;
+}
+@keyframes ambient {
+  0% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+/* ─── Glyph Sidebar ─── */
+.sidebar {
+  width: 64px;
+  background: #080b10;
+  border-right: 1px solid #161c25;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+  gap: 4px;
+  z-index: 10;
+}
+.sidebar-logo {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  position: relative;
+}
+.sidebar-logo .glyph {
+  font-size: 22px;
+  color: #d4a017;
+  filter: drop-shadow(0 0 8px #d4a01740);
+}
+
+.nav-glyph {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 12px;
+  transition: all 0.3s;
+  position: relative;
+  color: #3a4555;
+  font-size: 18px;
+}
+.nav-glyph:hover {
+  color: #7a8595;
+  background: #ffffff06;
+}
+.nav-glyph.active {
+  color: #ffd700;
+  background: #d4a01710;
+  box-shadow: 0 0 20px #d4a01710;
+}
+.nav-glyph.active::after {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 20px;
+  background: linear-gradient(180deg, #ffd700, #d4a017);
+  border-radius: 2px;
+  box-shadow: 0 0 8px #d4a01760;
+}
+.nav-glyph .tooltip {
+  position: absolute;
+  left: 58px;
+  background: #1a2030;
+  border: 1px solid #2a3545;
+  padding: 6px 12px;
+  font-size: 11px;
+  white-space: nowrap;
+  border-radius: 8px;
+  color: #c0c8d4;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+.nav-glyph:hover .tooltip { opacity: 1; }
+
+.sidebar-spacer { flex: 1; }
+
+/* ─── Main Content ─── */
+.content {
+  flex: 1;
+  padding: 40px 48px;
+  overflow-y: auto;
+}
+
+/* ─── Page Header ─── */
+.page-header {
+  margin-bottom: 40px;
+}
+.page-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: #d4a017;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.page-eyebrow::before {
+  content: '';
+  width: 20px;
+  height: 1px;
+  background: linear-gradient(90deg, #d4a017, transparent);
+}
+.page-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 42px;
+  font-weight: 400;
+  color: #eaeef4;
+  letter-spacing: -0.5px;
+}
+.page-subtitle {
+  font-size: 14px;
+  color: #4a5565;
+  margin-top: 6px;
+  font-weight: 300;
+}
+
+/* ─── Constellation Status ─── */
+.constellation {
+  position: relative;
+  height: 320px;
+  margin: 0 auto 40px;
+  max-width: 900px;
+}
+.constellation-bg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  border: 1px solid #1a202a;
+  opacity: 0.4;
+}
+.constellation-bg.inner {
+  width: 160px;
+  height: 160px;
+}
+.constellation-bg.outer {
+  width: 400px;
+  height: 400px;
+}
+
+/* Center node */
+.center-node {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 5;
+}
+.center-orb {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffd70030, #d4a01710, transparent);
+  border: 1px solid #d4a01740;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+  animation: orbPulse 4s ease-in-out infinite;
+  box-shadow: 0 0 40px #d4a01715, inset 0 0 30px #d4a01710;
+}
+@keyframes orbPulse {
+  0%, 100% { box-shadow: 0 0 40px #d4a01715, inset 0 0 30px #d4a01710; }
+  50% { box-shadow: 0 0 60px #d4a01725, inset 0 0 40px #d4a01720; }
+}
+.center-orb .icon { font-size: 28px; color: #ffd700; }
+.center-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #d4a017;
+  letter-spacing: 2px;
+}
+.center-sublabel {
+  font-size: 10px;
+  color: #4a5565;
+  margin-top: 2px;
+}
+
+/* Satellite nodes */
+.sat-node {
+  position: absolute;
+  text-align: center;
+  z-index: 5;
+}
+.sat-orb {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 6px;
+  font-size: 16px;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+.sat-orb:hover {
+  transform: scale(1.1);
+}
+.sat-orb.active {
+  background: radial-gradient(circle, #49c27d15, transparent);
+  border: 1px solid #49c27d40;
+  box-shadow: 0 0 20px #49c27d15;
+}
+.sat-orb.inactive {
+  background: #0e1420;
+  border: 1px solid #1a2535;
+  opacity: 0.5;
+}
+.sat-orb.accent {
+  background: radial-gradient(circle, #818cf815, transparent);
+  border: 1px solid #818cf840;
+  box-shadow: 0 0 20px #818cf810;
+}
+.sat-orb.gold {
+  background: radial-gradient(circle, #d4a01715, transparent);
+  border: 1px solid #d4a01740;
+  box-shadow: 0 0 20px #d4a01710;
+}
+.sat-label {
+  font-size: 10px;
+  color: #6a7585;
+  font-weight: 500;
+}
+.sat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: #c0c8d4;
+  font-weight: 600;
+}
+
+/* Connection lines - SVG */
+.constellation svg {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+.conn-line {
+  stroke-width: 1;
+  fill: none;
+  opacity: 0.3;
+}
+.conn-line.active { stroke: #49c27d; opacity: 0.4; }
+.conn-line.accent { stroke: #818cf8; opacity: 0.3; }
+.conn-line.gold { stroke: #d4a017; opacity: 0.4; }
+.conn-line.dim { stroke: #2a3545; opacity: 0.15; }
+
+/* ─── Stat Cards Row ─── */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.stat-card {
+  background: #0e1218;
+  border: 1px solid #161c25;
+  border-radius: 16px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent, #d4a01730), transparent);
+}
+.stat-card .label {
+  font-size: 11px;
+  color: #4a5565;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.stat-card .value {
+  font-family: 'Playfair Display', serif;
+  font-size: 36px;
+  font-weight: 400;
+  color: var(--color, #eaeef4);
+}
+.stat-card .sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #3a4555;
+  margin-top: 4px;
+}
+
+/* ─── Activity Section ─── */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.section-header .line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, #2a354540, transparent);
+}
+.section-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: #4a5565;
+}
+
+.activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 18px;
+  background: #0c1018;
+  border: 1px solid #12181f;
+  border-radius: 12px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.activity-item:hover {
+  border-color: #1a2535;
+  background: #0e1420;
+}
+.activity-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.activity-dot.live { background: #49c27d; box-shadow: 0 0 8px #49c27d44; }
+.activity-dot.idle { background: #d4a017; box-shadow: 0 0 8px #d4a01744; }
+.activity-dot.closed { background: #2a3545; }
+.activity-content { flex: 1; }
+.activity-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #c0c8d4;
+}
+.activity-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #3a4555;
+  margin-top: 2px;
+}
+.activity-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: #3a4555;
+}
+.activity-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.activity-badge.cli { background: #d4a01715; color: #d4a017; }
+.activity-badge.tg { background: #818cf815; color: #818cf8; }
+
+/* ─── Buddy Ambient ─── */
+.buddy-ambient {
+  position: fixed;
+  bottom: 20px;
+  right: 24px;
+  text-align: center;
+  z-index: 100;
+  cursor: pointer;
+  transition: transform 0.3s;
+}
+.buddy-ambient:hover { transform: translateY(-4px); }
+.buddy-art {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  color: #d4a01780;
+  line-height: 1.1;
+  transition: color 0.3s;
+}
+.buddy-ambient:hover .buddy-art { color: #ffd700; }
+.buddy-mood {
+  font-size: 9px;
+  color: #3a4555;
+  margin-top: 4px;
+}
+</style>
+</head>
+<body>
+
+<!-- Glyph Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <span class="glyph">&#x2727;</span>
+  </div>
+
+  <div class="nav-glyph active">
+    &#x2302;
+    <span class="tooltip">Dashboard</span>
+  </div>
+  <div class="nav-glyph">
+    &#x2709;
+    <span class="tooltip">Chat</span>
+  </div>
+  <div class="nav-glyph">
+    &#x2605;
+    <span class="tooltip">Agent</span>
+  </div>
+  <div class="nav-glyph">
+    &#x2726;
+    <span class="tooltip">Skills</span>
+  </div>
+  <div class="nav-glyph">
+    &#x25C7;
+    <span class="tooltip">Memory</span>
+  </div>
+  <div class="nav-glyph">
+    &#x263C;
+    <span class="tooltip">Buddy</span>
+  </div>
+  <div class="nav-glyph">
+    &#x2194;
+    <span class="tooltip">Integrations</span>
+  </div>
+
+  <div class="sidebar-spacer"></div>
+
+  <div class="nav-glyph">
+    &#x2699;
+    <span class="tooltip">Settings</span>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="content">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="page-eyebrow">THE CROSSROADS</div>
+    <div class="page-title">Hermes</div>
+    <div class="page-subtitle">All systems nominal &mdash; 3 active sessions &mdash; v0.9.0</div>
+  </div>
+
+  <!-- Constellation -->
+  <div class="constellation">
+    <!-- Connection rings -->
+    <div class="constellation-bg inner"></div>
+    <div class="constellation-bg"></div>
+    <div class="constellation-bg outer"></div>
+
+    <!-- SVG lines -->
+    <svg viewBox="0 0 900 320">
+      <line class="conn-line active" x1="450" y1="160" x2="170" y2="60"/>
+      <line class="conn-line active" x1="450" y1="160" x2="730" y2="60"/>
+      <line class="conn-line gold" x1="450" y1="160" x2="150" y2="240"/>
+      <line class="conn-line accent" x1="450" y1="160" x2="750" y2="240"/>
+      <line class="conn-line dim" x1="450" y1="160" x2="280" y2="290"/>
+      <line class="conn-line gold" x1="450" y1="160" x2="620" y2="290"/>
+    </svg>
+
+    <!-- Center -->
+    <div class="center-node">
+      <div class="center-orb"><span class="icon">&#x2727;</span></div>
+      <div class="center-label">AGENT</div>
+      <div class="center-sublabel">ONLINE &bull; 4h 23m</div>
+    </div>
+
+    <!-- Satellites -->
+    <div class="sat-node" style="top:20px; left:130px;">
+      <div class="sat-orb active">&#x2709;</div>
+      <div class="sat-value">3</div>
+      <div class="sat-label">Sessions</div>
+    </div>
+
+    <div class="sat-node" style="top:20px; right:130px;">
+      <div class="sat-orb active">&#x2699;</div>
+      <div class="sat-value">24</div>
+      <div class="sat-label">Tools</div>
+    </div>
+
+    <div class="sat-node" style="top:200px; left:110px;">
+      <div class="sat-orb gold">&#x2605;</div>
+      <div class="sat-value">12</div>
+      <div class="sat-label">Skills</div>
+    </div>
+
+    <div class="sat-node" style="top:200px; right:110px;">
+      <div class="sat-orb accent">&#x25C7;</div>
+      <div class="sat-value">142</div>
+      <div class="sat-label">Memories</div>
+    </div>
+
+    <div class="sat-node" style="bottom:0px; left:240px;">
+      <div class="sat-orb inactive">&#x2194;</div>
+      <div class="sat-value" style="opacity:0.4">2/6</div>
+      <div class="sat-label">Platforms</div>
+    </div>
+
+    <div class="sat-node" style="bottom:0px; right:240px;">
+      <div class="sat-orb gold">&#x263C;</div>
+      <div class="sat-value">&#x2661;</div>
+      <div class="sat-label">Dreamer</div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-row">
+    <div class="stat-card" style="--accent:#ffd70030; --color:#ffd700;">
+      <div class="label">Total Turns</div>
+      <div class="value">2,847</div>
+      <div class="sub">+142 today</div>
+    </div>
+    <div class="stat-card" style="--accent:#49c27d30; --color:#49c27d;">
+      <div class="label">Tool Invocations</div>
+      <div class="value">1,204</div>
+      <div class="sub">file_read most used</div>
+    </div>
+    <div class="stat-card" style="--accent:#818cf830; --color:#818cf8;">
+      <div class="label">Estimated Cost</div>
+      <div class="value">$14.20</div>
+      <div class="sub">~$2.14 today</div>
+    </div>
+  </div>
+
+  <!-- Recent Activity -->
+  <div class="section-header">
+    <span class="section-title">Recent Journeys</span>
+    <div class="line"></div>
+  </div>
+
+  <div class="activity-list">
+    <div class="activity-item">
+      <div class="activity-dot live"></div>
+      <div class="activity-content">
+        <div class="activity-title">UI/UX overhaul discussion and mockup planning</div>
+        <div class="activity-meta">claude-sonnet-4-6 &bull; 39 turns</div>
+      </div>
+      <span class="activity-badge cli">CLI</span>
+      <div class="activity-time">now</div>
+    </div>
+    <div class="activity-item">
+      <div class="activity-dot idle"></div>
+      <div class="activity-content">
+        <div class="activity-title">Simple Greeting and Introduction Exchange</div>
+        <div class="activity-meta">claude-sonnet-4-6 &bull; 39 msgs</div>
+      </div>
+      <span class="activity-badge cli">CLI</span>
+      <div class="activity-time">5d ago</div>
+    </div>
+    <div class="activity-item">
+      <div class="activity-dot closed"></div>
+      <div class="activity-content">
+        <div class="activity-title">Enhance App lifecycle with global exception handler</div>
+        <div class="activity-meta">minimax-m2.7:cloud &bull; 50 msgs</div>
+      </div>
+      <span class="activity-badge tg">TG</span>
+      <div class="activity-time">11d ago</div>
+    </div>
+    <div class="activity-item">
+      <div class="activity-dot closed"></div>
+      <div class="activity-content">
+        <div class="activity-title">Create Integrations View for webhook/API/local AI management</div>
+        <div class="activity-meta">minimax-m2.7:cloud &bull; 60 msgs</div>
+      </div>
+      <span class="activity-badge tg">TG</span>
+      <div class="activity-time">11d ago</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Buddy Ambient -->
+<div class="buddy-ambient">
+  <div class="buddy-art">
+ /\_/\
+( o.o )
+ > ^ <
+  </div>
+  <div class="buddy-mood">content</div>
+</div>
+
+</body>
+</html>
