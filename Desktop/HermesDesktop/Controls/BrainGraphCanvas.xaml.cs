@@ -53,35 +53,35 @@ public sealed partial class BrainGraphCanvas : UserControl
     {
         _projectLabelFormat = new CanvasTextFormat
         {
-            FontFamily = "ms-appx:///Assets/Fonts/JetBrainsMono.ttf#JetBrains Mono",
+            FontFamily = "Cascadia Mono",
             FontSize = 12,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
             HorizontalAlignment = CanvasHorizontalAlignment.Center,
         };
         _ghostLabelFormat = new CanvasTextFormat
         {
-            FontFamily = "ms-appx:///Assets/Fonts/JetBrainsMono.ttf#JetBrains Mono",
+            FontFamily = "Cascadia Mono",
             FontSize = 9,
             FontWeight = Microsoft.UI.Text.FontWeights.Normal,
             HorizontalAlignment = CanvasHorizontalAlignment.Center,
         };
         _nodeLabelFormat = new CanvasTextFormat
         {
-            FontFamily = "ms-appx:///Assets/Fonts/Inter-Regular.ttf#Inter",
+            FontFamily = "Segoe UI",
             FontSize = 9,
             FontWeight = Microsoft.UI.Text.FontWeights.Medium,
             HorizontalAlignment = CanvasHorizontalAlignment.Center,
         };
         _sublabelFormat = new CanvasTextFormat
         {
-            FontFamily = "ms-appx:///Assets/Fonts/JetBrainsMono.ttf#JetBrains Mono",
+            FontFamily = "Cascadia Mono",
             FontSize = 8,
             FontWeight = Microsoft.UI.Text.FontWeights.Normal,
             HorizontalAlignment = CanvasHorizontalAlignment.Center,
         };
         _minimapLabelFormat = new CanvasTextFormat
         {
-            FontFamily = "ms-appx:///Assets/Fonts/JetBrainsMono.ttf#JetBrains Mono",
+            FontFamily = "Cascadia Mono",
             FontSize = 7,
             HorizontalAlignment = CanvasHorizontalAlignment.Center,
         };

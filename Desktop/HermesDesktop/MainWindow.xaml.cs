@@ -34,8 +34,8 @@ public sealed partial class MainWindow : Window
         AppWindow.Resize(new SizeInt32(1480, 960));
         AppWindow.SetIcon("Assets/AppIcon.ico");
 
-        GlyphNav.SetSelected("chat");
-        NavigateToTag("chat");
+        GlyphNav.SetSelected("dashboard");
+        NavigateToTag("dashboard");
     }
 
     private void OnGlyphNavRequested(object? sender, string tag)
