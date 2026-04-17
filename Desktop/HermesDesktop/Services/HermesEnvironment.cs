@@ -471,7 +471,17 @@ internal static class HermesEnvironment
 
     internal static string ModelProvider => ReadModelSetting("provider") ?? "custom";
 
-    internal static string ModelBaseUrl => ReadModelSetting("base_url") ?? "http://127.0.0.1:11434/v1";
+    internal static string ModelBaseUrl => NormalizeBaseUrl(ReadModelSetting("base_url") ?? "http://127.0.0.1:11434/v1");
+
+    // 0.0.0.0 is a wildcard bind address for servers (e.g. llama-server.exe --host 0.0.0.0);
+    // it isn't a valid client destination, so HttpClient connections fail. Rewrite to loopback.
+    private static string NormalizeBaseUrl(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return raw;
+        if (!Uri.TryCreate(raw, UriKind.Absolute, out var uri)) return raw;
+        if (uri.HostNameType != UriHostNameType.IPv4 || uri.Host != "0.0.0.0") return raw;
+        return raw.Replace("0.0.0.0", "127.0.0.1");
+    }
 
     internal static string DefaultModel => ReadModelSetting("default") ?? "minimax-m2.7:cloud";
 
