@@ -15,15 +15,114 @@ jobs:
   dotnet-tests-and-coverage:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "10.0.x"
+
+      - name: Guardrail - validate new test symbols resolve
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import pathlib
+          import re
+          import subprocess
+          import sys
+
+          base_ref = "${{ github.base_ref }}"
+          diff_cmd = [
+              "git",
+              "diff",
+              "--unified=0",
+              f"origin/{base_ref}...HEAD",
+              "--",
+              ":(glob)Desktop/HermesDesktop.Tests/**/*.cs",
+          ]
+          result = subprocess.run(diff_cmd, capture_output=True, text=True, check=False)
+          if result.returncode != 0:
+              print("Failed to diff changed test files:")
+              print(result.stderr.strip())
+              sys.exit(1)
+
+          added_lines = []
+          for line in result.stdout.splitlines():
+              if line.startswith("+++"):
+                  continue
+              if line.startswith("+"):
+                  added_lines.append(line[1:])
+
+          if not added_lines:
+              print("No added test lines detected; symbol guardrail skipped.")
+              sys.exit(0)
+
+          candidate_patterns = [
+              re.compile(r"\bnew\s+([A-Z][A-Za-z0-9_]*)\s*(?:<|\()"),
+              re.compile(r"\bNullLogger<([A-Z][A-Za-z0-9_]*)>"),
+              re.compile(r"\bMock<([A-Z][A-Za-z0-9_]*)>"),
+              re.compile(r"\bTask<([A-Z][A-Za-z0-9_]*)>"),
+          ]
+          candidates = set()
+          for line in added_lines:
+              for pattern in candidate_patterns:
+                  for match in pattern.findall(line):
+                      candidates.add(match)
+
+          if not candidates:
+              print("No project-type symbol candidates found in added test lines.")
+              sys.exit(0)
+
+          declaration_pattern = re.compile(
+              r"^\s*(?:public|internal|private|protected)?\s*(?:sealed\s+|abstract\s+|static\s+|partial\s+)*"
+              r"(?:class|record|interface|enum|struct)\s+([A-Za-z_][A-Za-z0-9_]*)",
+              re.MULTILINE,
+          )
+          declared_types = set()
+          for root in ("src", "Desktop/HermesDesktop.Tests"):
+              for file_path in pathlib.Path(root).rglob("*.cs"):
+                  text = file_path.read_text(encoding="utf-8")
+                  declared_types.update(declaration_pattern.findall(text))
+
+          allowlist = {
+              "Task",
+              "List",
+              "Dictionary",
+              "HashSet",
+              "Action",
+              "Func",
+              "StringBuilder",
+              "CancellationToken",
+              "DateTime",
+              "TimeSpan",
+              "Guid",
+              "Path",
+              "File",
+              "Directory",
+              "Regex",
+              "Uri",
+          }
+
+          unresolved = sorted(
+              symbol for symbol in candidates
+              if symbol not in declared_types and symbol not in allowlist
+          )
+
+          if unresolved:
+              print("::error::New test code references unresolved symbols: " + ", ".join(unresolved))
+              print("Add matching implementation symbols to src/, or remove/rework tests before merge.")
+              sys.exit(1)
+
+          print("Guardrail passed. Added test symbol references resolve in this PR.")
+          PY
 
       - name: Restore test project dependencies
         run: dotnet restore ./Desktop/HermesDesktop.Tests/HermesDesktop.Tests.csproj
