@@ -95,6 +95,7 @@ jobs:
           allowlist = {
               "Task",
               "List",
+              "Mock",
               "Dictionary",
               "HashSet",
               "Action",
