@@ -100,8 +100,9 @@ public sealed class RssFetcher
             return false;
 
         var trimmed = rawUrl.Trim();
-        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out feedUri))
+        if (!Uri.TryCreate(trimmed, UriKind.Absolute, out var parsedUri))
             return false;
+        feedUri = parsedUri;
 
         if (feedUri.Scheme is not ("http" or "https"))
             return false;

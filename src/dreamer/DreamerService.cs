@@ -144,9 +144,10 @@ public sealed class DreamerService
             () => BuildResearchContextAsync(config, ct),
             "(no research context)");
         var prior = ReadLatestWalkExcerpt();
+        async Task<string?> RunDreamWalkAsync() => await walk.RunAsync(config, research, prior, ct);
         var walkText = await TryGetRecoverableAsync<string?>(
             "running Dreamer walk",
-            () => walk.RunAsync(config, research, prior, ct),
+            RunDreamWalkAsync,
             null);
         if (string.IsNullOrWhiteSpace(walkText))
         {
