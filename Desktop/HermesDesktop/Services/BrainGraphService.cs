@@ -196,33 +196,83 @@ public sealed class BrainGraphService
         }
     }
 
+    private static readonly HashSet<string> ExcludedFileScanDirs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "bin", "obj", "node_modules", "packages", "TestResults", "dist", "out",
+    };
+
+    private static readonly HashSet<string> FileScanExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".cs", ".xaml", ".csproj", ".sln", ".md", ".json", ".yml", ".yaml", ".ps1",
+    };
+
     private void BuildFileNodes(BrainGraphData graph)
     {
-        // Show key project files near the center
         var projectDir = HermesEnvironment.AgentWorkingDirectory;
-        var interestingFiles = new[] { "App.xaml", "MainWindow.xaml", "DashboardPage.xaml", "ChatPage.xaml" };
+        if (string.IsNullOrEmpty(projectDir) || !Directory.Exists(projectDir)) return;
 
-        int found = 0;
-        foreach (var file in interestingFiles)
+        List<FileInfo> recent;
+        try
         {
-            var angle = -1.8f - found * 0.4f;
-            var radius = 75f + (found % 2) * 15f;
+            recent = EnumerateSourceFiles(projectDir)
+                .OrderByDescending(f => f.LastWriteTimeUtc)
+                .Take(6)
+                .ToList();
+        }
+        catch
+        {
+            return;
+        }
+
+        for (int i = 0; i < recent.Count; i++)
+        {
+            var file = recent[i];
+            var angle = -1.8f - i * 0.25f;
+            var radius = 75f + (i % 2) * 15f;
 
             graph.Nodes.Add(new BrainNode
             {
-                Id = $"file-{file}",
+                Id = $"file-{file.FullName}",
                 Type = BrainNodeType.File,
-                Label = file,
+                Label = file.Name,
                 BaseX = MathF.Cos(angle) * radius,
                 BaseY = MathF.Sin(angle) * radius,
             });
             graph.Edges.Add(new BrainEdge
             {
                 FromId = "project-center",
-                ToId = $"file-{file}",
+                ToId = $"file-{file.FullName}",
                 Strength = 0.2f,
             });
-            found++;
+        }
+    }
+
+    private static IEnumerable<FileInfo> EnumerateSourceFiles(string root)
+    {
+        var stack = new Stack<DirectoryInfo>();
+        stack.Push(new DirectoryInfo(root));
+        while (stack.Count > 0)
+        {
+            var dir = stack.Pop();
+            FileInfo[] files;
+            DirectoryInfo[] subdirs;
+            try
+            {
+                files = dir.GetFiles();
+                subdirs = dir.GetDirectories();
+            }
+            catch
+            {
+                continue;
+            }
+
+            foreach (var f in files)
+                if (FileScanExtensions.Contains(f.Extension))
+                    yield return f;
+
+            foreach (var sub in subdirs)
+                if (!sub.Name.StartsWith('.') && !ExcludedFileScanDirs.Contains(sub.Name))
+                    stack.Push(sub);
         }
     }
 
