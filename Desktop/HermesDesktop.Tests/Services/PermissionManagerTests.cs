@@ -216,5 +216,4 @@ public class PermissionManagerTests
         Assert.AreEqual(PermissionBehavior.Ask, decision.Behavior);
         StringAssert.Contains(decision.Message ?? string.Empty, "Unknown mode");
     }
-
 }
