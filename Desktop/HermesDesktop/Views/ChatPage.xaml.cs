@@ -631,10 +631,8 @@ public sealed partial class ChatPage : Page
 
     private void SetPermissionModeUi(PermissionMode mode, bool applyToService = true)
     {
-        PermissionModeLabel.Text = string.Format(
-            CultureInfo.CurrentCulture,
-            ResourceLoader.GetString("ChatPermissionModeFormat"),
-            GetPermissionModeDisplayName(mode));
+        // Sanctum altar: "MODE" label is static; toggle button carries the mode name.
+        PermissionModeToggle.Content = GetPermissionModeDisplayName(mode).ToLowerInvariant();
         if (applyToService)
             _chatService.SetPermissionMode(mode);
     }

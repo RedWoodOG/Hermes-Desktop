@@ -7,44 +7,58 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid RowDefinitions="Auto,Auto,*">
-        <TextBlock Text="Sessions" Style="{StaticResource SectionTitleTextStyle}" Margin="0,0,0,8"/>
-
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="6" Margin="0,0,0,8">
-            <TextBox x:Name="SearchBox" PlaceholderText="Search sessions..." Width="160" FontSize="12"/>
-            <Button x:Name="NewSessionBtn" Content="+" Click="NewSession_Click" CornerRadius="6" Padding="8,4"
-                    Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D" ToolTipService.ToolTip="New session"/>
-        </StackPanel>
-
-        <TextBlock Grid.Row="2" x:Name="EmptyState" Visibility="Collapsed"
-                   Text="No conversations yet.&#x0a;Start chatting to create your first session."
+    <Grid>
+        <TextBlock x:Name="EmptyState" Visibility="Collapsed"
+                   Text="No journeys yet.&#x0a;Start chatting to begin one."
+                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
                    Foreground="{StaticResource AppTextSecondaryBrush}"
                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                   TextAlignment="Center" FontSize="13" Opacity="0.7"/>
+                   TextAlignment="Center" CharacterSpacing="100" Opacity="0.6"/>
 
-        <ListView Grid.Row="2" x:Name="SessionList" SelectionChanged="SessionList_SelectionChanged"
-                  Background="Transparent">
+        <ListView x:Name="SessionList" SelectionChanged="SessionList_SelectionChanged"
+                  Background="Transparent" BorderThickness="0"
+                  SelectionMode="Single" IsItemClickEnabled="True"
+                  Padding="0">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="MinHeight" Value="0"/>
+                    <Setter Property="Margin" Value="0,0,0,4"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                    <Setter Property="Background" Value="Transparent"/>
+                </Style>
+            </ListView.ItemContainerStyle>
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Grid Margin="0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel>
-                            <TextBlock Text="{Binding Title}" FontSize="13" FontWeight="SemiBold"
-                                       Foreground="{StaticResource AppAccentTextBrush}" TextTrimming="CharacterEllipsis"/>
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <TextBlock Text="{Binding TimeAgo}" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                                <TextBlock Text="{Binding MessageCount}" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                    <Border Background="Transparent"
+                            BorderBrush="{StaticResource AppSubtleStrokeBrush}" BorderThickness="1"
+                            CornerRadius="10" Padding="10,8,10,8">
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Spacing="4">
+                                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                    <Ellipse Width="6" Height="6" Fill="{Binding StatusBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Title}"
+                                               FontFamily="{StaticResource InterFont}" FontSize="12"
+                                               Foreground="{StaticResource AppTextPrimaryBrush}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </StackPanel>
+                                <TextBlock Text="{Binding MetaLine}"
+                                           FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                           Foreground="{StaticResource AppTextMutedBrush}"
+                                           CharacterSpacing="50" Margin="14,0,0,0"/>
                             </StackPanel>
-                        </StackPanel>
-                        <Button Grid.Column="1" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="12"
-                                Click="DeleteSession_Click" Tag="{Binding Id}"
-                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}"
-                                BorderThickness="0" Padding="6,4" VerticalAlignment="Center"
-                                ToolTipService.ToolTip="Delete session"/>
-                    </Grid>
+                            <Button Grid.Column="1" Content="&#xE74D;" FontFamily="Segoe MDL2 Assets" FontSize="10"
+                                    Click="DeleteSession_Click" Tag="{Binding Id}"
+                                    Background="Transparent" Foreground="{StaticResource AppTextMutedBrush}"
+                                    BorderThickness="0" Padding="4" MinWidth="0" MinHeight="0"
+                                    VerticalAlignment="Center" Opacity="0.6"
+                                    ToolTipService.ToolTip="Delete journey"/>
+                        </Grid>
+                    </Border>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>

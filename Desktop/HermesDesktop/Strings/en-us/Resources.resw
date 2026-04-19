@@ -484,19 +484,19 @@
     <value>Stop</value>
   </data>
   <data name="ChatPromptTextBox.PlaceholderText" xml:space="preserve">
-    <value>Message Hermes...</value>
+    <value>&#x203A; speak into the void</value>
   </data>
   <data name="ChatPageSendButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Send message</value>
   </data>
   <data name="ChatPermissionModeLabel.Text" xml:space="preserve">
-    <value>Default mode</value>
+    <value>MODE</value>
   </data>
   <data name="ChatPermissionModeChange.Content" xml:space="preserve">
-    <value>change</value>
+    <value>default</value>
   </data>
   <data name="ChatPageDisclaimer.Text" xml:space="preserve">
-    <value>Hermes can make mistakes. Verify important information.</value>
+    <value>HERMES MAY BE WRONG. USE AT YOUR OWN RISK.</value>
   </data>
   <data name="ChatPageTabSessions.Content" xml:space="preserve">
     <value>Journeys</value>

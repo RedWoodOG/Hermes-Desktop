@@ -40,7 +40,7 @@
                         <Border Width="20" Height="1" Background="{StaticResource AppAccentBrush}" VerticalAlignment="Center" Opacity="0.85"/>
                         <TextBlock Text="THE JOURNEY" Style="{StaticResource PageEyebrowTextStyle}" VerticalAlignment="Center"/>
                     </StackPanel>
-                    <TextBlock x:Name="JourneyTitleText" Style="{StaticResource PageTitleTextStyle}" FontSize="32" Text="New Journey" Margin="0,4,0,0"/>
+                    <TextBlock x:Name="JourneyTitleText" Style="{StaticResource PageTitleTextStyle}" FontSize="38" Text="New Journey" Margin="0,4,0,0" TextTrimming="CharacterEllipsis"/>
                     <TextBlock x:Name="JourneySubtitleText" Style="{StaticResource DataLabelTextStyle}" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Margin="0,4,0,0"/>
                     <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
                         <TextBlock Text="BRAIN" Style="{StaticResource LabelTextStyle}" FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.7"/>
@@ -54,11 +54,27 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Margin="0,4,0,0">
-                    <Button x:Uid="ChatNewChatButton" Click="NewChat_Click" Width="34" Height="34" Padding="0"
+                    <Button Click="NewChat_Click" Width="34" Height="34" Padding="0"
                             Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"
                             Foreground="{StaticResource AppTextSecondaryBrush}" CornerRadius="10"
-                            ToolTipService.ToolTip="New journey">
+                            ToolTipService.ToolTip="New journey"
+                            AutomationProperties.Name="New journey">
                         <FontIcon Glyph="&#xE710;" FontSize="14"/>
+                    </Button>
+                    <Button Click="CopySessionId_Click" Width="34" Height="34" Padding="0"
+                            Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"
+                            Foreground="{StaticResource AppTextSecondaryBrush}" CornerRadius="10"
+                            ToolTipService.ToolTip="Copy session id"
+                            AutomationProperties.Name="Copy session id">
+                        <FontIcon Glyph="&#xE8C8;" FontSize="13"/>
+                    </Button>
+                    <Button Click="PermissionModeToggle_Click" Width="34" Height="34" Padding="0"
+                            Background="{StaticResource AppInsetBrush}"
+                            BorderBrush="{StaticResource AppAccentBrush}"
+                            Foreground="{StaticResource AppAccentTextBrush}" CornerRadius="10"
+                            ToolTipService.ToolTip="Permission mode"
+                            AutomationProperties.Name="Permission mode">
+                        <FontIcon Glyph="&#xE73E;" FontSize="13"/>
                     </Button>
                 </StackPanel>
 

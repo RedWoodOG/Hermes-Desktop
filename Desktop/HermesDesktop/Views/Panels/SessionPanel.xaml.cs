@@ -6,6 +6,7 @@ using Hermes.Agent.Transcript;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 
 namespace HermesDesktop.Views.Panels;
 
@@ -15,6 +16,10 @@ public sealed class SessionListItem
     public string Title { get; set; } = "";
     public string TimeAgo { get; set; } = "";
     public string MessageCount { get; set; } = "";
+    /// <summary>"green" (live, &lt;5min), "gold" (idle, &lt;7d), "grey" (closed).</summary>
+    public Brush StatusBrush { get; set; } = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+    /// <summary>JetBrains Mono meta line: "Nt \u2022 time \u2022 model-hint".</summary>
+    public string MetaLine { get; set; } = "";
 }
 
 public sealed partial class SessionPanel : UserControl
@@ -30,6 +35,8 @@ public sealed partial class SessionPanel : UserControl
         _transcriptStore = App.Services.GetRequiredService<TranscriptStore>();
         Loaded += async (_, _) => await RefreshAsync();
     }
+
+    private static Brush Res(string key) => (Brush)Application.Current.Resources[key];
 
     public async System.Threading.Tasks.Task RefreshAsync()
     {
@@ -49,12 +56,28 @@ public sealed partial class SessionPanel : UserControl
                 var last = messages.LastOrDefault();
                 var ago = last is not null ? FormatTimeAgo(last.Timestamp) : "";
 
+                // Sanctum status: green live (<5min), gold idle (<7d), grey closed.
+                Brush statusBrush;
+                if (last is null)
+                    statusBrush = Res("AppTextMutedBrush");
+                else
+                {
+                    var diff = DateTime.UtcNow - last.Timestamp;
+                    statusBrush = diff.TotalMinutes < 5
+                        ? Res("SessionGreenBrush")
+                        : diff.TotalDays < 7
+                            ? Res("AppAccentBrush")
+                            : Res("AppTextMutedBrush");
+                }
+
                 Sessions.Add(new SessionListItem
                 {
                     Id = id,
                     Title = title,
                     TimeAgo = ago,
-                    MessageCount = $"{messages.Count} msgs"
+                    MessageCount = $"{messages.Count} msgs",
+                    StatusBrush = statusBrush,
+                    MetaLine = $"{messages.Count}t \u2022 {ago}",
                 });
             }
             catch (Exception ex)
