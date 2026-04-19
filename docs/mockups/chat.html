@@ -1,0 +1,994 @@
+<!--
+  ══════════════════════════════════════════════════════════════
+  HERMES DESKTOP — CHAT PAGE MOCKUP
+  Direction: "The Journey" — Sanctum v2 applied to Chat
+  Derived from docs/design/ui-template.html (Dashboard spec)
+  ══════════════════════════════════════════════════════════════
+
+  STRUCTURAL INTENT (not a palette swap):
+  1. Thread is node-cards, not speech bubbles. Role glyph in the
+     left gutter; a 2px color strip is the only edge decoration.
+  2. Tool calls, memory touches, skill invocations render as
+     inline glyph pills between messages — in node-type colors.
+     These ARE the brain graph semantics surfacing in the thread.
+  3. Right rail is a live per-Journey constellation — the Files,
+     Tasks and Replay tabs collapse into this single graph +
+     a scrollable thread trace beneath it.
+  4. Input is an altar, not a textbox: a gold hairline, a
+     JetBrains Mono placeholder, and a triangle-glyph send.
+  5. Sessions are renamed to Journeys, per the spec directive.
+
+  Tokens come from docs/design/ui-template.html. No new colors.
+  ══════════════════════════════════════════════════════════════
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hermes — The Journey</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0b0e14;
+  color: #d0d5dd;
+  font-family: 'Inter', sans-serif;
+  height: 100vh;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ─── Ambient ─── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 30% 70%, #d4a01706 0%, transparent 70%),
+    radial-gradient(ellipse 50% 50% at 70% 30%, #1a253506 0%, transparent 70%);
+  pointer-events: none;
+  animation: ambient 12s ease-in-out infinite alternate;
+}
+@keyframes ambient { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+
+/* ─── Glyph Sidebar ─── */
+.sidebar {
+  width: 64px; background: #080b10; border-right: 1px solid #161c25;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 16px 0; gap: 4px; z-index: 10;
+}
+.sidebar-logo {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 20px;
+}
+.sidebar-logo .glyph {
+  font-size: 22px; color: #d4a017;
+  filter: drop-shadow(0 0 8px #d4a01740);
+}
+.nav-glyph {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border-radius: 12px;
+  transition: all 0.3s; position: relative;
+  color: #3a4555; font-size: 18px;
+}
+.nav-glyph:hover { color: #7a8595; background: #ffffff06; }
+.nav-glyph.active {
+  color: #ffd700; background: #d4a01710; box-shadow: 0 0 20px #d4a01710;
+}
+.nav-glyph.active::after {
+  content: ''; position: absolute; left: -10px; top: 50%;
+  transform: translateY(-50%); width: 3px; height: 20px;
+  background: linear-gradient(180deg, #ffd700, #d4a017);
+  border-radius: 2px; box-shadow: 0 0 8px #d4a01760;
+}
+.nav-glyph .tooltip {
+  position: absolute; left: 58px; background: #1a2030;
+  border: 1px solid #2a3545; padding: 6px 12px; font-size: 11px;
+  white-space: nowrap; border-radius: 8px; color: #c0c8d4;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.nav-glyph:hover .tooltip { opacity: 1; }
+.sidebar-spacer { flex: 1; }
+
+/* ─── Main Content ─── */
+.content {
+  flex: 1; display: grid;
+  grid-template-columns: 220px 1fr 320px;
+  grid-template-rows: auto 1fr;
+  overflow: hidden;
+}
+
+/* ─── Header ─── */
+.page-header {
+  grid-column: 1 / 4;
+  padding: 24px 40px 14px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  border-bottom: 1px solid #0e1420;
+}
+.page-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; letter-spacing: 4px; text-transform: uppercase;
+  color: #d4a017; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 8px;
+}
+.page-eyebrow::before {
+  content: ''; width: 20px; height: 1px;
+  background: linear-gradient(90deg, #d4a017, transparent);
+}
+.page-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 34px; font-weight: 400; color: #eaeef4;
+  line-height: 1.1;
+}
+.page-subtitle {
+  font-size: 12px; color: #4a5565; margin-top: 6px; font-weight: 300;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px;
+}
+.page-subtitle .live { color: #49c27d; }
+.page-subtitle .sep { color: #1a2535; margin: 0 8px; }
+
+.brain-breadcrumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: #2a3545; margin-top: 12px;
+}
+.brain-breadcrumb .crumb { color: #3a4555; cursor: pointer; transition: color 0.2s; }
+.brain-breadcrumb .crumb:hover { color: #d4a017; }
+.brain-breadcrumb .crumb.current { color: #d4a017; display: flex; align-items: center; gap: 5px; }
+.brain-breadcrumb .crumb.current::after { content: '▾'; font-size: 8px; color: #4a5565; }
+.brain-breadcrumb .sep { color: #1a2535; }
+
+/* Header-right controls */
+.header-actions {
+  display: flex; gap: 8px; align-items: center;
+}
+.header-action {
+  width: 34px; height: 34px;
+  background: #0e1420; border: 1px solid #1a2535; border-radius: 10px;
+  color: #4a5565; font-size: 14px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.header-action:hover { border-color: #d4a01740; color: #d4a017; }
+.header-action.primary {
+  background: #d4a01710; border-color: #d4a01740; color: #ffd700;
+}
+
+/* ─── Left rail: Journey list ─── */
+.journey-rail {
+  border-right: 1px solid #0e1420;
+  padding: 20px 14px;
+  overflow-y: auto;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.rail-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 6px 10px;
+}
+.rail-title {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  letter-spacing: 3px; text-transform: uppercase; color: #3a4555;
+}
+.rail-line { flex: 1; height: 1px; background: #161c2540; }
+.rail-new {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: #d4a017; cursor: pointer; padding: 2px 6px; border-radius: 4px;
+  transition: background 0.2s;
+}
+.rail-new:hover { background: #d4a01710; }
+
+.journey-item {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  position: relative;
+}
+.journey-item:hover { background: #0c1018; border-color: #12181f; }
+.journey-item.active {
+  background: #0c1018; border-color: #1a2535;
+}
+.journey-item.active::before {
+  content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 2px;
+  background: linear-gradient(180deg, #ffd700, #d4a017);
+  border-radius: 2px;
+}
+.journey-row1 { display: flex; align-items: center; gap: 8px; }
+.journey-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.journey-dot.live { background: #49c27d; box-shadow: 0 0 6px #49c27d44; }
+.journey-dot.idle { background: #d4a017; }
+.journey-dot.closed { background: #2a3545; }
+.journey-title {
+  font-size: 12px; color: #c0c8d4; flex: 1;
+  text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
+}
+.journey-meta {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #2a3545;
+  padding-left: 14px;
+}
+
+/* ─── Thread ─── */
+.thread-col {
+  display: flex; flex-direction: column; overflow: hidden;
+  border-right: 1px solid #0e1420;
+}
+.thread-scroll {
+  flex: 1; overflow-y: auto;
+  padding: 24px 32px 16px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+
+/* Node-card: role glyph gutter + color edge strip + content */
+.node-card {
+  display: grid;
+  grid-template-columns: 28px 2px 1fr;
+  gap: 14px;
+  position: relative;
+}
+.node-role {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 2px;
+  color: var(--role-color, #4a5565);
+  filter: drop-shadow(0 0 4px var(--role-glow, transparent));
+}
+.node-edge {
+  background: linear-gradient(180deg, var(--role-color, #2a3545), transparent 85%);
+  border-radius: 1px;
+  opacity: 0.8;
+}
+.node-body {
+  display: flex; flex-direction: column; gap: 6px;
+  min-width: 0;
+}
+.node-author {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: var(--role-color, #4a5565);
+  display: flex; align-items: center; gap: 10px;
+}
+.node-author .meta {
+  color: #2a3545; letter-spacing: 0.5px; font-weight: 400;
+}
+.node-text {
+  font-size: 13.5px; line-height: 1.55; color: #d0d5dd;
+  font-weight: 400;
+}
+.node-text code {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: #0e1420; border: 1px solid #161c25;
+  padding: 1px 6px; border-radius: 4px; color: #ffd700;
+}
+
+/* role variants */
+.node-card.user    { --role-color: #d4a017; --role-glow: #d4a01760; }
+.node-card.agent   { --role-color: #49c27d; --role-glow: #49c27d50; }
+.node-card.system  { --role-color: #4a5565; }
+
+/* Thinking expander inside a node */
+.thinking {
+  margin-top: 8px;
+  border-top: 1px solid #161c25;
+  padding-top: 8px;
+  font-family: 'Inter', sans-serif;
+}
+.thinking summary {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: #4a5565; cursor: pointer; list-style: none;
+  display: flex; align-items: center; gap: 8px;
+}
+.thinking summary::before { content: '◇'; color: #49c27d; }
+.thinking summary::after {
+  content: '142 tokens'; margin-left: auto;
+  letter-spacing: 0.5px; color: #2a3545; font-weight: 300;
+}
+.thinking[open] summary { color: #8a95a5; }
+.thinking .thinking-body {
+  margin-top: 8px; font-size: 12.5px; line-height: 1.6;
+  color: #6a7585; font-style: italic;
+  border-left: 1px solid #161c25; padding-left: 12px;
+}
+
+/* Streaming cursor */
+.streaming::after {
+  content: '▊'; color: #49c27d; opacity: 0.9;
+  animation: blink 0.9s steps(2) infinite; margin-left: 2px;
+}
+@keyframes blink { 50% { opacity: 0.2; } }
+
+/* ─── Inline event pills (tools, memory, skills) ─── */
+.event-row {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding-left: 42px; /* aligns with node-body */
+  margin-top: -6px;
+}
+.pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px 4px 8px; border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  background: #0c1018; border: 1px solid #161c25;
+  color: #8a95a5; cursor: pointer; transition: all 0.2s;
+}
+.pill:hover { border-color: var(--pill-color, #d4a017); }
+.pill .glyph {
+  color: var(--pill-color, #d4a017);
+  font-size: 11px;
+}
+.pill .arg {
+  color: #c0c8d4;
+}
+.pill .tail {
+  color: #2a3545; margin-left: 2px;
+}
+
+.pill.tool   { --pill-color: #ff8a65; }
+.pill.memory { --pill-color: #818cf8; }
+.pill.skill  { --pill-color: #e05555; }
+.pill.file   { --pill-color: #5a7555; }
+
+/* ─── Thinking indicator strip ─── */
+.thinking-strip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 4px 40px 0 40px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: #49c27d;
+}
+.thinking-strip .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #49c27d; box-shadow: 0 0 6px #49c27d;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.thinking-strip .spacer { flex: 1; height: 1px; background: linear-gradient(90deg, #49c27d30, transparent); }
+.thinking-strip .stop {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  color: #4a5565; cursor: pointer; padding: 2px 8px;
+  border: 1px solid #1a2535; border-radius: 6px;
+}
+.thinking-strip .stop:hover { color: #e05555; border-color: #e0555540; }
+@keyframes pulse { 50% { opacity: 0.3; } }
+
+/* ─── Altar input ─── */
+.altar {
+  padding: 16px 40px 20px;
+  position: relative;
+}
+.altar::before {
+  content: ''; position: absolute; top: 0; left: 40px; right: 40px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #d4a01760 20%, #d4a01760 80%, transparent);
+}
+.altar-input {
+  display: grid; grid-template-columns: 1fr auto;
+  gap: 12px; align-items: end;
+  padding-top: 14px;
+}
+.altar-field {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; color: #eaeef4;
+  background: transparent; border: none; outline: none;
+  padding: 8px 0; resize: none; min-height: 40px; max-height: 180px;
+  line-height: 1.5;
+}
+.altar-field::placeholder { color: #2a3545; font-style: italic; }
+.altar-send {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: transparent; border: 1px solid transparent;
+  color: #d4a017; font-size: 20px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.altar-send.ready {
+  color: #ffd700; border-color: #d4a01760;
+  box-shadow: 0 0 16px #d4a01720;
+}
+.altar-meta {
+  display: flex; align-items: center; gap: 14px;
+  margin-top: 6px;
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: #3a4555;
+}
+.altar-meta .meta-pill {
+  color: #4a5565; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+}
+.altar-meta .meta-pill:hover { color: #d4a017; }
+.altar-meta .meta-pill .val { color: #8a95a5; text-transform: none; letter-spacing: 0.5px; }
+.altar-meta .meta-spacer { flex: 1; }
+.altar-meta .disclaimer {
+  color: #1a2535; letter-spacing: 0.5px; font-size: 9px;
+}
+
+/* ─── Right rail: Constellation ─── */
+.constellation-rail {
+  display: flex; flex-direction: column; overflow: hidden;
+  background: #080b10;
+}
+.constellation-box {
+  position: relative;
+  height: 260px;
+  margin: 16px 16px 8px;
+  border: 1px solid #161c25; border-radius: 14px;
+  background: radial-gradient(ellipse at center, #0e141a 0%, #0a0d13 100%);
+  overflow: hidden;
+}
+.constellation-box::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at center, #d4a01708 0%, transparent 60%);
+  pointer-events: none;
+}
+.constellation-canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+}
+.constellation-label {
+  position: absolute; top: 10px; left: 14px;
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  letter-spacing: 3px; text-transform: uppercase;
+  color: #3a4555;
+}
+.constellation-legend {
+  position: absolute; bottom: 8px; left: 12px;
+  display: flex; gap: 10px;
+  font-family: 'JetBrains Mono', monospace; font-size: 8px;
+  color: #2a3545;
+}
+.constellation-legend .li { display: flex; align-items: center; gap: 4px; }
+.constellation-legend .li .d { width: 5px; height: 5px; border-radius: 50%; }
+
+/* Trace list */
+.trace {
+  flex: 1; overflow-y: auto;
+  padding: 12px 16px 16px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.trace-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 0 6px 8px;
+}
+.trace-title {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  letter-spacing: 3px; text-transform: uppercase; color: #3a4555;
+}
+.trace-line { flex: 1; height: 1px; background: #161c2540; }
+.trace-count {
+  font-family: 'JetBrains Mono', monospace; font-size: 9px;
+  color: #4a5565;
+}
+
+.trace-row {
+  display: grid;
+  grid-template-columns: 6px 42px 1fr auto;
+  gap: 10px; align-items: center;
+  padding: 6px 8px; border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: #6a7585; cursor: pointer;
+  transition: background 0.15s;
+}
+.trace-row:hover { background: #0c1018; color: #c0c8d4; }
+.trace-row .dot { width: 6px; height: 6px; border-radius: 50%; }
+.trace-row .kind {
+  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
+  color: #3a4555;
+}
+.trace-row .label {
+  text-overflow: ellipsis; overflow: hidden; white-space: nowrap;
+}
+.trace-row .t {
+  color: #2a3545; font-size: 9px;
+}
+
+.trace-row.tool   .dot { background: #ff8a65; }
+.trace-row.memory .dot { background: #818cf8; }
+.trace-row.skill  .dot { background: #e05555; }
+.trace-row.file   .dot { background: #5a7555; }
+.trace-row.active { color: #eaeef4; background: #0e1420; }
+.trace-row.active .dot { box-shadow: 0 0 8px currentColor; }
+
+/* ─── Buddy ─── */
+.buddy-ambient {
+  position: fixed; bottom: 20px; right: 24px;
+  text-align: center; z-index: 100; cursor: pointer;
+  transition: transform 0.3s;
+}
+.buddy-ambient:hover { transform: translateY(-4px); }
+.buddy-art {
+  font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  color: #d4a01760; line-height: 1.1; transition: color 0.3s; white-space: pre;
+}
+.buddy-ambient:hover .buddy-art { color: #ffd700; }
+.buddy-mood { font-size: 8px; color: #2a3545; margin-top: 4px;
+  font-family: 'JetBrains Mono', monospace; letter-spacing: 1px; text-transform: uppercase; }
+
+/* Scrollbar polish */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #161c25; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #1a2535; }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo"><span class="glyph">&#x2727;</span></div>
+  <div class="nav-glyph">&#x2302;<span class="tooltip">Dashboard</span></div>
+  <div class="nav-glyph active">&#x2709;<span class="tooltip">Journey</span></div>
+  <div class="nav-glyph">&#x2605;<span class="tooltip">Agent</span></div>
+  <div class="nav-glyph">&#x2726;<span class="tooltip">Skills</span></div>
+  <div class="nav-glyph">&#x25C7;<span class="tooltip">Memory</span></div>
+  <div class="nav-glyph">&#x263C;<span class="tooltip">Buddy</span></div>
+  <div class="nav-glyph">&#x2194;<span class="tooltip">Integrations</span></div>
+  <div class="sidebar-spacer"></div>
+  <div class="nav-glyph">&#x2699;<span class="tooltip">Settings</span></div>
+</div>
+
+<!-- Main -->
+<div class="content">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <div class="page-eyebrow">THE JOURNEY</div>
+      <div class="page-title">UI / UX Overhaul</div>
+      <div class="page-subtitle">
+        claude-opus-4-7 <span class="sep">&bull;</span> 39 turns <span class="sep">&bull;</span> <span class="live">streaming</span>
+      </div>
+      <div class="brain-breadcrumb">
+        <span class="crumb">BRAIN</span>
+        <span class="sep">&#x25B8;</span>
+        <span class="crumb">workspace-han</span>
+        <span class="sep">&#x25B8;</span>
+        <span class="crumb">Hermes.CS</span>
+        <span class="sep">&#x25B8;</span>
+        <span class="crumb current">« UI / UX Overhaul »</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="header-action" title="New journey">&#x271A;</div>
+      <div class="header-action" title="Export">&#x2B06;</div>
+      <div class="header-action primary" title="Accept mode">&#x2713;</div>
+    </div>
+  </div>
+
+  <!-- Left rail: Journeys -->
+  <aside class="journey-rail">
+    <div class="rail-header">
+      <span class="rail-title">Journeys</span>
+      <div class="rail-line"></div>
+      <span class="rail-new">+ NEW</span>
+    </div>
+
+    <div class="journey-item active">
+      <div class="journey-row1">
+        <div class="journey-dot live"></div>
+        <div class="journey-title">UI / UX Overhaul</div>
+      </div>
+      <div class="journey-meta">39t &bull; now &bull; claude-opus-4-7</div>
+    </div>
+    <div class="journey-item">
+      <div class="journey-row1">
+        <div class="journey-dot idle"></div>
+        <div class="journey-title">Greeting exchange</div>
+      </div>
+      <div class="journey-meta">39t &bull; 5d &bull; haiku-4-5</div>
+    </div>
+    <div class="journey-item">
+      <div class="journey-row1">
+        <div class="journey-dot closed"></div>
+        <div class="journey-title">App lifecycle handler</div>
+      </div>
+      <div class="journey-meta">50t &bull; 11d &bull; telegram</div>
+    </div>
+    <div class="journey-item">
+      <div class="journey-row1">
+        <div class="journey-dot closed"></div>
+        <div class="journey-title">Dreamer background worker</div>
+      </div>
+      <div class="journey-meta">82t &bull; 14d &bull; sonnet-4-6</div>
+    </div>
+    <div class="journey-item">
+      <div class="journey-row1">
+        <div class="journey-dot closed"></div>
+        <div class="journey-title">Memory migration 2.3</div>
+      </div>
+      <div class="journey-meta">31t &bull; 19d &bull; cli</div>
+    </div>
+  </aside>
+
+  <!-- Center: Thread -->
+  <section class="thread-col">
+    <div class="thread-scroll" id="threadScroll">
+
+      <!-- User -->
+      <div class="node-card user">
+        <div class="node-role">&#x25C6;</div>
+        <div class="node-edge"></div>
+        <div class="node-body">
+          <div class="node-author">YOU <span class="meta">&bull; 14:02</span></div>
+          <div class="node-text">Let's upgrade the chat page the same way the dashboard was &mdash; but not another bland chat. Pull in the Sanctum motifs.</div>
+        </div>
+      </div>
+
+      <!-- Tool call pill row -->
+      <div class="event-row">
+        <div class="pill tool">
+          <span class="glyph">&#x2328;</span> file_read <span class="arg">ChatPage.xaml</span> <span class="tail">+234 lines</span>
+        </div>
+        <div class="pill tool">
+          <span class="glyph">&#x2328;</span> file_read <span class="arg">ChatPage.xaml.cs</span> <span class="tail">+962 lines</span>
+        </div>
+      </div>
+
+      <!-- Memory pill row -->
+      <div class="event-row">
+        <div class="pill memory">
+          <span class="glyph">&#x25C7;</span> memory &rarr; <span class="arg">project_ui_redesign</span>
+        </div>
+        <div class="pill memory">
+          <span class="glyph">&#x25C7;</span> memory &rarr; <span class="arg">project_sanctum_branch</span>
+        </div>
+      </div>
+
+      <!-- Assistant with thinking -->
+      <div class="node-card agent">
+        <div class="node-role">&#x25B2;</div>
+        <div class="node-edge"></div>
+        <div class="node-body">
+          <div class="node-author">HERMES <span class="meta">&bull; opus-4-7 &bull; 14:02</span></div>
+
+          <details class="thinking">
+            <summary>reasoning</summary>
+            <div class="thinking-body">The spec has no Chat mockup &mdash; only the Dashboard. So structural choices have to extrapolate from the design principles rather than transcribe. Three motifs carry the aesthetic without being cosmetic: node-card messages (not bubbles), inline event pills in node-type colors, and a per-journey constellation replacing the tabbed right rail.</div>
+          </details>
+
+          <div class="node-text">
+            The new thread treats each message as a graph node, not a speech bubble. A role glyph sits in the gutter and a 2px colored strip is the only edge decoration &mdash; the same visual grammar as the brain graph's node rings. Tool calls, memory touches, and skill invocations render as <code>inline event pills</code> between messages in their semantic colors. The right rail becomes a live constellation of <em>this journey</em> &mdash; the Files, Tasks and Replay tabs collapse into one graph + a scrollable trace.
+          </div>
+        </div>
+      </div>
+
+      <!-- Skill pill row -->
+      <div class="event-row">
+        <div class="pill skill">
+          <span class="glyph">&#x2726;</span> skill &rarr; <span class="arg">code-review</span> <span class="tail">invoked</span>
+        </div>
+        <div class="pill file">
+          <span class="glyph">&#x229E;</span> file &rarr; <span class="arg">BrainGraphCanvas.xaml.cs</span>
+        </div>
+      </div>
+
+      <!-- User follow-up -->
+      <div class="node-card user">
+        <div class="node-role">&#x25C6;</div>
+        <div class="node-edge"></div>
+        <div class="node-body">
+          <div class="node-author">YOU <span class="meta">&bull; 14:05</span></div>
+          <div class="node-text">Show me the altar input and the constellation rail live. I want to see how the motifs actually land.</div>
+        </div>
+      </div>
+
+      <!-- Tool pill row -->
+      <div class="event-row">
+        <div class="pill tool">
+          <span class="glyph">&#x2328;</span> file_write <span class="arg">docs/mockups/chat.html</span>
+        </div>
+      </div>
+
+      <!-- Streaming assistant -->
+      <div class="node-card agent">
+        <div class="node-role">&#x25B2;</div>
+        <div class="node-edge"></div>
+        <div class="node-body">
+          <div class="node-author">HERMES <span class="meta">&bull; opus-4-7 &bull; streaming</span></div>
+          <div class="node-text">
+            The altar is deliberately not a textbox &mdash; there's no rounded border and no filled surface. Only a hairline of gold gradient across the top, a JetBrains Mono placeholder in muted color, and a triangle-glyph send that intensifies as you type. The model switcher and permission mode live as eyebrow-styled metadata to the left, not chunky controls. On the right, the constellation<span class="streaming"></span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Thinking indicator -->
+    <div class="thinking-strip">
+      <div class="dot"></div>
+      <span>thinking</span>
+      <div class="spacer"></div>
+      <div class="stop">&#x25A0; STOP</div>
+    </div>
+
+    <!-- Altar input -->
+    <div class="altar">
+      <div class="altar-input">
+        <textarea class="altar-field" id="altarField" rows="1" placeholder="› speak into the void"></textarea>
+        <button class="altar-send" id="altarSend" title="Send">&#x25B2;</button>
+      </div>
+      <div class="altar-meta">
+        <span class="meta-pill">MODEL <span class="val">opus-4-7</span></span>
+        <span class="meta-pill">MODE <span class="val">accept</span></span>
+        <span class="meta-spacer"></span>
+        <span class="disclaimer">HERMES MAY BE WRONG. USE AT YOUR OWN RISK.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Right rail: Constellation + trace -->
+  <aside class="constellation-rail">
+    <div class="constellation-box">
+      <canvas class="constellation-canvas" id="journeyCanvas"></canvas>
+      <div class="constellation-label">THIS JOURNEY</div>
+      <div class="constellation-legend">
+        <span class="li"><span class="d" style="background:#d4a017"></span>journey</span>
+        <span class="li"><span class="d" style="background:#ff8a65"></span>tool</span>
+        <span class="li"><span class="d" style="background:#818cf8"></span>memory</span>
+        <span class="li"><span class="d" style="background:#e05555"></span>skill</span>
+      </div>
+    </div>
+
+    <div class="trace">
+      <div class="trace-header">
+        <span class="trace-title">Thread Trace</span>
+        <div class="trace-line"></div>
+        <span class="trace-count">8 EVENTS</span>
+      </div>
+
+      <div class="trace-row tool">
+        <div class="dot"></div>
+        <span class="kind">TOOL</span>
+        <span class="label">file_read ChatPage.xaml</span>
+        <span class="t">14:02</span>
+      </div>
+      <div class="trace-row tool">
+        <div class="dot"></div>
+        <span class="kind">TOOL</span>
+        <span class="label">file_read ChatPage.xaml.cs</span>
+        <span class="t">14:02</span>
+      </div>
+      <div class="trace-row memory">
+        <div class="dot"></div>
+        <span class="kind">MEM</span>
+        <span class="label">project_ui_redesign</span>
+        <span class="t">14:02</span>
+      </div>
+      <div class="trace-row memory">
+        <div class="dot"></div>
+        <span class="kind">MEM</span>
+        <span class="label">project_sanctum_branch</span>
+        <span class="t">14:02</span>
+      </div>
+      <div class="trace-row skill">
+        <div class="dot"></div>
+        <span class="kind">SKILL</span>
+        <span class="label">code-review</span>
+        <span class="t">14:03</span>
+      </div>
+      <div class="trace-row file">
+        <div class="dot"></div>
+        <span class="kind">FILE</span>
+        <span class="label">BrainGraphCanvas.xaml.cs</span>
+        <span class="t">14:03</span>
+      </div>
+      <div class="trace-row tool active">
+        <div class="dot"></div>
+        <span class="kind">TOOL</span>
+        <span class="label">file_write docs/mockups/chat.html</span>
+        <span class="t">now</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<!-- Buddy -->
+<div class="buddy-ambient">
+  <div class="buddy-art"> /\_/\
+( -.- )
+ > ~ <</div>
+  <div class="buddy-mood">listening</div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   JOURNEY CONSTELLATION — per-journey mini graph
+   Same aesthetic as the Dashboard brain graph,
+   scoped to one conversation's touched nodes.
+   ══════════════════════════════════════════ */
+const canvas = document.getElementById('journeyCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, dpr;
+let time = 0;
+
+const TYPES = {
+  journey: { color: '#d4a017', glow: '#d4a01730', size: 20 },
+  tool:    { color: '#ff8a65', glow: '#ff8a6520', size: 9  },
+  memory:  { color: '#818cf8', glow: '#818cf820', size: 10 },
+  skill:   { color: '#e05555', glow: '#e0555520', size: 10 },
+  file:    { color: '#5a7555', glow: '#5a755520', size: 6  },
+};
+
+const nodes = [];
+const edges = [];
+
+function build() {
+  // Center
+  nodes.push({ id:'j', type:'journey', label:'UI/UX Overhaul', bx:0, by:0 });
+
+  // Tools — orbit bottom-left
+  [
+    { id:'t1', lbl:'file_read',  a:Math.PI - 0.5, r:78 },
+    { id:'t2', lbl:'file_read',  a:Math.PI - 0.1, r:88 },
+    { id:'t3', lbl:'file_write', a:Math.PI + 0.3, r:74, active:true },
+  ].forEach(t => {
+    nodes.push({ id:t.id, type:'tool', label:t.lbl, bx:Math.cos(t.a)*t.r, by:Math.sin(t.a)*t.r, active:t.active });
+    edges.push({ from:'j', to:t.id, s:0.5, active:t.active });
+  });
+
+  // Memories — right
+  [
+    { id:'m1', lbl:'ui_redesign', a:0.3,  r:78 },
+    { id:'m2', lbl:'sanctum',     a:-0.2, r:86 },
+  ].forEach(m => {
+    nodes.push({ id:m.id, type:'memory', label:m.lbl, bx:Math.cos(m.a)*m.r, by:Math.sin(m.a)*m.r });
+    edges.push({ from:'j', to:m.id, s:0.4 });
+  });
+
+  // Skill — top-right
+  nodes.push({ id:'sk1', type:'skill', label:'code-review', bx:Math.cos(-0.8)*82, by:Math.sin(-0.8)*82 });
+  edges.push({ from:'j', to:'sk1', s:0.5 });
+
+  // File — bottom
+  nodes.push({ id:'f1', type:'file', label:'BrainGraph', bx:Math.cos(Math.PI/2 + 0.2)*72, by:Math.sin(Math.PI/2 + 0.2)*72 });
+  edges.push({ from:'j', to:'f1', s:0.3 });
+
+  // Cross-link: skill → memory
+  edges.push({ from:'sk1', to:'m1', s:0.2 });
+}
+
+function resize() {
+  dpr = window.devicePixelRatio || 1;
+  W = canvas.offsetWidth; H = canvas.offsetHeight;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+function getNode(id) { return nodes.find(n => n.id === id); }
+function hexToRgba(hex,a) {
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function animate() {
+  nodes.forEach((n,i) => {
+    const speed = 0.0004 + (i%5)*0.0001;
+    const amp = n.type === 'journey' ? 1.5 : 3;
+    n.x = n.bx + Math.sin(time*speed + i*1.7)*amp;
+    n.y = n.by + Math.cos(time*speed*0.7 + i*2.3)*amp;
+  });
+}
+
+function draw() {
+  time++;
+  animate();
+  ctx.clearRect(0,0,W,H);
+  ctx.save();
+  ctx.translate(W/2, H/2);
+
+  // Edges
+  edges.forEach(e => {
+    const a = getNode(e.from), b = getNode(e.to);
+    if (!a || !b) return;
+    ctx.beginPath();
+    ctx.moveTo(a.x,a.y);
+    const mx = (a.x+b.x)/2 + (a.y-b.y)*0.1;
+    const my = (a.y+b.y)/2 + (b.x-a.x)*0.1;
+    ctx.quadraticCurveTo(mx,my,b.x,b.y);
+    if (e.active) {
+      const pulse = 0.35 + Math.sin(time*0.04)*0.2;
+      ctx.strokeStyle = `rgba(255, 215, 0, ${pulse + 0.15})`;
+      ctx.lineWidth = 1.4;
+    } else {
+      const t = TYPES[a.type] || TYPES[b.type];
+      ctx.strokeStyle = hexToRgba(t.color, e.s*0.45);
+      ctx.lineWidth = 0.8;
+    }
+    ctx.stroke();
+  });
+
+  // Nodes
+  nodes.forEach(n => {
+    const t = TYPES[n.type];
+    const s = t.size;
+    const isCenter = n.type === 'journey';
+
+    // Glow
+    const grad = ctx.createRadialGradient(n.x,n.y,0,n.x,n.y,s*2.4);
+    grad.addColorStop(0, t.glow);
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.fillRect(n.x-s*3, n.y-s*3, s*6, s*6);
+
+    // Circle
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, s/2, 0, Math.PI*2);
+    if (isCenter) {
+      const pulse = 0.7 + Math.sin(time*0.02)*0.3;
+      ctx.fillStyle = hexToRgba(t.color, pulse*0.3);
+      ctx.fill();
+      ctx.strokeStyle = hexToRgba(t.color, pulse*0.6);
+      ctx.lineWidth = 1.4;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, s/5, 0, Math.PI*2);
+      ctx.fillStyle = hexToRgba(t.color, pulse);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = hexToRgba(t.color, n.active ? 0.45 : 0.25);
+      ctx.fill();
+      ctx.strokeStyle = hexToRgba(t.color, n.active ? 0.9 : 0.5);
+      ctx.lineWidth = n.active ? 1.3 : 0.9;
+      ctx.stroke();
+
+      // active pulse ring
+      if (n.active) {
+        const ringR = s/2 + 3 + Math.sin(time*0.05)*2;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, ringR, 0, Math.PI*2);
+        ctx.strokeStyle = hexToRgba(t.color, 0.4);
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+      }
+    }
+
+    // Label
+    const showLabel = isCenter || n.type === 'skill' || n.type === 'memory' || n.active;
+    if (showLabel) {
+      ctx.font = isCenter
+        ? "600 10px 'JetBrains Mono', monospace"
+        : "500 8px 'Inter', sans-serif";
+      ctx.fillStyle = hexToRgba('#c0c8d4', isCenter ? 0.95 : 0.65);
+      ctx.textAlign = 'center';
+      ctx.fillText(n.label, n.x, n.y + s/2 + 12);
+    }
+  });
+
+  // Particle along active edge
+  edges.filter(e => e.active).forEach(e => {
+    const a = getNode(e.from), b = getNode(e.to);
+    if (!a || !b) return;
+    const progress = (time*0.012) % 1;
+    const px = a.x + (b.x-a.x)*progress;
+    const py = a.y + (b.y-a.y)*progress;
+    ctx.beginPath();
+    ctx.arc(px, py, 2, 0, Math.PI*2);
+    ctx.fillStyle = '#ffd700';
+    ctx.fill();
+  });
+
+  ctx.restore();
+  requestAnimationFrame(draw);
+}
+
+build();
+window.addEventListener('resize', resize);
+resize();
+draw();
+
+/* Altar interactions */
+const field = document.getElementById('altarField');
+const send  = document.getElementById('altarSend');
+field.addEventListener('input', () => {
+  send.classList.toggle('ready', field.value.trim().length > 0);
+  field.style.height = 'auto';
+  field.style.height = Math.min(field.scrollHeight, 180) + 'px';
+});
+
+/* Auto-scroll thread to bottom on load */
+const thread = document.getElementById('threadScroll');
+thread.scrollTop = thread.scrollHeight;
+</script>
+</body>
+</html>
