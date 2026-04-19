@@ -392,10 +392,11 @@ public partial class App : Application
             tasksDir,
             sp.GetRequiredService<ILogger<TaskManager>>()));
 
-        // Buddy service
+        // Buddy service (persisted to buddy/buddy.json under the project dir)
         var buddyDir = Path.Combine(projectDir, "buddy");
+        var buddyConfigPath = Path.Combine(buddyDir, "buddy.json");
         services.AddSingleton(sp => new BuddyService(
-            buddyDir,
+            buddyConfigPath,
             sp.GetRequiredService<IChatClient>()));
 
         // Wiki system (persistent knowledge base)

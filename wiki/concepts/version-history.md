@@ -3,7 +3,7 @@ title: Version History
 type: concept
 tags: [history, changelog]
 created: 2026-04-09
-updated: 2026-04-09
+updated: 2026-04-19
 sources: [readme.md]
 ---
 
@@ -78,6 +78,12 @@ Hermes.CS is a C# port of NousResearch/hermes-agent (Python) with native Windows
 - Parallel tool execution with 8-worker semaphore
 - Deterministic tool-call ID normalization
 - ModelRouter for smart cost-saving routing
+
+## Hermes Desktop v2.4.0 (2026-04-19)
+
+- Buddy persistence path fix, hatch / species UI, LLM fallback soul, unified user id with panel
+- Integrations: native adapter status key fix; optional Python gateway messaging
+- See `docs/releases/v2.4.0.md` and root `readme.md` changelog
 
 ## Key Files
 - `readme.md` -- project README

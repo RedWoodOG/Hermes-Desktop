@@ -110,14 +110,41 @@ public static class Mulberry32
 public sealed class BuddyGenerator
 {
     private readonly Func<double> _rng;
+    private readonly string? _forcedSpecies;
     
-    public BuddyGenerator(string userId)
+    public BuddyGenerator(string userId, string? forcedSpecies = null)
     {
         _rng = Mulberry32.Create(userId);
+        _forcedSpecies = string.IsNullOrWhiteSpace(forcedSpecies) ? null : forcedSpecies.Trim();
     }
     
     public Buddy Generate()
     {
+        if (_forcedSpecies is not null &&
+            TryResolveForcedSpecies(_forcedSpecies, out var forcedRarity, out var forcedSpeciesCanon))
+        {
+            var forcedShinyRoll = _rng();
+            var forcedIsShiny = forcedShinyRoll < 0.005;
+            var forcedEyes = SelectFrom(BuddyEyes.All);
+            var forcedHatPool = forcedRarity switch
+            {
+                BuddyRarity.Legendary => BuddyHats.Rare.Concat(BuddyHats.Common).ToArray(),
+                BuddyRarity.Rare => BuddyHats.Rare,
+                _ => BuddyHats.Common.Concat(BuddyHats.None).ToArray()
+            };
+            var forcedHat = SelectFrom(forcedHatPool);
+            var forcedStats = GenerateStats(forcedRarity);
+            return new Buddy
+            {
+                Species = forcedSpeciesCanon,
+                Rarity = forcedRarity,
+                Eyes = forcedEyes,
+                Hat = forcedHat,
+                IsShiny = forcedIsShiny,
+                Stats = forcedStats
+            };
+        }
+
         // Roll rarity first (determines everything else)
         var rarityRoll = _rng();
         var rarity = rarityRoll switch
@@ -207,6 +234,50 @@ public sealed class BuddyGenerator
             Friendliness = stats[3]
         };
     }
+
+    private static bool TryResolveForcedSpecies(string input, out string rarity, out string speciesCanon)
+    {
+        rarity = BuddyRarity.Common;
+        speciesCanon = input;
+        var key = input.Trim();
+        foreach (var s in BuddySpecies.Common)
+        {
+            if (string.Equals(s, key, StringComparison.OrdinalIgnoreCase))
+            {
+                rarity = BuddyRarity.Common;
+                speciesCanon = s;
+                return true;
+            }
+        }
+        foreach (var s in BuddySpecies.Uncommon)
+        {
+            if (string.Equals(s, key, StringComparison.OrdinalIgnoreCase))
+            {
+                rarity = BuddyRarity.Uncommon;
+                speciesCanon = s;
+                return true;
+            }
+        }
+        foreach (var s in BuddySpecies.Rare)
+        {
+            if (string.Equals(s, key, StringComparison.OrdinalIgnoreCase))
+            {
+                rarity = BuddyRarity.Rare;
+                speciesCanon = s;
+                return true;
+            }
+        }
+        foreach (var s in BuddySpecies.Legendary)
+        {
+            if (string.Equals(s, key, StringComparison.OrdinalIgnoreCase))
+            {
+                rarity = BuddyRarity.Legendary;
+                speciesCanon = s;
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 // =============================================
@@ -216,12 +287,26 @@ public sealed class BuddyGenerator
 public sealed class BuddySoulGenerator
 {
     private readonly IChatClient _chatClient;
-    
+
     public BuddySoulGenerator(IChatClient chatClient)
     {
         _chatClient = chatClient;
     }
-    
+
+    public static BuddySoulResult CreateFallback(Buddy buddy, string userName)
+    {
+        var baseName = string.IsNullOrWhiteSpace(buddy.Species) ? "Buddy" : buddy.Species.Trim();
+        if (baseName.Length > 12)
+            baseName = baseName[..12];
+        var tag = userName.Trim();
+        if (tag.Length > 8)
+            tag = tag[..8];
+        var name = string.IsNullOrEmpty(tag) ? baseName : $"{baseName}-{tag}";
+        var personality =
+            $"A {buddy.Rarity} {buddy.Species} companion who sticks with you whether the LLM is online or not.";
+        return new BuddySoulResult { Name = name, Personality = personality };
+    }
+
     public async Task<BuddySoulResult> GenerateSoulAsync(
         Buddy buddy,
         string userName,
@@ -415,56 +500,131 @@ public sealed class BuddyService
     private readonly string _configPath;
     private readonly IChatClient _chatClient;
     private Buddy? _buddy;
-    
+
     public BuddyService(string configPath, IChatClient chatClient)
     {
         _configPath = configPath;
         _chatClient = chatClient;
     }
-    
-    public async Task<Buddy> GetBuddyAsync(string userId, CancellationToken ct)
+
+    /// <summary>True when a buddy has been saved to disk (survives restarts).</summary>
+    public bool HasSavedBuddy => File.Exists(_configPath);
+
+    /// <summary>Read the persisted identity key without loading the full buddy into memory.</summary>
+    public string? TryReadStoredUserId()
+    {
+        try
+        {
+            if (!File.Exists(_configPath))
+                return null;
+            var json = File.ReadAllText(_configPath);
+            var stored = JsonSerializer.Deserialize<StoredBuddy>(json);
+            return string.IsNullOrWhiteSpace(stored?.UserId) ? null : stored!.UserId!.Trim();
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Drop the in-memory buddy so the next load reads from disk again.</summary>
+    public void ClearMemoryCache() => _buddy = null;
+
+    /// <summary>Remove the on-disk buddy file and clear memory so the UI can run first-hatch again.</summary>
+    public void ClearSavedBuddy()
+    {
+        _buddy = null;
+        try
+        {
+            if (File.Exists(_configPath))
+                File.Delete(_configPath);
+        }
+        catch
+        {
+            // Non-fatal; UI may still offer hatch if write succeeds later.
+        }
+    }
+
+    /// <summary>Preview bones + stats for a species choice (not persisted).</summary>
+    public static Buddy PreviewBuddy(string userId, string speciesKey) =>
+        new BuddyGenerator(userId, speciesKey).Generate();
+
+    public Task<Buddy> GetBuddyAsync(string userId, CancellationToken ct) =>
+        GetBuddyAsync(userId, chosenSpecies: null, ct);
+
+    /// <param name="chosenSpecies">Optional species from <see cref="BuddySpecies"/> pools; null uses full deterministic roll.</param>
+    public async Task<Buddy> GetBuddyAsync(string userId, string? chosenSpecies, CancellationToken ct)
     {
         if (_buddy != null)
             return _buddy;
-        
-        // Try to load from config
+
         _buddy = await LoadBuddyAsync(userId, ct);
-        
+
         if (_buddy == null)
         {
-            // Generate new buddy
-            var generator = new BuddyGenerator(userId);
+            var generator = new BuddyGenerator(userId, chosenSpecies);
             _buddy = generator.Generate();
-            
-            // Generate soul (name + personality)
+
             var soulGen = new BuddySoulGenerator(_chatClient);
-            var soul = await soulGen.GenerateSoulAsync(_buddy, userId, ct);
-            
+            BuddySoulResult soul;
+            try
+            {
+                soul = await soulGen.GenerateSoulAsync(_buddy, userId, ct);
+            }
+            catch (Exception)
+            {
+                soul = BuddySoulGenerator.CreateFallback(_buddy, userId);
+            }
+
             _buddy.Name = soul.Name;
             _buddy.Personality = soul.Personality;
-            
-            // Save to config
-            await SaveBuddyAsync(_buddy, ct);
+
+            await SaveBuddyAsync(userId, _buddy, ct);
         }
-        
+
         return _buddy;
     }
-    
+
+    /// <summary>Re-run the naming / personality prompt for the current buddy and save.</summary>
+    public async Task<Buddy> RefreshSoulAsync(string userId, CancellationToken ct)
+    {
+        var buddy = _buddy ?? await LoadBuddyAsync(userId, ct);
+        if (buddy is null)
+            return await GetBuddyAsync(userId, ct);
+
+        var soulGen = new BuddySoulGenerator(_chatClient);
+        BuddySoulResult soul;
+        try
+        {
+            soul = await soulGen.GenerateSoulAsync(buddy, userId, ct);
+        }
+        catch (Exception)
+        {
+            soul = BuddySoulGenerator.CreateFallback(buddy, userId);
+        }
+
+        buddy.Name = soul.Name;
+        buddy.Personality = soul.Personality;
+        await SaveBuddyAsync(userId, buddy, ct);
+        _buddy = buddy;
+        return buddy;
+    }
+
     private async Task<Buddy?> LoadBuddyAsync(string userId, CancellationToken ct)
     {
         if (!File.Exists(_configPath))
             return null;
-        
+
         var json = await File.ReadAllTextAsync(_configPath, ct);
         var stored = JsonSerializer.Deserialize<StoredBuddy>(json);
-        
+
         if (stored == null)
             return null;
-        
-        // Regenerate bones (deterministic)
-        var generator = new BuddyGenerator(userId);
+
+        var effectiveUserId = string.IsNullOrWhiteSpace(stored.UserId) ? userId : stored.UserId!;
+        var generator = new BuddyGenerator(effectiveUserId, stored.ChosenSpecies);
         var bones = generator.Generate();
-        
+
         return new Buddy
         {
             Species = bones.Species,
@@ -478,21 +638,23 @@ public sealed class BuddyService
             HatchedAt = stored.HatchedAt
         };
     }
-    
-    private async Task SaveBuddyAsync(Buddy buddy, CancellationToken ct)
+
+    private async Task SaveBuddyAsync(string userId, Buddy buddy, CancellationToken ct)
     {
         var stored = new StoredBuddy
         {
+            UserId = userId,
+            ChosenSpecies = buddy.Species,
             Name = buddy.Name,
             Personality = buddy.Personality,
             HatchedAt = buddy.HatchedAt
         };
-        
-        var json = JsonSerializer.Serialize(stored, new JsonSerializerOptions 
-        { 
-            WriteIndented = true 
+
+        var json = JsonSerializer.Serialize(stored, new JsonSerializerOptions
+        {
+            WriteIndented = true
         });
-        
+
         Directory.CreateDirectory(Path.GetDirectoryName(_configPath)!);
         await File.WriteAllTextAsync(_configPath, json, ct);
     }
@@ -526,6 +688,12 @@ Stats:
 
 public sealed class StoredBuddy
 {
+    /// <summary>Windows / account identity used for deterministic generation.</summary>
+    public string? UserId { get; set; }
+
+    /// <summary>Canonical species key when the user picked a companion shape (optional for legacy files).</summary>
+    public string? ChosenSpecies { get; set; }
+
     public string? Name { get; set; }
     public string? Personality { get; set; }
     public DateTime HatchedAt { get; set; }

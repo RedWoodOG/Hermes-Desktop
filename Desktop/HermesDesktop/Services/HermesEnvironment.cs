@@ -160,6 +160,10 @@ internal static class HermesEnvironment
         TelegramConfigured || DiscordConfigured || SlackConfigured ||
         WhatsAppConfigured || MatrixConfigured || WebhookConfigured;
 
+    /// <summary>True when any integration is configured that still relies on the Python hermes-agent gateway.</summary>
+    internal static bool HasPythonSidecarRelevantConfig =>
+        SlackConfigured || WhatsAppConfigured || MatrixConfigured || WebhookConfigured;
+
     /// <summary>Whether native C# adapters are available (Telegram, Discord).</summary>
     internal static bool CanUseNativeGateway => true;
 

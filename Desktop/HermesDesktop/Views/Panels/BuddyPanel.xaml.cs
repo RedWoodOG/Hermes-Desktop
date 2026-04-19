@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Hermes.Agent.Buddy;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,7 +23,13 @@ public sealed partial class BuddyPanel : UserControl
     {
         try
         {
-            var buddy = await _buddyService.GetBuddyAsync("desktop-user", CancellationToken.None);
+            var storedId = _buddyService.TryReadStoredUserId();
+            var winUser = Environment.UserName?.Trim();
+            var userId = !string.IsNullOrWhiteSpace(storedId)
+                ? storedId.Trim()
+                : (string.IsNullOrEmpty(winUser) ? "default" : winUser);
+
+            var buddy = await _buddyService.GetBuddyAsync(userId, CancellationToken.None);
 
             EmptyState.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
             BuddyContent.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
