@@ -6,11 +6,6 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace HermesDesktop.Tests.Services;
 
-/// <summary>Thrown by <see cref="BuddyTestChatClient"/> for API surface we do not exercise in buddy tests.</summary>
-internal sealed class BuddyClientMethodNotUsed : Exception
-{
-}
-
 /// <summary>Minimal <see cref="IChatClient"/> for buddy tests (avoids Moq in guardrail diff).</summary>
 internal sealed class BuddyTestChatClient : IChatClient
 {
@@ -33,34 +28,41 @@ internal sealed class BuddyTestChatClient : IChatClient
         IEnumerable<Message> messages,
         IEnumerable<ToolDefinition> tools,
         CancellationToken ct) =>
-        Task.FromException<ChatResponse>(new BuddyClientMethodNotUsed());
+        Task.FromException<ChatResponse>(new BuddyMethodNotUsedForTests());
 
     public IAsyncEnumerable<string> StreamAsync(IEnumerable<Message> messages, CancellationToken ct) =>
-        ThrowingStream();
+        EmptyStringStream();
 
     public IAsyncEnumerable<StreamEvent> StreamAsync(
         string? systemPrompt,
         IEnumerable<Message> messages,
         IEnumerable<ToolDefinition>? tools = null,
         CancellationToken ct = default) =>
-        ThrowingStreamEvents();
+        EmptyStreamEventStream();
 
-    private static async IAsyncEnumerable<string> ThrowingStream()
+    private static async IAsyncEnumerable<string> EmptyStringStream()
     {
         await Task.Yield();
-        throw new BuddyClientMethodNotUsed();
+        yield break;
     }
 
-    private static async IAsyncEnumerable<StreamEvent> ThrowingStreamEvents()
+    private static async IAsyncEnumerable<StreamEvent> EmptyStreamEventStream()
     {
         await Task.Yield();
-        throw new BuddyClientMethodNotUsed();
+        yield break;
     }
 }
 
 [TestClass]
 public class BuddyServiceTests
 {
+    private sealed class BuddyMethodNotUsedForTests : Exception
+    {
+        public BuddyMethodNotUsedForTests() : base("not used in buddy tests")
+        {
+        }
+    }
+
     private sealed class SimulatedNetworkFailure : Exception
     {
         public SimulatedNetworkFailure() : base("network")
