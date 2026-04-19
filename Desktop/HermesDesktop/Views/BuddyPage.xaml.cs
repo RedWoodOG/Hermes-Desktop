@@ -41,10 +41,11 @@ public sealed partial class BuddyPage : Page
     {
         SpeciesCombo.Items.Clear();
         SpeciesCombo.Items.Add(new ComboBoxItem { Content = "Surprise (full random roll)", Tag = (string?)null });
-        AddSpeciesGroup("Common", BuddySpecies.Common);
-        AddSpeciesGroup("Uncommon", BuddySpecies.Uncommon);
-        AddSpeciesGroup("Rare", BuddySpecies.Rare);
-        AddSpeciesGroup("Legendary", BuddySpecies.Legendary);
+        // global:: avoids collision with generated field BuddySpecies (TextBlock) from BuddyPage.xaml
+        AddSpeciesGroup("Common", global::Hermes.Agent.Buddy.BuddySpecies.Common);
+        AddSpeciesGroup("Uncommon", global::Hermes.Agent.Buddy.BuddySpecies.Uncommon);
+        AddSpeciesGroup("Rare", global::Hermes.Agent.Buddy.BuddySpecies.Rare);
+        AddSpeciesGroup("Legendary", global::Hermes.Agent.Buddy.BuddySpecies.Legendary);
         SpeciesCombo.SelectedIndex = 0;
     }
 

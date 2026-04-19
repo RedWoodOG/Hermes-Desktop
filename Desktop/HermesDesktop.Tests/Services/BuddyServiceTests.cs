@@ -6,6 +6,14 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace HermesDesktop.Tests.Services;
 
+/// <summary>Thrown when a test fake implements an <see cref="IChatClient"/> surface we do not call.</summary>
+internal sealed class BuddyMethodNotUsedForTests : Exception
+{
+    public BuddyMethodNotUsedForTests() : base("not used in buddy tests")
+    {
+    }
+}
+
 /// <summary>Minimal <see cref="IChatClient"/> for buddy tests (avoids Moq in guardrail diff).</summary>
 internal sealed class BuddyTestChatClient : IChatClient
 {
@@ -56,13 +64,6 @@ internal sealed class BuddyTestChatClient : IChatClient
 [TestClass]
 public class BuddyServiceTests
 {
-    private sealed class BuddyMethodNotUsedForTests : Exception
-    {
-        public BuddyMethodNotUsedForTests() : base("not used in buddy tests")
-        {
-        }
-    }
-
     private sealed class SimulatedNetworkFailure : Exception
     {
         public SimulatedNetworkFailure() : base("network")
