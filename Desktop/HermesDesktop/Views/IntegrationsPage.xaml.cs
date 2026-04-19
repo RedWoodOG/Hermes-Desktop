@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using Hermes.Agent.Gateway;
 using Hermes.Agent.Gateway.Platforms;
+using Platform = Hermes.Agent.Gateway.Platform;
 using HermesDesktop.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
@@ -77,17 +78,18 @@ public sealed partial class IntegrationsPage : Page
 
         // Build per-adapter status indicators
         AdapterStatusPanel.Children.Clear();
-        foreach (var platform in new[] { "Telegram", "Discord" })
+        foreach (var platform in new[] { Platform.Telegram, Platform.Discord })
         {
             var indicator = new Microsoft.UI.Xaml.Shapes.Ellipse { Width = 8, Height = 8, VerticalAlignment = VerticalAlignment.Center };
-            if (adapterStatus.TryGetValue(platform, out var connected) && connected)
+            var key = platform.ToString();
+            if (adapterStatus.TryGetValue(key, out var connected) && connected)
                 indicator.Fill = (Brush)Application.Current.Resources["ConnectionOnlineBrush"];
             else
                 indicator.Fill = (Brush)Application.Current.Resources["ConnectionOfflineBrush"];
 
             var label = new TextBlock
             {
-                Text = platform,
+                Text = platform.ToString(),
                 FontSize = 12,
                 Foreground = (Brush)Application.Current.Resources["AppTextSecondaryBrush"],
                 VerticalAlignment = VerticalAlignment.Center,
@@ -199,7 +201,11 @@ public sealed partial class IntegrationsPage : Page
         string state = HermesEnvironment.ReadGatewayState();
         GatewayStateText.Text = running
             ? $"State: {state}"
-            : installed ? "Gateway is not running. Click Start to launch it." : "Hermes CLI not found. Install hermes first.";
+            : installed
+                ? "Gateway is not running. Click Start to launch it."
+                : HermesEnvironment.HasPythonSidecarRelevantConfig
+                    ? "Hermes CLI / hermes-agent not found. Install it to run Slack, WhatsApp, Matrix, and webhooks. Telegram and Discord use the native gateway above."
+                    : "Optional: hermes-agent is not installed. Telegram and Discord work through the native gateway; install the Python gateway only if you need Slack, WhatsApp, Matrix, or webhooks.";
 
         GatewayToggleButton.Content = running ? "Stop Gateway" : "Start Gateway";
         GatewayToggleButton.IsEnabled = installed;

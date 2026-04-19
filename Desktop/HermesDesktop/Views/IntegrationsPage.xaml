@@ -33,7 +33,7 @@
                     <TextBlock Text="&#xE946; Native C# gateway for Telegram and Discord"
                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                FontSize="13" Foreground="{StaticResource AppAccentTextBrush}" />
-                    <TextBlock Text="Telegram and Discord run natively in the desktop app — no Python required. For advanced platforms (Slack, WhatsApp, Matrix), install hermes-agent for the Python gateway."
+                    <TextBlock Text="Telegram and Discord run natively in the desktop app — no Python required. Slack, WhatsApp, Matrix, and webhooks use the same config.yaml entries as the Python gateway; install hermes-agent only when you want those platforms live."
                                FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap" />
                     <HyperlinkButton Content="Install hermes-agent for additional platforms (pip install hermes-agent)"
                                      NavigateUri="https://github.com/NousResearch/hermes-agent"
@@ -75,7 +75,7 @@
             <!-- Python Gateway Status (advanced platforms) -->
             <Border Style="{StaticResource SurfaceCardStyle}">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="Python Gateway (Slack, WhatsApp, Matrix)" Style="{StaticResource SectionTitleTextStyle}" />
+                    <TextBlock Text="Python Gateway (optional — Slack, WhatsApp, Matrix, webhooks)" Style="{StaticResource SectionTitleTextStyle}" />
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <Ellipse x:Name="GatewayIndicator" Width="12" Height="12"
                                  VerticalAlignment="Center" />
@@ -114,7 +114,7 @@
                 <StackPanel Spacing="4">
                     <TextBlock Text="Integration Status" FontSize="14" FontWeight="SemiBold"
                                Foreground="{StaticResource AppAccentTextBrush}"/>
-                    <TextBlock Text="Telegram and Discord use native C# adapters — they work without the Python CLI. Slack, WhatsApp, and Matrix still require the hermes-agent Python gateway. Token configuration is saved locally to config.yaml."
+                    <TextBlock Text="Telegram and Discord use native C# adapters — no Python CLI required. Other platforms write tokens here to config.yaml; run the optional Python gateway when you need those bots online. Nothing extra is required just to save integration settings."
                                FontSize="12" TextWrapping="Wrap"
                                Foreground="{StaticResource AppTextSecondaryBrush}"/>
                 </StackPanel>

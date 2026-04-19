@@ -6,7 +6,7 @@
 
     <Grid>
         <TextBlock x:Name="EmptyState" Visibility="Visible"
-                   Text="Your buddy will appear here.&#x0a;Start a conversation to generate your companion."
+                   Text="Your buddy will appear here.&#x0a;Open Buddy in the sidebar to hatch your companion."
                    Foreground="{StaticResource AppTextSecondaryBrush}"
                    HorizontalAlignment="Center" VerticalAlignment="Center"
                    TextAlignment="Center" FontSize="13" Opacity="0.7"/>

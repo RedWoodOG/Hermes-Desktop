@@ -19,12 +19,35 @@
         <StackPanel Spacing="4" Margin="0,0,0,16">
             <TextBlock Text="Buddy" Style="{StaticResource PageEyebrowTextStyle}"/>
             <TextBlock Text="Your Companion" FontSize="22" FontWeight="SemiBold"/>
-            <TextBlock Text="Tamagotchi-style companion, deterministically generated from your identity"
+            <TextBlock Text="Pick a shape, hatch once, then keep the same companion across sessions. Stats stay tied to your Windows account."
                        FontSize="13" Foreground="{StaticResource AppTextSecondaryBrush}"/>
         </StackPanel>
 
-        <!-- Two-column layout -->
-        <Grid Grid.Row="1" ColumnSpacing="24">
+        <!-- Setup: first hatch -->
+        <Border x:Name="SetupPanel" Grid.Row="1" Style="{StaticResource SurfaceCardStyle}" Padding="24" MaxWidth="560" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <StackPanel Spacing="16">
+                <TextBlock Text="Hatch your buddy" FontSize="18" FontWeight="SemiBold"
+                           Foreground="{StaticResource AppAccentTextBrush}"/>
+                <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="{StaticResource AppTextSecondaryBrush}"
+                           Text="Choose a species (rarity follows the species tier) or roll a full surprise. You can reset later if you really want a fresh egg — that generates a new companion for this account."/>
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Species" Style="{StaticResource LabelTextStyle}"/>
+                    <ComboBox x:Name="SpeciesCombo" MinWidth="280" HorizontalAlignment="Left"
+                              AutomationProperties.Name="Buddy species"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                    <Button x:Name="HatchButton" Content="Hatch buddy" Click="HatchButton_Click"
+                            Background="{StaticResource AppAccentGradientBrush}"
+                            BorderBrush="{StaticResource AppAccentDarkBrush}"
+                            Foreground="#16110D" Padding="16,8"/>
+                </StackPanel>
+                <TextBlock x:Name="SetupStatusText" FontSize="12" TextWrapping="Wrap"
+                           Foreground="{StaticResource AppTextSecondaryBrush}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main buddy view -->
+        <Grid x:Name="MainBuddyGrid" Grid.Row="1" Visibility="Collapsed" ColumnSpacing="24">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="360" MinWidth="300"/>
@@ -107,6 +130,19 @@
                     <TextBlock x:Name="BuddyPersonality" Text="" FontSize="13" TextWrapping="Wrap"
                                TextAlignment="Center" FontStyle="Italic" MaxWidth="360"
                                Foreground="{StaticResource AppTextSecondaryBrush}"/>
+
+                    <StackPanel Orientation="Horizontal" Spacing="12" HorizontalAlignment="Center">
+                        <Button x:Name="RefreshSoulButton" Content="Refresh personality" Click="RefreshSoulButton_Click"
+                                Background="{StaticResource AppInsetBrush}"
+                                BorderBrush="{StaticResource AppStrokeBrush}"
+                                Foreground="White" Padding="14,8"/>
+                        <Button x:Name="ResetBuddyButton" Content="Reset buddy…" Click="ResetBuddyButton_Click"
+                                Background="{StaticResource AppInsetBrush}"
+                                BorderBrush="{StaticResource AppStrokeBrush}"
+                                Foreground="White" Padding="14,8"/>
+                    </StackPanel>
+                    <TextBlock x:Name="BuddyActionStatus" FontSize="12" TextWrapping="Wrap" TextAlignment="Center"
+                               Foreground="{StaticResource AppTextSecondaryBrush}"/>
                 </StackPanel>
             </Border>
 
@@ -117,7 +153,7 @@
                                Foreground="{StaticResource AppAccentTextBrush}"/>
 
                     <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="{StaticResource AppTextSecondaryBrush}"
-                               Text="Every user gets a unique companion, deterministically generated from their identity. Your buddy is permanent and cannot be re-rolled."/>
+                               Text="Your companion is saved under hermes-cs/buddy/buddy.json. If the model API is down, you still get a buddy with a local fallback name and blurb until the LLM responds again."/>
 
                     <Border Background="{StaticResource AppInsetBrush}" CornerRadius="8" Padding="16,12">
                         <StackPanel Spacing="8">
