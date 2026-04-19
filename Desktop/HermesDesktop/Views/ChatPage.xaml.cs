@@ -62,9 +62,48 @@ public sealed partial class ChatPage : Page
 
         // Set ItemsSource once in code — avoids x:Bind re-evaluation during layout passes
         MessagesList.ItemsSource = Messages;
+
+        // Refresh Sanctum header (title, subtitle, breadcrumb) whenever messages change.
+        Messages.CollectionChanged += (_, _) => UpdateHeader();
     }
 
     public ObservableCollection<ChatMessageItem> Messages { get; } = new();
+
+    // ── Sanctum Header ──
+
+    private static string? _cachedWorkspaceName;
+    private static string? _cachedProjectName;
+
+    private void UpdateHeader()
+    {
+        if (_cachedProjectName is null)
+        {
+            var workDir = HermesEnvironment.AgentWorkingDirectory;
+            _cachedProjectName = System.IO.Path.GetFileName(workDir) ?? "project";
+            var parent = System.IO.Path.GetDirectoryName(workDir);
+            _cachedWorkspaceName = parent is null ? "" : System.IO.Path.GetFileName(parent) ?? "";
+        }
+
+        BreadcrumbWorkspace.Text = _cachedWorkspaceName ?? "";
+        BreadcrumbProject.Text = _cachedProjectName ?? "";
+
+        var title = GetJourneyTitle(maxLen: 80);
+        var crumbTitle = GetJourneyTitle(maxLen: 28);
+        JourneyTitleText.Text = title;
+        BreadcrumbJourney.Text = $"\u00AB {crumbTitle} \u00BB";
+    }
+
+    private string GetJourneyTitle(int maxLen)
+    {
+        var userLabel = ResourceLoader.GetString("ChatUserLabel");
+        var firstUser = Messages.FirstOrDefault(m =>
+            string.Equals(m.AuthorLabel, userLabel, StringComparison.OrdinalIgnoreCase));
+        if (firstUser is null || string.IsNullOrWhiteSpace(firstUser.Content))
+            return "New Journey";
+        var t = firstUser.Content.Trim();
+        if (t.Length > maxLen) t = t[..maxLen].TrimEnd() + "\u2026";
+        return t;
+    }
 
     // ── Lifecycle ──
 
@@ -73,6 +112,7 @@ public sealed partial class ChatPage : Page
         if (_initialized) return;
         _initialized = true;
 
+        UpdateHeader();
         ApplyConnectionStatusSnapshot(_runtimeStatusService.GetConfiguredSnapshot());
         UpdateSessionFooterLabel();
         UpdateSessionFooterCopyButton();
@@ -615,6 +655,12 @@ public sealed partial class ChatPage : Page
         };
 
         ConnectionStateText.Text = $"{statusText} | {snapshot.DisplayProvider} | {snapshot.DisplayModel}";
+
+        // Sanctum subtitle: model  \u00B7  N turns  \u00B7  state
+        var userLabel = ResourceLoader.GetString("ChatUserLabel");
+        var turns = Messages.Count(m =>
+            string.Equals(m.AuthorLabel, userLabel, StringComparison.OrdinalIgnoreCase));
+        JourneySubtitleText.Text = $"{snapshot.DisplayModel}  \u00B7  {turns} turns  \u00B7  {statusText}";
     }
 
     private void UpdateSessionFooterCopyButton()

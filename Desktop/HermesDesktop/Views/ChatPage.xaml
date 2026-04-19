@@ -24,23 +24,48 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header -->
-        <Grid Grid.Row="0" Grid.ColumnSpan="3" ColumnSpacing="16">
+        <!-- Sanctum Header: eyebrow + Playfair title + subtitle + breadcrumb -->
+        <Grid Grid.Row="0" Grid.ColumnSpan="3" ColumnSpacing="16" Padding="8,4,8,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <StackPanel Spacing="4">
-                <TextBlock x:Uid="ChatPageAgentTitle" FontSize="22" FontWeight="SemiBold" />
-                <StackPanel Orientation="Horizontal" Spacing="12">
-                    <TextBlock x:Name="ConnectionStateText" Style="{StaticResource BodySecondaryTextStyle}" />
+            <StackPanel Spacing="2">
+                <!-- Eyebrow: gold hairline + THE JOURNEY -->
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Border Width="20" Height="1" Background="{StaticResource AppAccentBrush}" VerticalAlignment="Center" Opacity="0.85"/>
+                    <TextBlock Text="THE JOURNEY" Style="{StaticResource PageEyebrowTextStyle}" VerticalAlignment="Center"/>
+                </StackPanel>
+                <!-- Playfair title bound to journey name -->
+                <TextBlock x:Name="JourneyTitleText" Style="{StaticResource PageTitleTextStyle}" FontSize="32" Text="New Journey" Margin="0,4,0,0"/>
+                <!-- Subtitle: model · turns · connection state -->
+                <TextBlock x:Name="JourneySubtitleText" Style="{StaticResource DataLabelTextStyle}" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Margin="0,4,0,0"/>
+                <!-- Breadcrumb: BRAIN ▸ workspace ▸ project ▸ journey -->
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
+                    <TextBlock Text="BRAIN" Style="{StaticResource LabelTextStyle}" FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.7"/>
+                    <TextBlock Text="&#x25B8;" FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9" Foreground="{StaticResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="BreadcrumbWorkspace" Style="{StaticResource LabelTextStyle}" FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.7"/>
+                    <TextBlock Text="&#x25B8;" FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9" Foreground="{StaticResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="BreadcrumbProject" Style="{StaticResource LabelTextStyle}" FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.7"/>
+                    <TextBlock Text="&#x25B8;" FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9" Foreground="{StaticResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                    <TextBlock x:Name="BreadcrumbJourney" Style="{StaticResource LabelTextStyle}" FontSize="10" Foreground="{StaticResource AppAccentBrush}"/>
                 </StackPanel>
             </StackPanel>
 
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <Button x:Uid="ChatNewChatButton" Click="NewChat_Click" Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppSubtleStrokeBrush}" Foreground="White" />
+            <!-- Action icons: new journey -->
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Margin="0,4,0,0">
+                <Button x:Uid="ChatNewChatButton" Click="NewChat_Click" Width="34" Height="34" Padding="0"
+                        Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"
+                        Foreground="{StaticResource AppTextSecondaryBrush}" CornerRadius="10"
+                        ToolTipService.ToolTip="New journey">
+                    <FontIcon Glyph="&#xE710;" FontSize="14"/>
+                </Button>
             </StackPanel>
+
+            <!-- Legacy status sink: kept invisible so ApplyConnectionStatusSnapshot can still set it
+                 without NRE; real status is shown in JourneySubtitleText. -->
+            <TextBlock x:Name="ConnectionStateText" Visibility="Collapsed"/>
         </Grid>
 
         <!-- Main Chat Area -->

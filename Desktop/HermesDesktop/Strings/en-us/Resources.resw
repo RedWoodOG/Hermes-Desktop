@@ -499,7 +499,7 @@
     <value>Hermes can make mistakes. Verify important information.</value>
   </data>
   <data name="ChatPageTabSessions.Content" xml:space="preserve">
-    <value>Sessions</value>
+    <value>Journeys</value>
   </data>
   <data name="ChatPageTabFiles.Content" xml:space="preserve">
     <value>Files</value>
