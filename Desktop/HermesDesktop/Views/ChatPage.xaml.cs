@@ -49,8 +49,22 @@ public sealed partial class ChatPage : Page
         MessagesList.ItemsSource = Messages;
         TraceList.ItemsSource = TraceEvents;
 
-        // Refresh Sanctum header (title, subtitle, breadcrumb) whenever messages change.
-        Messages.CollectionChanged += (_, _) => UpdateHeader();
+        // Refresh Sanctum header + empty-state overlay whenever messages change.
+        Messages.CollectionChanged += (_, _) =>
+        {
+            UpdateHeader();
+            UpdateEmptyOverlays();
+        };
+    }
+
+    private void UpdateEmptyOverlays()
+    {
+        if (EmptyJourneyOverlay is not null)
+            EmptyJourneyOverlay.Visibility = Messages.Count == 0
+                ? Visibility.Visible : Visibility.Collapsed;
+        if (EmptyConstellationOverlay is not null)
+            EmptyConstellationOverlay.Visibility = _journeyActivity.Count == 0
+                ? Visibility.Visible : Visibility.Collapsed;
     }
 
     public ObservableCollection<ChatListItem> Messages { get; } = new();
@@ -100,6 +114,7 @@ public sealed partial class ChatPage : Page
 
         UpdateHeader();
         RefreshJourneyGraph();
+        UpdateEmptyOverlays();
         ApplyConnectionStatusSnapshot(_runtimeStatusService.GetConfiguredSnapshot());
         UpdateSessionFooterLabel();
         UpdateSessionFooterCopyButton();
@@ -679,9 +694,16 @@ public sealed partial class ChatPage : Page
 
         ConnectionStateText.Text = $"{statusText} | {snapshot.DisplayProvider} | {snapshot.DisplayModel}";
 
-        // Sanctum subtitle: model  \u00B7  N turns  \u00B7  state
+        // Sanctum subtitle: compact model name \u00B7 N turns \u00B7 state.
+        // DisplayModel can be "configured local model" when no model is named; shorten that.
+        var model = (snapshot.DisplayModel ?? "").Trim();
+        if (model.Length == 0 || model.Equals("configured local model", StringComparison.OrdinalIgnoreCase))
+            model = (snapshot.DisplayProvider ?? "local").ToLowerInvariant();
+        if (model.Length > 26) model = model[..24] + "\u2026";
+
         var turns = Messages.OfType<ChatMessageItem>().Count(m => m.Role == ChatRole.User);
-        JourneySubtitleText.Text = $"{snapshot.DisplayModel}  \u00B7  {turns} turns  \u00B7  {statusText}";
+        var turnsLabel = turns == 1 ? "1 turn" : $"{turns} turns";
+        JourneySubtitleText.Text = $"{model}  \u00B7  {turnsLabel}  \u00B7  {statusText.ToLowerInvariant()}";
     }
 
     private void UpdateSessionFooterCopyButton()
@@ -725,25 +747,9 @@ public sealed partial class ChatPage : Page
 
     private void AppendWelcomeMessage()
     {
-        var caduceus =
-            "            ⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀\n" +
-            "            ⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀\n" +
-            "       ⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀\n" +
-            "       ⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉\n" +
-            "            ⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦\n" +
-            "            ⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿\n" +
-            "            ⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁\n" +
-            "            ⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃\n" +
-            "            ⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄\n" +
-            "            ⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇\n" +
-            "            ⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄\n" +
-            "            ⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀\n" +
-            "            ⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿\n" +
-            "            ⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁\n\n" +
-            "         H E R M E S   A G E N T\n\n" +
-            "  Ready. Type a message or /help for commands.";
-
-        AppendSystemMessage(caduceus);
+        // Sanctum welcome is rendered as an empty-state overlay in XAML
+        // (EmptyJourneyOverlay), visible while Messages is empty. Nothing
+        // to inject into the thread -- the overlay handles it.
     }
 
     // ── First-Run Onboarding ──
@@ -939,6 +945,9 @@ Write the USER.md content now (markdown format, start with # User Profile):";
         var title = GetJourneyTitle(maxLen: 22);
         var graph = _journeyGraph.Build(title, _journeyActivity);
         JourneyCanvas.SetGraphData(graph);
+        if (EmptyConstellationOverlay is not null)
+            EmptyConstellationOverlay.Visibility = _journeyActivity.Count == 0
+                ? Visibility.Visible : Visibility.Collapsed;
     }
 
     private void ScrollToBottom()

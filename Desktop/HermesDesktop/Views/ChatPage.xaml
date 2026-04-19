@@ -16,15 +16,55 @@
     <!-- Enter sends, Shift+Enter for newline (handled in KeyDown) -->
 
     <Grid x:Name="MainGrid" Padding="0" ColumnSpacing="0" RowSpacing="0">
+        <!-- Ambient gold radial gradient on the page surface (matches mockup body::before) -->
+        <Grid.Background>
+            <RadialGradientBrush Center="0.3,0.7" RadiusX="0.6" RadiusY="0.5"
+                                 GradientOrigin="0.3,0.7">
+                <GradientStop Color="#0ED4A017" Offset="0.0"/>
+                <GradientStop Color="#000B0E14" Offset="0.75"/>
+            </RadialGradientBrush>
+        </Grid.Background>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="240" MinWidth="200" MaxWidth="360"/>
-            <ColumnDefinition Width="*" MinWidth="380"/>
-            <ColumnDefinition Width="340" MinWidth="240" MaxWidth="520"/>
+            <ColumnDefinition x:Name="JourneyRailCol" Width="240" MinWidth="0" MaxWidth="360"/>
+            <ColumnDefinition Width="*" MinWidth="340"/>
+            <ColumnDefinition x:Name="ConstellationRailCol" Width="340" MinWidth="0" MaxWidth="520"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
+
+        <!-- Responsive: collapse the constellation rail below 1200px, and the journey rail below 900px,
+             so narrow windows still show the thread and altar instead of a lone sidebar. -->
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="LayoutStates">
+                <VisualState x:Name="WideLayout">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="1200"/>
+                    </VisualState.StateTriggers>
+                </VisualState>
+                <VisualState x:Name="MediumLayout">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="900"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="ConstellationRailCol.Width" Value="0"/>
+                        <Setter Target="ConstellationRailBorder.Visibility" Value="Collapsed"/>
+                    </VisualState.Setters>
+                </VisualState>
+                <VisualState x:Name="NarrowLayout">
+                    <VisualState.StateTriggers>
+                        <AdaptiveTrigger MinWindowWidth="0"/>
+                    </VisualState.StateTriggers>
+                    <VisualState.Setters>
+                        <Setter Target="JourneyRailCol.Width" Value="0"/>
+                        <Setter Target="JourneyRailBorder.Visibility" Value="Collapsed"/>
+                        <Setter Target="ConstellationRailCol.Width" Value="0"/>
+                        <Setter Target="ConstellationRailBorder.Visibility" Value="Collapsed"/>
+                    </VisualState.Setters>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
 
         <!-- ─── Sanctum Header (spans all 3 columns): eyebrow + Playfair title + subtitle + breadcrumb ─── -->
         <Border Grid.Row="0" Grid.ColumnSpan="3"
@@ -83,7 +123,7 @@
         </Border>
 
         <!-- ─── Col 0: Journey rail ─── -->
-        <Border Grid.Row="1" Grid.Column="0"
+        <Border x:Name="JourneyRailBorder" Grid.Row="1" Grid.Column="0"
                 Background="{StaticResource AppPaneBackgroundBrush}"
                 BorderBrush="{StaticResource AppStrokeBrush}" BorderThickness="0,0,1,0">
             <Grid Padding="14,18,14,14">
@@ -110,6 +150,27 @@
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
+
+            <!-- Empty-state overlay: visible while Messages is empty -->
+            <StackPanel x:Name="EmptyJourneyOverlay" Grid.Row="0"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Spacing="8" Padding="24" IsHitTestVisible="False">
+                <TextBlock Text="&#x2727;" FontFamily="{StaticResource JetBrainsMonoFont}"
+                           FontSize="22" Foreground="{StaticResource AppAccentBrush}"
+                           HorizontalAlignment="Center" Opacity="0.7"/>
+                <TextBlock Text="Hermes awaits."
+                           FontFamily="{StaticResource PlayfairDisplayFont}" FontSize="28"
+                           Foreground="{StaticResource AppTextPrimaryBrush}"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="SPEAK INTO THE VOID TO BEGIN"
+                           FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                           CharacterSpacing="300" Foreground="{StaticResource AppTextSecondaryBrush}"
+                           HorizontalAlignment="Center" Opacity="0.7" Margin="0,6,0,0"/>
+                <TextBlock Text="or type /help for commands"
+                           FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                           Foreground="{StaticResource AppTextMutedBrush}" FontStyle="Italic"
+                           HorizontalAlignment="Center" Margin="0,6,0,0"/>
+            </StackPanel>
 
             <!-- Messages: node-card grammar + inline event pills -->
             <ListView x:Name="MessagesList" Grid.Row="0"
@@ -348,7 +409,7 @@
         </Grid>
 
         <!-- ─── Col 2: Constellation rail + thread trace ─── -->
-        <Border Grid.Row="1" Grid.Column="2"
+        <Border x:Name="ConstellationRailBorder" Grid.Row="1" Grid.Column="2"
                 Background="{StaticResource AppPaneBackgroundBrush}"
                 BorderBrush="{StaticResource AppStrokeBrush}" BorderThickness="1,0,0,0">
             <Grid Padding="14,18,14,14">
@@ -369,6 +430,22 @@
                                    Style="{StaticResource SectionTitleTextStyle}"
                                    HorizontalAlignment="Left" VerticalAlignment="Top"
                                    Margin="12,10,0,0"/>
+                        <!-- Visible while no tool/memory/skill events have fired yet. -->
+                        <StackPanel x:Name="EmptyConstellationOverlay"
+                                    HorizontalAlignment="Center" VerticalAlignment="Center"
+                                    Spacing="6" IsHitTestVisible="False">
+                            <TextBlock Text="AWAITING INVOCATIONS"
+                                       FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                       CharacterSpacing="300"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}"
+                                       HorizontalAlignment="Center" Opacity="0.7" Margin="0,56,0,0"/>
+                            <TextBlock Text="tools, memories and skills will appear here as the agent uses them"
+                                       FontFamily="{StaticResource InterFont}" FontSize="10"
+                                       FontStyle="Italic"
+                                       Foreground="{StaticResource AppTextMutedBrush}"
+                                       HorizontalAlignment="Center" TextAlignment="Center"
+                                       TextWrapping="Wrap" MaxWidth="220"/>
+                        </StackPanel>
                     </Grid>
                 </Border>
 
