@@ -461,6 +461,9 @@ public partial class App : Application
         // Brain graph (dashboard constellation visualization)
         services.AddSingleton<BrainGraphService>();
 
+        // Journey graph (per-session mini constellation in the chat's right rail)
+        services.AddSingleton<JourneyGraphService>();
+
         // Dreamer (background free-association worker) — status for Dashboard; loop started post-build
         services.AddSingleton(_ => new DreamerStatus());
 

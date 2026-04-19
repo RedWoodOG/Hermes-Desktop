@@ -33,6 +33,8 @@ public sealed partial class ChatPage : Page
     private readonly SessionRecorder _sessionRecorder = new();
     private readonly SoulService _soulService = App.Services.GetRequiredService<SoulService>();
     private readonly ChatClientFactory _clientFactory = App.Services.GetRequiredService<ChatClientFactory>();
+    private readonly JourneyGraphService _journeyGraph = App.Services.GetRequiredService<JourneyGraphService>();
+    private readonly List<Hermes.Agent.Core.ActivityEntry> _journeyActivity = new();
     private bool _suppressModelSwitch;
 
     private bool _initialized;
@@ -43,14 +45,16 @@ public sealed partial class ChatPage : Page
     {
         InitializeComponent();
 
-        // Set ItemsSource once in code — avoids x:Bind re-evaluation during layout passes
+        // Set ItemsSources once in code — avoids x:Bind re-evaluation during layout passes
         MessagesList.ItemsSource = Messages;
+        TraceList.ItemsSource = TraceEvents;
 
         // Refresh Sanctum header (title, subtitle, breadcrumb) whenever messages change.
         Messages.CollectionChanged += (_, _) => UpdateHeader();
     }
 
     public ObservableCollection<ChatListItem> Messages { get; } = new();
+    public ObservableCollection<ChatEventItem> TraceEvents { get; } = new();
 
     // ── Sanctum Header ──
 
@@ -95,6 +99,7 @@ public sealed partial class ChatPage : Page
         _initialized = true;
 
         UpdateHeader();
+        RefreshJourneyGraph();
         ApplyConnectionStatusSnapshot(_runtimeStatusService.GetConfiguredSnapshot());
         UpdateSessionFooterLabel();
         UpdateSessionFooterCopyButton();
@@ -288,17 +293,40 @@ public sealed partial class ChatPage : Page
             UpdateSessionFooterCopyButton();
             ApplyConnectionState(RuntimeConnectionState.Connected);
 
-            // Load activity entries for replay panel
+            // Load activity entries for replay panel + journey constellation + thread trace
             try
             {
                 var activityEntries = await _transcriptStore.LoadActivityAsync(sessionId, CancellationToken.None);
                 ReplayPanelView.LoadSession(activityEntries);
+
+                _journeyActivity.Clear();
+                TraceEvents.Clear();
+                foreach (var entry in activityEntries)
+                {
+                    if (entry.Status == Hermes.Agent.Core.ActivityStatus.Running) continue;
+                    _journeyActivity.Add(entry);
+                    var detail = entry.InputSummary ?? "";
+                    if (detail.Length > 80) detail = detail[..77] + "\u2026";
+                    string? tail = entry.Status switch
+                    {
+                        Hermes.Agent.Core.ActivityStatus.Failed => "failed",
+                        Hermes.Agent.Core.ActivityStatus.Denied => "denied",
+                        _ => entry.DurationMs > 0 ? $"{entry.DurationMs}ms" : null,
+                    };
+                    TraceEvents.Add(new ChatEventItem(entry.ToolName, detail, tail));
+                }
+                RefreshJourneyGraph();
+                TraceCountLabel.Text = $"{TraceEvents.Count} EVENTS";
             }
             catch (Exception ex)
             {
                 // Activity log is optional — don't fail the session load
                 System.Diagnostics.Debug.WriteLine($"ChatPage activity replay load failed for {sessionId}: {ex}");
                 ReplayPanelView.Clear();
+                _journeyActivity.Clear();
+                TraceEvents.Clear();
+                RefreshJourneyGraph();
+                TraceCountLabel.Text = "0 EVENTS";
             }
         }
         catch (Exception ex)
@@ -558,6 +586,10 @@ public sealed partial class ChatPage : Page
         ReplayPanelView.Clear();
         _sessionRecorder.StopRecording();
         Messages.Clear();
+        TraceEvents.Clear();
+        _journeyActivity.Clear();
+        RefreshJourneyGraph();
+        TraceCountLabel.Text = "0 EVENTS";
         UpdateSessionFooterLabel();
         UpdateSessionFooterCopyButton();
         _onboarding = OnboardingState.None;
@@ -896,7 +928,19 @@ Write the USER.md content now (markdown format, start with # User Profile):";
             _ => entry.DurationMs > 0 ? $"{entry.DurationMs}ms" : null,
         };
 
-        Messages.Add(new ChatEventItem(entry.ToolName, detail, tail));
+        var pill = new ChatEventItem(entry.ToolName, detail, tail);
+        Messages.Add(pill);
+        TraceEvents.Add(pill);
+        _journeyActivity.Add(entry);
+        RefreshJourneyGraph();
+        TraceCountLabel.Text = $"{TraceEvents.Count} EVENTS";
+    }
+
+    private void RefreshJourneyGraph()
+    {
+        var title = GetJourneyTitle(maxLen: 22);
+        var graph = _journeyGraph.Build(title, _journeyActivity);
+        JourneyCanvas.SetGraphData(graph);
     }
 
     private void ScrollToBottom()
@@ -926,83 +970,6 @@ Write the USER.md content now (markdown format, start with # User Profile):";
 
         item.IsStreaming = false;
         ScrollToBottom();
-    }
-
-    // ── Panel Splitter ──
-
-    private bool _isDragging;
-
-    private void Splitter_PointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
-    {
-        _isDragging = true;
-        ((UIElement)sender).CapturePointer(e.Pointer);
-        SplitterHandle.Opacity = 1.0;
-        SplitterHandle.Background = (Brush)Application.Current.Resources["AppAccentBrush"];
-        e.Handled = true;
-    }
-
-    private void Splitter_PointerMoved(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
-    {
-        if (!_isDragging) return;
-        var col = MainGrid.ColumnDefinitions[2];
-        var pos = e.GetCurrentPoint(MainGrid).Position.X;
-        var newWidth = Math.Clamp(MainGrid.ActualWidth - pos, col.MinWidth, col.MaxWidth);
-        col.Width = new GridLength(newWidth);
-        e.Handled = true;
-    }
-
-    private void Splitter_PointerReleased(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
-    {
-        _isDragging = false;
-        ((UIElement)sender).ReleasePointerCapture(e.Pointer);
-        SplitterHandle.Opacity = 0.5;
-        SplitterHandle.Background = (Brush)Application.Current.Resources["AppStrokeBrush"];
-        e.Handled = true;
-    }
-
-    private void Splitter_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
-    {
-        if (!_isDragging)
-        {
-            SplitterHandle.Opacity = 0.8;
-            ProtectedCursor = Microsoft.UI.Input.InputSystemCursor.Create(Microsoft.UI.Input.InputSystemCursorShape.SizeWestEast);
-        }
-    }
-
-    private void Splitter_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
-    {
-        if (!_isDragging)
-        {
-            SplitterHandle.Opacity = 0.5;
-            ProtectedCursor = Microsoft.UI.Input.InputSystemCursor.Create(Microsoft.UI.Input.InputSystemCursorShape.Arrow);
-        }
-    }
-
-    // ── Panel Tabs ──
-
-    private void PanelTab_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not Button btn || btn.Tag is not string tag) return;
-
-        SessionPanelView.Visibility = Visibility.Collapsed;
-        FileBrowserPanelView.Visibility = Visibility.Collapsed;
-        TaskPanelView.Visibility = Visibility.Collapsed;
-        ReplayPanelView.Visibility = Visibility.Collapsed;
-
-        var accent = GetBrush("AppAccentTextBrush");
-        var muted = GetBrush("AppTextSecondaryBrush");
-        TabSessions.Foreground = muted;
-        TabFiles.Foreground = muted;
-        TabTasks.Foreground = muted;
-        TabReplay.Foreground = muted;
-
-        switch (tag)
-        {
-            case "sessions": SessionPanelView.Visibility = Visibility.Visible; TabSessions.Foreground = accent; break;
-            case "files": FileBrowserPanelView.Visibility = Visibility.Visible; TabFiles.Foreground = accent; break;
-            case "tasks": TaskPanelView.Visibility = Visibility.Visible; TabTasks.Foreground = accent; break;
-            case "replay": ReplayPanelView.Visibility = Visibility.Visible; TabReplay.Foreground = accent; break;
-        }
     }
 
     private static Brush GetBrush(string key) => (Brush)Application.Current.Resources[key];

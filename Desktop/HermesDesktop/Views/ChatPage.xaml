@@ -8,367 +8,426 @@
     xmlns:models="using:HermesDesktop.Models"
     xmlns:panels="using:HermesDesktop.Views.Panels"
     xmlns:views="using:HermesDesktop.Views"
+    xmlns:controls="using:HermesDesktop.Controls"
     Background="Transparent"
     Loaded="OnPageLoaded"
     NavigationCacheMode="Required"
     mc:Ignorable="d">
     <!-- Enter sends, Shift+Enter for newline (handled in KeyDown) -->
 
-    <Grid x:Name="MainGrid" Padding="20,12,24,20" ColumnSpacing="14" RowSpacing="14">
+    <Grid x:Name="MainGrid" Padding="0" ColumnSpacing="0" RowSpacing="0">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" MinWidth="300"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="340" MinWidth="200" MaxWidth="700"/>
+            <ColumnDefinition Width="240" MinWidth="200" MaxWidth="360"/>
+            <ColumnDefinition Width="*" MinWidth="380"/>
+            <ColumnDefinition Width="340" MinWidth="240" MaxWidth="520"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Sanctum Header: eyebrow + Playfair title + subtitle + breadcrumb -->
-        <Grid Grid.Row="0" Grid.ColumnSpan="3" ColumnSpacing="16" Padding="8,4,8,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
+        <!-- ─── Sanctum Header (spans all 3 columns): eyebrow + Playfair title + subtitle + breadcrumb ─── -->
+        <Border Grid.Row="0" Grid.ColumnSpan="3"
+                BorderBrush="{StaticResource AppStrokeBrush}" BorderThickness="0,0,0,1">
+            <Grid ColumnSpacing="16" Padding="28,20,28,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-            <StackPanel Spacing="2">
-                <!-- Eyebrow: gold hairline + THE JOURNEY -->
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                    <Border Width="20" Height="1" Background="{StaticResource AppAccentBrush}" VerticalAlignment="Center" Opacity="0.85"/>
-                    <TextBlock Text="THE JOURNEY" Style="{StaticResource PageEyebrowTextStyle}" VerticalAlignment="Center"/>
+                <StackPanel Spacing="2">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Border Width="20" Height="1" Background="{StaticResource AppAccentBrush}" VerticalAlignment="Center" Opacity="0.85"/>
+                        <TextBlock Text="THE JOURNEY" Style="{StaticResource PageEyebrowTextStyle}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock x:Name="JourneyTitleText" Style="{StaticResource PageTitleTextStyle}" FontSize="32" Text="New Journey" Margin="0,4,0,0"/>
+                    <TextBlock x:Name="JourneySubtitleText" Style="{StaticResource DataLabelTextStyle}" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Margin="0,4,0,0"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
+                        <TextBlock Text="BRAIN" Style="{StaticResource LabelTextStyle}" FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.7"/>
+                        <TextBlock Text="&#x25B8;" FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9" Foreground="{StaticResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="BreadcrumbWorkspace" Style="{StaticResource LabelTextStyle}" FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.7"/>
+                        <TextBlock Text="&#x25B8;" FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9" Foreground="{StaticResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="BreadcrumbProject" Style="{StaticResource LabelTextStyle}" FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.7"/>
+                        <TextBlock Text="&#x25B8;" FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9" Foreground="{StaticResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="BreadcrumbJourney" Style="{StaticResource LabelTextStyle}" FontSize="10" Foreground="{StaticResource AppAccentBrush}"/>
+                    </StackPanel>
                 </StackPanel>
-                <!-- Playfair title bound to journey name -->
-                <TextBlock x:Name="JourneyTitleText" Style="{StaticResource PageTitleTextStyle}" FontSize="32" Text="New Journey" Margin="0,4,0,0"/>
-                <!-- Subtitle: model · turns · connection state -->
-                <TextBlock x:Name="JourneySubtitleText" Style="{StaticResource DataLabelTextStyle}" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Margin="0,4,0,0"/>
-                <!-- Breadcrumb: BRAIN ▸ workspace ▸ project ▸ journey -->
-                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,10,0,0">
-                    <TextBlock Text="BRAIN" Style="{StaticResource LabelTextStyle}" FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.7"/>
-                    <TextBlock Text="&#x25B8;" FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9" Foreground="{StaticResource AppTextMutedBrush}" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="BreadcrumbWorkspace" Style="{StaticResource LabelTextStyle}" FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.7"/>
-                    <TextBlock Text="&#x25B8;" FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9" Foreground="{StaticResource AppTextMutedBrush}" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="BreadcrumbProject" Style="{StaticResource LabelTextStyle}" FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.7"/>
-                    <TextBlock Text="&#x25B8;" FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9" Foreground="{StaticResource AppTextMutedBrush}" VerticalAlignment="Center"/>
-                    <TextBlock x:Name="BreadcrumbJourney" Style="{StaticResource LabelTextStyle}" FontSize="10" Foreground="{StaticResource AppAccentBrush}"/>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Margin="0,4,0,0">
+                    <Button x:Uid="ChatNewChatButton" Click="NewChat_Click" Width="34" Height="34" Padding="0"
+                            Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"
+                            Foreground="{StaticResource AppTextSecondaryBrush}" CornerRadius="10"
+                            ToolTipService.ToolTip="New journey">
+                        <FontIcon Glyph="&#xE710;" FontSize="14"/>
+                    </Button>
                 </StackPanel>
-            </StackPanel>
 
-            <!-- Action icons: new journey -->
-            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Top" Margin="0,4,0,0">
-                <Button x:Uid="ChatNewChatButton" Click="NewChat_Click" Width="34" Height="34" Padding="0"
-                        Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"
-                        Foreground="{StaticResource AppTextSecondaryBrush}" CornerRadius="10"
-                        ToolTipService.ToolTip="New journey">
-                    <FontIcon Glyph="&#xE710;" FontSize="14"/>
-                </Button>
-            </StackPanel>
+                <TextBlock x:Name="ConnectionStateText" Visibility="Collapsed"/>
+            </Grid>
+        </Border>
 
-            <!-- Legacy status sink: kept invisible so ApplyConnectionStatusSnapshot can still set it
-                 without NRE; real status is shown in JourneySubtitleText. -->
-            <TextBlock x:Name="ConnectionStateText" Visibility="Collapsed"/>
-        </Grid>
-
-        <!-- Main Chat Area -->
-        <Border Grid.Row="1" Style="{StaticResource SurfaceCardStyle}" Padding="0">
-            <Grid>
+        <!-- ─── Col 0: Journey rail ─── -->
+        <Border Grid.Row="1" Grid.Column="0"
+                Background="{StaticResource AppPaneBackgroundBrush}"
+                BorderBrush="{StaticResource AppStrokeBrush}" BorderThickness="0,0,1,0">
+            <Grid Padding="14,18,14,14">
                 <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
+                <Grid Margin="4,0,4,10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="JOURNEYS" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                    <Border Grid.Column="1" Height="1" Margin="10,0,0,0" Background="{StaticResource AppStrokeBrush}" Opacity="0.4" VerticalAlignment="Center"/>
+                </Grid>
+                <panels:SessionPanel Grid.Row="1" x:Name="SessionPanelView"/>
+            </Grid>
+        </Border>
 
-                <!-- Messages: node-card grammar (not speech bubbles) + inline event pills.
-                     Item template chosen per-item: ChatMessageItem → node card, ChatEventItem → pill. -->
-                <ListView x:Name="MessagesList" Grid.Row="1" Padding="20,14,20,14"
-                          Background="Transparent" BorderThickness="0"
-                          SelectionMode="None" IsItemClickEnabled="False">
-                    <ListView.ItemContainerStyle>
-                        <Style TargetType="ListViewItem">
-                            <Setter Property="Padding" Value="0"/>
-                            <Setter Property="MinHeight" Value="0"/>
-                            <Setter Property="Margin" Value="0"/>
-                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                            <Setter Property="Background" Value="Transparent"/>
-                        </Style>
-                    </ListView.ItemContainerStyle>
-                    <ListView.Resources>
-                        <!-- Node-card message: gutter glyph + color edge strip + body -->
-                        <DataTemplate x:Key="SanctumMessageTemplate" x:DataType="models:ChatMessageItem">
-                            <Grid Margin="0,0,0,14">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="28"/>
-                                    <ColumnDefinition Width="2"/>
-                                    <ColumnDefinition Width="14"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="{x:Bind RoleGlyph}"
-                                           FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="14"
-                                           Foreground="{x:Bind RoleBrush}"
-                                           HorizontalAlignment="Center" VerticalAlignment="Top"
-                                           Margin="0,3,0,0"/>
-                                <Border Grid.Column="1" Background="{x:Bind EdgeBrush}" CornerRadius="1"/>
-                                <StackPanel Grid.Column="3" Spacing="6">
-                                    <!-- Eyebrow: role label + meta -->
-                                    <StackPanel Orientation="Horizontal" Spacing="10">
-                                        <TextBlock Text="{x:Bind RoleLabel}"
-                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
-                                                   Foreground="{x:Bind RoleBrush}" CharacterSpacing="150"/>
-                                        <TextBlock Text="&#x2022;"
-                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
-                                                   Foreground="{StaticResource AppTextMutedBrush}"
-                                                   VerticalAlignment="Center"/>
-                                        <TextBlock Text="{x:Bind MetaLine, Mode=OneWay}"
-                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
-                                                   Foreground="{StaticResource AppTextMutedBrush}"
-                                                   CharacterSpacing="50" VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                    <!-- Reasoning (collapsible) -->
-                                    <Expander Visibility="{x:Bind ThinkingVisibility, Mode=OneWay}"
-                                              HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
-                                              IsExpanded="False" Padding="0" MinHeight="0"
-                                              Background="Transparent" BorderThickness="0">
-                                        <Expander.Header>
-                                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                                <TextBlock Text="&#x25C7;"
-                                                           FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
-                                                           Foreground="{StaticResource SessionGreenBrush}"
-                                                           VerticalAlignment="Center"/>
-                                                <TextBlock Text="REASONING"
-                                                           FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
-                                                           Foreground="{StaticResource AppTextSecondaryBrush}"
-                                                           CharacterSpacing="150" VerticalAlignment="Center"/>
-                                            </StackPanel>
-                                        </Expander.Header>
-                                        <Border BorderBrush="{StaticResource AppStrokeBrush}"
-                                                BorderThickness="1,0,0,0" Padding="12,4,0,4">
-                                            <TextBlock Text="{x:Bind ThinkingContent, Mode=OneWay}"
-                                                       FontFamily="{StaticResource InterFont}" FontSize="12"
-                                                       Foreground="{StaticResource AppTextSecondaryBrush}"
-                                                       FontStyle="Italic" TextWrapping="WrapWholeWords"
-                                                       IsTextSelectionEnabled="True" LineHeight="20"/>
-                                        </Border>
-                                    </Expander>
-                                    <!-- Body -->
-                                    <TextBlock Text="{x:Bind Content, Mode=OneWay}"
-                                               FontFamily="{StaticResource InterFont}" FontSize="13"
-                                               Foreground="{StaticResource AppTextPrimaryBrush}"
-                                               TextWrapping="WrapWholeWords" IsTextSelectionEnabled="True"
-                                               LineHeight="22"/>
+        <!-- ─── Col 1: Thread + thinking strip + altar ─── -->
+        <Grid Grid.Row="1" Grid.Column="1" Padding="0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Messages: node-card grammar + inline event pills -->
+            <ListView x:Name="MessagesList" Grid.Row="0"
+                      Padding="24,18,24,16"
+                      Background="Transparent" BorderThickness="0"
+                      SelectionMode="None" IsItemClickEnabled="False">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="Padding" Value="0"/>
+                        <Setter Property="MinHeight" Value="0"/>
+                        <Setter Property="Margin" Value="0"/>
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        <Setter Property="Background" Value="Transparent"/>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.Resources>
+                    <!-- Node-card message: gutter glyph + color edge strip + body -->
+                    <DataTemplate x:Key="SanctumMessageTemplate" x:DataType="models:ChatMessageItem">
+                        <Grid Margin="0,0,0,14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="28"/>
+                                <ColumnDefinition Width="2"/>
+                                <ColumnDefinition Width="14"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{x:Bind RoleGlyph}"
+                                       FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="14"
+                                       Foreground="{x:Bind RoleBrush}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Top"
+                                       Margin="0,3,0,0"/>
+                            <Border Grid.Column="1" Background="{x:Bind EdgeBrush}" CornerRadius="1"/>
+                            <StackPanel Grid.Column="3" Spacing="6">
+                                <StackPanel Orientation="Horizontal" Spacing="10">
+                                    <TextBlock Text="{x:Bind RoleLabel}"
+                                               FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                               Foreground="{x:Bind RoleBrush}" CharacterSpacing="150"/>
+                                    <TextBlock Text="&#x2022;"
+                                               FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                               Foreground="{StaticResource AppTextMutedBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{x:Bind MetaLine, Mode=OneWay}"
+                                               FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                               Foreground="{StaticResource AppTextMutedBrush}"
+                                               CharacterSpacing="50" VerticalAlignment="Center"/>
                                 </StackPanel>
-                            </Grid>
-                        </DataTemplate>
-                        <!-- Inline event pill: tool / memory / skill / file -->
-                        <DataTemplate x:Key="SanctumEventTemplate" x:DataType="models:ChatEventItem">
-                            <Grid Margin="42,-4,0,10">
-                                <Border HorizontalAlignment="Left"
-                                        Background="{StaticResource AppInsetBrush}"
-                                        BorderBrush="{StaticResource AppStrokeBrush}"
-                                        BorderThickness="1" CornerRadius="999"
-                                        Padding="10,4,12,4">
-                                    <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
-                                        <TextBlock Text="{x:Bind Glyph}"
-                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="11"
-                                                   Foreground="{x:Bind KindBrush}"
-                                                   VerticalAlignment="Center"/>
-                                        <TextBlock Text="{x:Bind ToolName}"
-                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                <Expander Visibility="{x:Bind ThinkingVisibility, Mode=OneWay}"
+                                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                          IsExpanded="False" Padding="0" MinHeight="0"
+                                          Background="Transparent" BorderThickness="0">
+                                    <Expander.Header>
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                            <TextBlock Text="&#x25C7;"
+                                                       FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                                       Foreground="{StaticResource SessionGreenBrush}"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock Text="REASONING"
+                                                       FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                                       Foreground="{StaticResource AppTextSecondaryBrush}"
+                                                       CharacterSpacing="150" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Expander.Header>
+                                    <Border BorderBrush="{StaticResource AppStrokeBrush}"
+                                            BorderThickness="1,0,0,0" Padding="12,4,0,4">
+                                        <TextBlock Text="{x:Bind ThinkingContent, Mode=OneWay}"
+                                                   FontFamily="{StaticResource InterFont}" FontSize="12"
                                                    Foreground="{StaticResource AppTextSecondaryBrush}"
-                                                   VerticalAlignment="Center"/>
-                                        <TextBlock Text="{x:Bind Detail}"
-                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
-                                                   Foreground="{StaticResource AppTextPrimaryBrush}"
-                                                   MaxWidth="340" TextTrimming="CharacterEllipsis"
-                                                   VerticalAlignment="Center"/>
-                                        <TextBlock Text="{x:Bind Tail, Mode=OneWay}"
-                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
-                                                   Foreground="{StaticResource AppTextMutedBrush}"
-                                                   Visibility="{x:Bind TailVisibility, Mode=OneWay}"
-                                                   VerticalAlignment="Center"/>
-                                    </StackPanel>
-                                </Border>
-                            </Grid>
-                        </DataTemplate>
-                    </ListView.Resources>
-                    <ListView.ItemTemplateSelector>
-                        <views:ChatListItemTemplateSelector
-                            MessageTemplate="{StaticResource SanctumMessageTemplate}"
-                            EventTemplate="{StaticResource SanctumEventTemplate}"/>
-                    </ListView.ItemTemplateSelector>
-                </ListView>
+                                                   FontStyle="Italic" TextWrapping="WrapWholeWords"
+                                                   IsTextSelectionEnabled="True" LineHeight="20"/>
+                                    </Border>
+                                </Expander>
+                                <TextBlock Text="{x:Bind Content, Mode=OneWay}"
+                                           FontFamily="{StaticResource InterFont}" FontSize="13"
+                                           Foreground="{StaticResource AppTextPrimaryBrush}"
+                                           TextWrapping="WrapWholeWords" IsTextSelectionEnabled="True"
+                                           LineHeight="22"/>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                    <!-- Inline event pill -->
+                    <DataTemplate x:Key="SanctumEventTemplate" x:DataType="models:ChatEventItem">
+                        <Grid Margin="42,-4,0,10">
+                            <Border HorizontalAlignment="Left"
+                                    Background="{StaticResource AppInsetBrush}"
+                                    BorderBrush="{StaticResource AppStrokeBrush}"
+                                    BorderThickness="1" CornerRadius="999"
+                                    Padding="10,4,12,4">
+                                <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+                                    <TextBlock Text="{x:Bind Glyph}"
+                                               FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="11"
+                                               Foreground="{x:Bind KindBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{x:Bind ToolName}"
+                                               FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                               Foreground="{StaticResource AppTextSecondaryBrush}"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{x:Bind Detail}"
+                                               FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                               Foreground="{StaticResource AppTextPrimaryBrush}"
+                                               MaxWidth="340" TextTrimming="CharacterEllipsis"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{x:Bind Tail, Mode=OneWay}"
+                                               FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                               Foreground="{StaticResource AppTextMutedBrush}"
+                                               Visibility="{x:Bind TailVisibility, Mode=OneWay}"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.Resources>
+                <ListView.ItemTemplateSelector>
+                    <views:ChatListItemTemplateSelector
+                        MessageTemplate="{StaticResource SanctumMessageTemplate}"
+                        EventTemplate="{StaticResource SanctumEventTemplate}"/>
+                </ListView.ItemTemplateSelector>
+            </ListView>
 
-                <!-- Thinking strip: ring + label + gradient line + STOP -->
-                <Border Grid.Row="2" x:Name="ThinkingIndicator" Opacity="0"
-                        Padding="20,4,20,4" Background="Transparent" Height="28">
-                    <Grid ColumnSpacing="10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <ProgressRing x:Name="ThinkingRing" IsActive="False"
-                                      Width="10" Height="10"
-                                      Foreground="{StaticResource SessionGreenBrush}"
-                                      VerticalAlignment="Center"/>
-                        <TextBlock x:Name="ThinkingText" x:Uid="ChatPageThinkingText"
-                                   Grid.Column="1"
-                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
-                                   Foreground="{StaticResource SessionGreenBrush}"
-                                   CharacterSpacing="200" VerticalAlignment="Center"/>
-                        <Border Grid.Column="2" Height="1" VerticalAlignment="Center">
-                            <Border.Background>
-                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                    <GradientStop Color="#3049C27D" Offset="0.0"/>
-                                    <GradientStop Color="Transparent" Offset="1.0"/>
-                                </LinearGradientBrush>
-                            </Border.Background>
-                        </Border>
-                        <Button x:Name="StopButton" x:Uid="ChatStopButton" Grid.Column="3"
-                                Click="StopGeneration_Click"
-                                Background="Transparent" BorderThickness="1"
-                                BorderBrush="{StaticResource AppStrokeBrush}"
-                                Foreground="{StaticResource AppTextSecondaryBrush}"
-                                Padding="10,2" FontSize="9" CornerRadius="6"
-                                FontFamily="{StaticResource JetBrainsMonoFont}"
-                                VerticalAlignment="Center" MinHeight="0"/>
-                    </Grid>
-                </Border>
-
-                <!-- Altar input: gold hairline + mono textarea + triangle send + eyebrow meta -->
-                <StackPanel Grid.Row="3" Padding="20,0,20,16" Spacing="6">
-                    <!-- Gold hairline (top) -->
-                    <Border Height="1" Margin="0,4,0,2">
+            <!-- Thinking strip -->
+            <Border Grid.Row="1" x:Name="ThinkingIndicator" Opacity="0"
+                    Padding="24,4,24,4" Background="Transparent" Height="28">
+                <Grid ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <ProgressRing x:Name="ThinkingRing" IsActive="False"
+                                  Width="10" Height="10"
+                                  Foreground="{StaticResource SessionGreenBrush}"
+                                  VerticalAlignment="Center"/>
+                    <TextBlock x:Name="ThinkingText" x:Uid="ChatPageThinkingText"
+                               Grid.Column="1"
+                               FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                               Foreground="{StaticResource SessionGreenBrush}"
+                               CharacterSpacing="200" VerticalAlignment="Center"/>
+                    <Border Grid.Column="2" Height="1" VerticalAlignment="Center">
                         <Border.Background>
                             <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                <GradientStop Color="Transparent" Offset="0.0"/>
-                                <GradientStop Color="#60D4A017" Offset="0.2"/>
-                                <GradientStop Color="#60D4A017" Offset="0.8"/>
+                                <GradientStop Color="#3049C27D" Offset="0.0"/>
                                 <GradientStop Color="Transparent" Offset="1.0"/>
                             </LinearGradientBrush>
                         </Border.Background>
                     </Border>
+                    <Button x:Name="StopButton" x:Uid="ChatStopButton" Grid.Column="3"
+                            Click="StopGeneration_Click"
+                            Background="Transparent" BorderThickness="1"
+                            BorderBrush="{StaticResource AppStrokeBrush}"
+                            Foreground="{StaticResource AppTextSecondaryBrush}"
+                            Padding="10,2" FontSize="9" CornerRadius="6"
+                            FontFamily="{StaticResource JetBrainsMonoFont}"
+                            VerticalAlignment="Center" MinHeight="0"/>
+                </Grid>
+            </Border>
 
-                    <!-- Textarea + triangle send -->
-                    <Grid ColumnSpacing="12" Padding="0,6,0,2">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBox x:Name="PromptTextBox"
-                                 x:Uid="ChatPromptTextBox"
-                                 AcceptsReturn="True"
-                                 MaxHeight="180" MinHeight="40"
-                                 Background="Transparent"
-                                 BorderThickness="0"
-                                 Foreground="{StaticResource AppTextPrimaryBrush}"
-                                 FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="13"
-                                 TextWrapping="Wrap"
-                                 VerticalAlignment="Bottom"
-                                 KeyDown="PromptTextBox_KeyDown"
-                                 TextChanged="PromptTextBox_TextChanged"/>
-                        <Button x:Name="SendButton" x:Uid="ChatPageSendButton" Grid.Column="1"
-                                Click="SendPrompt_Click"
-                                Width="40" Height="40"
-                                Background="Transparent" BorderThickness="1"
-                                BorderBrush="Transparent" CornerRadius="10"
-                                Padding="0" VerticalAlignment="Bottom"
-                                IsEnabled="False">
-                            <TextBlock x:Name="SendGlyph" Text="&#x25B2;"
-                                       FontFamily="{StaticResource JetBrainsMonoFont}"
-                                       FontSize="16"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                        </Button>
-                    </Grid>
+            <!-- Altar input -->
+            <StackPanel Grid.Row="2" Padding="24,0,24,18" Spacing="6">
+                <Border Height="1" Margin="0,4,0,2">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="Transparent" Offset="0.0"/>
+                            <GradientStop Color="#60D4A017" Offset="0.2"/>
+                            <GradientStop Color="#60D4A017" Offset="0.8"/>
+                            <GradientStop Color="Transparent" Offset="1.0"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                </Border>
 
-                    <!-- Eyebrow meta: MODEL | MODE | disclaimer -->
-                    <Grid Margin="0,2,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                            <TextBlock Text="MODEL" FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}"
-                                       CharacterSpacing="200" VerticalAlignment="Center"/>
-                            <ComboBox x:Name="ModelSwitchCombo"
-                                      FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
-                                      MinWidth="120" MaxWidth="220" MinHeight="0"
-                                      Background="Transparent" BorderThickness="0"
-                                      Foreground="{StaticResource AppTextPrimaryBrush}"
-                                      VerticalAlignment="Center" Padding="4,2"
-                                      SelectionChanged="ModelSwitchCombo_SelectionChanged"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
-                                    VerticalAlignment="Center" Margin="18,0,0,0">
-                            <TextBlock x:Name="PermissionModeLabel" x:Uid="ChatPermissionModeLabel"
-                                       FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
-                                       Foreground="{StaticResource AppTextSecondaryBrush}"
-                                       CharacterSpacing="200" VerticalAlignment="Center"/>
-                            <HyperlinkButton x:Name="PermissionModeToggle" x:Uid="ChatPermissionModeChange"
-                                             FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
-                                             Padding="0" VerticalAlignment="Center"
-                                             Click="PermissionModeToggle_Click"/>
-                        </StackPanel>
-                        <TextBlock Grid.Column="2" x:Uid="ChatPageDisclaimer"
-                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
-                                   Foreground="{StaticResource AppTextMutedBrush}"
-                                   CharacterSpacing="50"
-                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
-                    </Grid>
-                </StackPanel>
-            </Grid>
-        </Border>
+                <Grid ColumnSpacing="12" Padding="0,6,0,2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="PromptTextBox"
+                             x:Uid="ChatPromptTextBox"
+                             AcceptsReturn="True"
+                             MaxHeight="180" MinHeight="40"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Foreground="{StaticResource AppTextPrimaryBrush}"
+                             FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="13"
+                             TextWrapping="Wrap"
+                             VerticalAlignment="Bottom"
+                             KeyDown="PromptTextBox_KeyDown"
+                             TextChanged="PromptTextBox_TextChanged"/>
+                    <Button x:Name="SendButton" x:Uid="ChatPageSendButton" Grid.Column="1"
+                            Click="SendPrompt_Click"
+                            Width="40" Height="40"
+                            Background="Transparent" BorderThickness="1"
+                            BorderBrush="Transparent" CornerRadius="10"
+                            Padding="0" VerticalAlignment="Bottom"
+                            IsEnabled="False">
+                        <TextBlock x:Name="SendGlyph" Text="&#x25B2;"
+                                   FontFamily="{StaticResource JetBrainsMonoFont}"
+                                   FontSize="16"
+                                   Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                    </Button>
+                </Grid>
 
-        <!-- Splitter (drag to resize chat ↔ right panel) -->
-        <Border Grid.Column="1" Grid.Row="1" Width="12" Background="Transparent" Margin="-3,0"
-                PointerPressed="Splitter_PointerPressed" PointerMoved="Splitter_PointerMoved"
-                PointerReleased="Splitter_PointerReleased" PointerEntered="Splitter_PointerEntered"
-                PointerExited="Splitter_PointerExited">
-            <Border x:Name="SplitterHandle" Width="4" Background="{StaticResource AppStrokeBrush}"
-                    HorizontalAlignment="Center" CornerRadius="2" Opacity="0.5"/>
-        </Border>
-
-        <!-- Right Panel - Tabbed Panels -->
-        <Border Grid.Column="2" Grid.Row="1" Style="{StaticResource SurfaceCardStyle}" Background="{StaticResource AppPaneBackgroundBrush}" Padding="0">
-            <Grid RowDefinitions="Auto,*,Auto">
-                <!-- Tab selector -->
-                <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Padding="8,8,8,0">
-                    <StackPanel Orientation="Horizontal" Spacing="2">
-                        <Button x:Name="TabSessions" x:Uid="ChatPageTabSessions" Click="PanelTab_Click" Tag="sessions"
-                                Background="Transparent" Foreground="{StaticResource AppAccentTextBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
-                        <Button x:Name="TabFiles" x:Uid="ChatPageTabFiles" Click="PanelTab_Click" Tag="files"
-                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
-                        <Button x:Name="TabTasks" x:Uid="ChatPageTabTasks" Click="PanelTab_Click" Tag="tasks"
-                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
-                        <Button x:Name="TabReplay" x:Uid="ChatPageTabReplay" Click="PanelTab_Click" Tag="replay"
-                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="11" Padding="8,4" CornerRadius="6" MinWidth="0"/>
+                <Grid Margin="0,2,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                        <TextBlock Text="MODEL" FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                   Foreground="{StaticResource AppTextSecondaryBrush}"
+                                   CharacterSpacing="200" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="ModelSwitchCombo"
+                                  FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                  MinWidth="120" MaxWidth="220" MinHeight="0"
+                                  Background="Transparent" BorderThickness="0"
+                                  Foreground="{StaticResource AppTextPrimaryBrush}"
+                                  VerticalAlignment="Center" Padding="4,2"
+                                  SelectionChanged="ModelSwitchCombo_SelectionChanged"/>
                     </StackPanel>
-                </ScrollViewer>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                                VerticalAlignment="Center" Margin="18,0,0,0">
+                        <TextBlock x:Name="PermissionModeLabel" x:Uid="ChatPermissionModeLabel"
+                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                   Foreground="{StaticResource AppTextSecondaryBrush}"
+                                   CharacterSpacing="200" VerticalAlignment="Center"/>
+                        <HyperlinkButton x:Name="PermissionModeToggle" x:Uid="ChatPermissionModeChange"
+                                         FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                         Padding="0" VerticalAlignment="Center"
+                                         Click="PermissionModeToggle_Click"/>
+                    </StackPanel>
+                    <TextBlock Grid.Column="2" x:Uid="ChatPageDisclaimer"
+                               FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                               Foreground="{StaticResource AppTextMutedBrush}"
+                               CharacterSpacing="50"
+                               HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                </Grid>
+            </StackPanel>
+        </Grid>
 
-                <!-- Panel content area -->
-                <Border Grid.Row="1" Padding="12,8">
+        <!-- ─── Col 2: Constellation rail + thread trace ─── -->
+        <Border Grid.Row="1" Grid.Column="2"
+                Background="{StaticResource AppPaneBackgroundBrush}"
+                BorderBrush="{StaticResource AppStrokeBrush}" BorderThickness="1,0,0,0">
+            <Grid Padding="14,18,14,14">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="280"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Constellation: reuses the dashboard's BrainGraphCanvas, scoped to this journey -->
+                <Border Grid.Row="0"
+                        Background="#0E141A"
+                        BorderBrush="{StaticResource AppStrokeBrush}" BorderThickness="1" CornerRadius="14"
+                        Padding="0">
                     <Grid>
-                        <panels:SessionPanel x:Name="SessionPanelView" Visibility="Visible"/>
-                        <panels:FileBrowserPanel x:Name="FileBrowserPanelView" Visibility="Collapsed"/>
-                        <panels:TaskPanel x:Name="TaskPanelView" Visibility="Collapsed"/>
-                        <panels:ReplayPanel x:Name="ReplayPanelView" Visibility="Collapsed"/>
+                        <controls:BrainGraphCanvas x:Name="JourneyCanvas"/>
+                        <TextBlock Text="THIS JOURNEY"
+                                   Style="{StaticResource SectionTitleTextStyle}"
+                                   HorizontalAlignment="Left" VerticalAlignment="Top"
+                                   Margin="12,10,0,0"/>
                     </Grid>
                 </Border>
 
-                <!-- Session info footer -->
-                <Border Grid.Row="2" Padding="12,6" BorderBrush="{StaticResource AppStrokeBrush}" BorderThickness="0,1,0,0">
+                <!-- Thread trace -->
+                <Grid Grid.Row="1" Margin="0,14,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Grid Margin="4,0,4,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="THREAD TRACE" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                        <Border Grid.Column="1" Height="1" Margin="10,0" Background="{StaticResource AppStrokeBrush}" Opacity="0.4" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="TraceCountLabel" Grid.Column="2"
+                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                   Foreground="{StaticResource AppTextSecondaryBrush}"
+                                   CharacterSpacing="150" VerticalAlignment="Center" Text="0 EVENTS"/>
+                    </Grid>
+                    <ListView x:Name="TraceList" Grid.Row="1"
+                              Background="Transparent" BorderThickness="0"
+                              SelectionMode="None" IsItemClickEnabled="False"
+                              Padding="0">
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="Padding" Value="0"/>
+                                <Setter Property="MinHeight" Value="0"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                                <Setter Property="Background" Value="Transparent"/>
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="models:ChatEventItem">
+                                <Grid Padding="8,5" ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="8"/>
+                                        <ColumnDefinition Width="42"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse Width="6" Height="6" Fill="{x:Bind KindBrush}" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind KindLabel}"
+                                               FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                               Foreground="{StaticResource AppTextSecondaryBrush}"
+                                               CharacterSpacing="150" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="2" Text="{x:Bind ToolName}"
+                                               FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                               Foreground="{StaticResource AppTextPrimaryBrush}"
+                                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                    <TextBlock Grid.Column="3" Text="{x:Bind TimeLabel}"
+                                               FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                               Foreground="{StaticResource AppTextMutedBrush}" VerticalAlignment="Center"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </Grid>
+
+                <!-- Session footer (copy session id) -->
+                <Border Grid.Row="2" Margin="0,10,0,0" Padding="8,6" BorderBrush="{StaticResource AppStrokeBrush}" BorderThickness="0,1,0,0">
                     <Grid ColumnSpacing="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <TextBlock x:Name="SessionIdLabel" Grid.Column="0" FontSize="11" VerticalAlignment="Center"
-                                   TextTrimming="CharacterEllipsis"
+                        <TextBlock x:Name="SessionIdLabel" Grid.Column="0"
+                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
                                    Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                        <Button x:Name="CopySessionIdButton" x:Uid="ChatCopySessionIdButton" Grid.Column="1" Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets"
+                        <Button x:Name="CopySessionIdButton" x:Uid="ChatCopySessionIdButton"
+                                Grid.Column="1" Content="&#xE8C8;" FontFamily="Segoe MDL2 Assets"
                                 FontSize="12" MinWidth="32" Padding="6,4" CornerRadius="6"
                                 Background="Transparent" BorderBrush="{StaticResource AppSubtleStrokeBrush}"
                                 Click="CopySessionId_Click" IsEnabled="False"/>
@@ -376,5 +435,12 @@
                 </Border>
             </Grid>
         </Border>
+
+        <!-- ─── Hidden sinks: panels retained for wire-up (ReplayPanel receives screenshots even off-screen) ─── -->
+        <Grid Grid.Row="1" Grid.ColumnSpan="3" Visibility="Collapsed">
+            <panels:FileBrowserPanel x:Name="FileBrowserPanelView"/>
+            <panels:TaskPanel x:Name="TaskPanelView"/>
+            <panels:ReplayPanel x:Name="ReplayPanelView"/>
+        </Grid>
     </Grid>
 </Page>

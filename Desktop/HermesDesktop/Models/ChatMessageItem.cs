@@ -209,6 +209,7 @@ public sealed class ChatEventItem : ChatListItem
     public string ToolName { get; }
     public string Detail { get; }
     public DateTime Timestamp { get; }
+    public string TimeLabel => Timestamp.ToString("HH:mm");
 
     public ChatEventKind Kind
     {
