@@ -34,14 +34,6 @@ public sealed partial class ChatPage : Page
     private readonly SoulService _soulService = App.Services.GetRequiredService<SoulService>();
     private readonly ChatClientFactory _clientFactory = App.Services.GetRequiredService<ChatClientFactory>();
     private bool _suppressModelSwitch;
-    private readonly Brush _assistantBackgroundBrush;
-    private readonly Brush _assistantBorderBrush;
-    private readonly Brush _userBackgroundBrush;
-    private readonly Brush _userBorderBrush;
-    private readonly Brush _systemBackgroundBrush;
-    private readonly Brush _systemBorderBrush;
-    private readonly Brush _accentLabelBrush;
-    private readonly Brush _secondaryLabelBrush;
 
     private bool _initialized;
     private bool _isBusy;
@@ -51,15 +43,6 @@ public sealed partial class ChatPage : Page
     {
         InitializeComponent();
 
-        _assistantBackgroundBrush = GetBrush("AppPanelBrush");
-        _assistantBorderBrush = GetBrush("AppStrokeBrush");
-        _userBackgroundBrush = GetBrush("AppUserBubbleBrush");
-        _userBorderBrush = GetBrush("AppAccentGradientBrush");
-        _systemBackgroundBrush = GetBrush("AppInsetBrush");
-        _systemBorderBrush = GetBrush("AppSubtleStrokeBrush");
-        _accentLabelBrush = GetBrush("AppAccentTextBrush");
-        _secondaryLabelBrush = GetBrush("AppTextSecondaryBrush");
-
         // Set ItemsSource once in code — avoids x:Bind re-evaluation during layout passes
         MessagesList.ItemsSource = Messages;
 
@@ -67,7 +50,7 @@ public sealed partial class ChatPage : Page
         Messages.CollectionChanged += (_, _) => UpdateHeader();
     }
 
-    public ObservableCollection<ChatMessageItem> Messages { get; } = new();
+    public ObservableCollection<ChatListItem> Messages { get; } = new();
 
     // ── Sanctum Header ──
 
@@ -95,9 +78,8 @@ public sealed partial class ChatPage : Page
 
     private string GetJourneyTitle(int maxLen)
     {
-        var userLabel = ResourceLoader.GetString("ChatUserLabel");
-        var firstUser = Messages.FirstOrDefault(m =>
-            string.Equals(m.AuthorLabel, userLabel, StringComparison.OrdinalIgnoreCase));
+        var firstUser = Messages.OfType<ChatMessageItem>()
+            .FirstOrDefault(m => m.Role == ChatRole.User);
         if (firstUser is null || string.IsNullOrWhiteSpace(firstUser.Content))
             return "New Journey";
         var t = firstUser.Content.Trim();
@@ -128,10 +110,11 @@ public sealed partial class ChatPage : Page
                 NewChat_Click(this, new RoutedEventArgs());
         };
 
-        // Wire agent activity tracking → replay panel + screen capture
+        // Wire agent activity tracking → replay panel + inline event pills + screen capture
         _agent.ActivityEntryAdded += async entry =>
         {
             ReplayPanelView.AddActivity(entry);
+            AddEventSafe(entry);
 
             // Capture screenshot when recording and tool execution completes
             if (_sessionRecorder.IsRecording && entry.Status != ActivityStatus.Running)
@@ -413,11 +396,8 @@ public sealed partial class ChatPage : Page
                         {
                             hasContent = true;
 
-                            // NOW create the bubble — user sees it appear with content, not empty
-                            assistantItem = AddMessage(
-                                ResourceLoader.GetString("ChatAssistantLabel"), "",
-                                HorizontalAlignment.Left,
-                                _assistantBackgroundBrush, _assistantBorderBrush, _secondaryLabelBrush);
+                            // NOW create the node card — user sees it appear with content, not empty.
+                            assistantItem = AddMessage(ChatRole.Assistant, "");
                             assistantItem.IsStreaming = true;
 
                             // Attach buffered thinking content if any
@@ -657,9 +637,7 @@ public sealed partial class ChatPage : Page
         ConnectionStateText.Text = $"{statusText} | {snapshot.DisplayProvider} | {snapshot.DisplayModel}";
 
         // Sanctum subtitle: model  \u00B7  N turns  \u00B7  state
-        var userLabel = ResourceLoader.GetString("ChatUserLabel");
-        var turns = Messages.Count(m =>
-            string.Equals(m.AuthorLabel, userLabel, StringComparison.OrdinalIgnoreCase));
+        var turns = Messages.OfType<ChatMessageItem>().Count(m => m.Role == ChatRole.User);
         JourneySubtitleText.Text = $"{snapshot.DisplayModel}  \u00B7  {turns} turns  \u00B7  {statusText}";
     }
 
@@ -696,17 +674,9 @@ public sealed partial class ChatPage : Page
             ThinkingText.Text = label;
     }
 
-    private void AppendUserMessage(string text) =>
-        AddMessage(ResourceLoader.GetString("ChatUserLabel"), text, HorizontalAlignment.Right,
-            _userBackgroundBrush, _userBorderBrush, _accentLabelBrush);
-
-    private void AppendAssistantMessage(string text) =>
-        AddMessage(ResourceLoader.GetString("ChatAssistantLabel"), text, HorizontalAlignment.Left,
-            _assistantBackgroundBrush, _assistantBorderBrush, _secondaryLabelBrush);
-
-    private void AppendSystemMessage(string text) =>
-        AddMessage(ResourceLoader.GetString("ChatSystemLabel"), text, HorizontalAlignment.Left,
-            _systemBackgroundBrush, _systemBorderBrush, _secondaryLabelBrush);
+    private void AppendUserMessage(string text) => AddMessage(ChatRole.User, text);
+    private void AppendAssistantMessage(string text) => AddMessage(ChatRole.Assistant, text);
+    private void AppendSystemMessage(string text) => AddMessage(ChatRole.System, text);
 
     private void AppendWelcomeMessage()
     {
@@ -881,12 +851,37 @@ Write the USER.md content now (markdown format, start with # User Profile):";
         }
     }
 
-    private ChatMessageItem AddMessage(string author, string content, HorizontalAlignment align,
-        Brush bg, Brush border, Brush label, ChatMessageType type = ChatMessageType.Text)
+    private ChatMessageItem AddMessage(ChatRole role, string content, ChatMessageType type = ChatMessageType.Text)
     {
-        var item = new ChatMessageItem(author, content, align, bg, border, label, type);
+        var item = new ChatMessageItem(role, content, type);
         Messages.Add(item);
         return item;
+    }
+
+    // ── Event pills (tool / memory / skill / file invocations) ──
+
+    private void AddEventSafe(Hermes.Agent.Core.ActivityEntry entry)
+    {
+        if (DispatcherQueue.HasThreadAccess) AddEvent(entry);
+        else DispatcherQueue.TryEnqueue(() => AddEvent(entry));
+    }
+
+    private void AddEvent(Hermes.Agent.Core.ActivityEntry entry)
+    {
+        // Only surface completed activity — skip intermediate Running frames.
+        if (entry.Status == Hermes.Agent.Core.ActivityStatus.Running) return;
+
+        var detail = entry.InputSummary ?? "";
+        if (detail.Length > 80) detail = detail[..77] + "\u2026";
+
+        string? tail = entry.Status switch
+        {
+            Hermes.Agent.Core.ActivityStatus.Failed => "failed",
+            Hermes.Agent.Core.ActivityStatus.Denied => "denied",
+            _ => entry.DurationMs > 0 ? $"{entry.DurationMs}ms" : null,
+        };
+
+        Messages.Add(new ChatEventItem(entry.ToolName, detail, tail));
     }
 
     private void ScrollToBottom()
@@ -899,8 +894,7 @@ Write the USER.md content now (markdown format, start with # User Profile):";
 
     private async Task ReplayResponseAsync(string fullText)
     {
-        var item = AddMessage(ResourceLoader.GetString("ChatAssistantLabel"), "",
-            HorizontalAlignment.Left, _assistantBackgroundBrush, _assistantBorderBrush, _secondaryLabelBrush);
+        var item = AddMessage(ChatRole.Assistant, "");
         item.IsStreaming = true;
 
         var i = 0;

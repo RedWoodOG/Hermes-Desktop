@@ -7,6 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:models="using:HermesDesktop.Models"
     xmlns:panels="using:HermesDesktop.Views.Panels"
+    xmlns:views="using:HermesDesktop.Views"
     Background="Transparent"
     Loaded="OnPageLoaded"
     NavigationCacheMode="Required"
@@ -78,42 +79,123 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Messages -->
-                <ListView x:Name="MessagesList" Grid.Row="1" Padding="18" Background="Transparent" BorderThickness="0"
-                    SelectionMode="None">
-                    <ListView.ItemTemplate>
-                        <DataTemplate x:DataType="models:ChatMessageItem">
-                            <Grid Margin="0,0,0,10">
-                                <Border MaxWidth="780" HorizontalAlignment="{x:Bind BubbleAlignment}"
-                                    Background="{x:Bind BubbleBackground}" BorderBrush="{x:Bind BubbleBorderBrush}"
-                                    BorderThickness="1" CornerRadius="12" Padding="16,12">
-                                    <StackPanel Spacing="8">
-                                        <TextBlock Foreground="{x:Bind LabelBrush}" Style="{StaticResource LabelTextStyle}" Text="{x:Bind AuthorLabel}" />
-
-                                        <!-- Thinking/reasoning content (collapsible) -->
-                                        <Expander Visibility="{x:Bind HasThinking, Mode=OneWay}" HorizontalAlignment="Stretch"
-                                                  HorizontalContentAlignment="Stretch" IsExpanded="False"
-                                                  Padding="0" MinHeight="0">
-                                            <Expander.Header>
-                                                <StackPanel Orientation="Horizontal" Spacing="6">
-                                                    <TextBlock Text="&#x1F9E0;" FontSize="12"/>
-                                                    <TextBlock x:Uid="ChatReasoningHeaderLabel" FontSize="12" FontStyle="Italic"
-                                                               Foreground="{StaticResource AppTextSecondaryBrush}"/>
-                                                </StackPanel>
-                                            </Expander.Header>
-                                            <TextBlock Text="{x:Bind ThinkingContent, Mode=OneWay}" TextWrapping="WrapWholeWords"
-                                                       FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"
-                                                       FontStyle="Italic" Padding="8,4"
-                                                       IsTextSelectionEnabled="True"/>
-                                        </Expander>
-
-                                        <TextBlock Text="{x:Bind Content, Mode=OneWay}" TextWrapping="WrapWholeWords"
-                                                   IsTextSelectionEnabled="True"/>
+                <!-- Messages: node-card grammar (not speech bubbles) + inline event pills.
+                     Item template chosen per-item: ChatMessageItem → node card, ChatEventItem → pill. -->
+                <ListView x:Name="MessagesList" Grid.Row="1" Padding="20,14,20,14"
+                          Background="Transparent" BorderThickness="0"
+                          SelectionMode="None" IsItemClickEnabled="False">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="MinHeight" Value="0"/>
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            <Setter Property="Background" Value="Transparent"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.Resources>
+                        <!-- Node-card message: gutter glyph + color edge strip + body -->
+                        <DataTemplate x:Key="SanctumMessageTemplate" x:DataType="models:ChatMessageItem">
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="28"/>
+                                    <ColumnDefinition Width="2"/>
+                                    <ColumnDefinition Width="14"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{x:Bind RoleGlyph}"
+                                           FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="14"
+                                           Foreground="{x:Bind RoleBrush}"
+                                           HorizontalAlignment="Center" VerticalAlignment="Top"
+                                           Margin="0,3,0,0"/>
+                                <Border Grid.Column="1" Background="{x:Bind EdgeBrush}" CornerRadius="1"/>
+                                <StackPanel Grid.Column="3" Spacing="6">
+                                    <!-- Eyebrow: role label + meta -->
+                                    <StackPanel Orientation="Horizontal" Spacing="10">
+                                        <TextBlock Text="{x:Bind RoleLabel}"
+                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                                   Foreground="{x:Bind RoleBrush}" CharacterSpacing="150"/>
+                                        <TextBlock Text="&#x2022;"
+                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                                   Foreground="{StaticResource AppTextMutedBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="{x:Bind MetaLine, Mode=OneWay}"
+                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                                   Foreground="{StaticResource AppTextMutedBrush}"
+                                                   CharacterSpacing="50" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <!-- Reasoning (collapsible) -->
+                                    <Expander Visibility="{x:Bind ThinkingVisibility, Mode=OneWay}"
+                                              HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                                              IsExpanded="False" Padding="0" MinHeight="0"
+                                              Background="Transparent" BorderThickness="0">
+                                        <Expander.Header>
+                                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                                <TextBlock Text="&#x25C7;"
+                                                           FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                                           Foreground="{StaticResource SessionGreenBrush}"
+                                                           VerticalAlignment="Center"/>
+                                                <TextBlock Text="REASONING"
+                                                           FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                                           Foreground="{StaticResource AppTextSecondaryBrush}"
+                                                           CharacterSpacing="150" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Expander.Header>
+                                        <Border BorderBrush="{StaticResource AppStrokeBrush}"
+                                                BorderThickness="1,0,0,0" Padding="12,4,0,4">
+                                            <TextBlock Text="{x:Bind ThinkingContent, Mode=OneWay}"
+                                                       FontFamily="{StaticResource InterFont}" FontSize="12"
+                                                       Foreground="{StaticResource AppTextSecondaryBrush}"
+                                                       FontStyle="Italic" TextWrapping="WrapWholeWords"
+                                                       IsTextSelectionEnabled="True" LineHeight="20"/>
+                                        </Border>
+                                    </Expander>
+                                    <!-- Body -->
+                                    <TextBlock Text="{x:Bind Content, Mode=OneWay}"
+                                               FontFamily="{StaticResource InterFont}" FontSize="13"
+                                               Foreground="{StaticResource AppTextPrimaryBrush}"
+                                               TextWrapping="WrapWholeWords" IsTextSelectionEnabled="True"
+                                               LineHeight="22"/>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                        <!-- Inline event pill: tool / memory / skill / file -->
+                        <DataTemplate x:Key="SanctumEventTemplate" x:DataType="models:ChatEventItem">
+                            <Grid Margin="42,-4,0,10">
+                                <Border HorizontalAlignment="Left"
+                                        Background="{StaticResource AppInsetBrush}"
+                                        BorderBrush="{StaticResource AppStrokeBrush}"
+                                        BorderThickness="1" CornerRadius="999"
+                                        Padding="10,4,12,4">
+                                    <StackPanel Orientation="Horizontal" Spacing="7" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Glyph}"
+                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="11"
+                                                   Foreground="{x:Bind KindBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="{x:Bind ToolName}"
+                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                                   Foreground="{StaticResource AppTextSecondaryBrush}"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="{x:Bind Detail}"
+                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                                   Foreground="{StaticResource AppTextPrimaryBrush}"
+                                                   MaxWidth="340" TextTrimming="CharacterEllipsis"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="{x:Bind Tail, Mode=OneWay}"
+                                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                                   Foreground="{StaticResource AppTextMutedBrush}"
+                                                   Visibility="{x:Bind TailVisibility, Mode=OneWay}"
+                                                   VerticalAlignment="Center"/>
                                     </StackPanel>
                                 </Border>
                             </Grid>
                         </DataTemplate>
-                    </ListView.ItemTemplate>
+                    </ListView.Resources>
+                    <ListView.ItemTemplateSelector>
+                        <views:ChatListItemTemplateSelector
+                            MessageTemplate="{StaticResource SanctumMessageTemplate}"
+                            EventTemplate="{StaticResource SanctumEventTemplate}"/>
+                    </ListView.ItemTemplateSelector>
                 </ListView>
 
                 <!-- Thinking indicator — uses Opacity to avoid layout shift -->
