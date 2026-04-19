@@ -29,6 +29,13 @@ public sealed partial class BuddyPanel : UserControl
                 ? storedId.Trim()
                 : (string.IsNullOrEmpty(winUser) ? "default" : winUser);
 
+            if (!_buddyService.HasSavedBuddy)
+            {
+                EmptyState.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+                BuddyContent.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+                return;
+            }
+
             var buddy = await _buddyService.GetBuddyAsync(userId, CancellationToken.None);
 
             EmptyState.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;

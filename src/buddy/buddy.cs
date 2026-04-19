@@ -527,9 +527,6 @@ public sealed class BuddyService
         }
     }
 
-    /// <summary>Drop the in-memory buddy so the next load reads from disk again.</summary>
-    public void ClearMemoryCache() => _buddy = null;
-
     /// <summary>Remove the on-disk buddy file and clear memory so the UI can run first-hatch again.</summary>
     public void ClearSavedBuddy()
     {
