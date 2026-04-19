@@ -7,10 +7,10 @@
 # ────────────────────
 #   1.  Merge your changes to main.
 #   2.  Tag the merge commit and push the tag:
-#         git tag -a v2.3.1 -m "v2.3.1 — short description"
-#         git push origin v2.3.1
+#         git tag -a v2.4.0 -m "v2.4.0 — short description"
+#         git push origin v2.4.0
 #   3.  This workflow runs automatically.  When it finishes (~5 min):
-#       • A GitHub Release named "v2.3.1" exists with auto-generated notes.
+#       • A GitHub Release named "v2.4.0" exists with auto-generated notes.
 #       • HermesDesktop-portable-x64.zip is attached as a release asset.
 #       • The README "Download" link (pointing at /releases/latest) resolves
 #         to the new release.
@@ -19,10 +19,10 @@
 # WHAT IF THE BUILD FAILS?
 #   • The release is NOT created — nothing is published to users.
 #   • Fix the issue on main, delete the broken tag, re-tag, and push:
-#       git tag -d v2.3.1
-#       git push origin :refs/tags/v2.3.1
-#       git tag -a v2.3.1 -m "v2.3.1 — short description"
-#       git push origin v2.3.1
+#       git tag -d v2.4.0
+#       git push origin :refs/tags/v2.4.0
+#       git tag -a v2.4.0 -m "v2.4.0 — short description"
+#       git push origin v2.4.0
 #
 # MANUAL RELEASE (without this workflow)
 #   On your Windows machine:

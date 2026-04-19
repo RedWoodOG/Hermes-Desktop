@@ -6,7 +6,7 @@
 
 A **Windows-native AI agent** that lives on your desktop. Chat with it, give it tools, let it learn who you are. Built with WinUI 3 and .NET 10.
 
-**v2.3.1** &mdash; [Download](https://github.com/RedWoodOG/Hermes-Desktop/releases/latest) | [Changelog](#changelog) | [Discussion](https://github.com/RedWoodOG/Hermes-Desktop/discussions/10)
+**v2.4.0** &mdash; [Download](https://github.com/RedWoodOG/Hermes-Desktop/releases/latest) | [Changelog](#changelog) | [Discussion](https://github.com/RedWoodOG/Hermes-Desktop/discussions/10)
 
 ---
 
@@ -115,7 +115,7 @@ Eight pages: **Dashboard** (usage insights, KPIs, platform badges), **Chat** (to
 
 ### Messaging
 
-Native C# adapters for **Telegram** and **Discord** &mdash; no Python CLI required. Slack, WhatsApp, Matrix, and others work through the Python gateway sidecar, configurable from the Integrations page.
+Native C# adapters for **Telegram** and **Discord** &mdash; no Python CLI required. **Slack, WhatsApp, Matrix, and webhooks** are configured in the same `config.yaml` from Integrations; use the optional **Python gateway** when you want those bots live (not required just to save tokens).
 
 ---
 
@@ -221,6 +221,7 @@ Hermes.CS/
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| **v2.4.0** | 2026-04-19 | **Buddy:** persist to `buddy/buddy.json`, species hatch UI, LLM-off fallback soul, aligned panel identity. **Integrations:** native Telegram/Discord adapter status fix, clearer optional-Python messaging. **Tests:** `BuddyServiceTests`. Assembly / MSIX manifest **2.4.0.0**. |
 | **v2.3.1** | 2026-04-13 | Fix v2.3.0 source zip `DreamerStatusSnapshot.LastLocalDigestHint` compile error, fix portable startup `XamlParseException` on `ReplayPanel` (disable `PublishTrimmed`), add `ReplayPanel` constructor diagnostic capture, refresh readme screenshots |
 | v2.3.0 | 2026-04-12 | Portable release (self-contained zip, no MSIX required), compiled memory stack, wiki tool, Dev launch profile, `publish-portable.ps1` |
 | v2.2.1 | 2026-04-10 | Fix startup crash on fresh clone, safe file ops, one-click installer |
