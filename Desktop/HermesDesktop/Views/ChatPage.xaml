@@ -198,86 +198,125 @@
                     </ListView.ItemTemplateSelector>
                 </ListView>
 
-                <!-- Thinking indicator — uses Opacity to avoid layout shift -->
+                <!-- Thinking strip: ring + label + gradient line + STOP -->
                 <Border Grid.Row="2" x:Name="ThinkingIndicator" Opacity="0"
-                        Padding="18,8" Background="Transparent" Height="36">
-                    <Grid>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <ProgressRing x:Name="ThinkingRing" IsActive="False" Width="16" Height="16"
-                                          Foreground="{StaticResource AppAccentBrush}"/>
-                            <TextBlock x:Name="ThinkingText" x:Uid="ChatPageThinkingText"
-                                       FontSize="13" Foreground="{StaticResource AppTextSecondaryBrush}"
-                                       FontStyle="Italic"/>
-                        </StackPanel>
-                        <Button x:Name="StopButton" x:Uid="ChatStopButton" Click="StopGeneration_Click"
-                                HorizontalAlignment="Right" VerticalAlignment="Center"
-                                Background="{StaticResource AppInsetBrush}" Foreground="White"
-                                BorderBrush="{StaticResource AppSubtleStrokeBrush}"
-                                Padding="12,4" FontSize="12" CornerRadius="6"/>
+                        Padding="20,4,20,4" Background="Transparent" Height="28">
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <ProgressRing x:Name="ThinkingRing" IsActive="False"
+                                      Width="10" Height="10"
+                                      Foreground="{StaticResource SessionGreenBrush}"
+                                      VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ThinkingText" x:Uid="ChatPageThinkingText"
+                                   Grid.Column="1"
+                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                   Foreground="{StaticResource SessionGreenBrush}"
+                                   CharacterSpacing="200" VerticalAlignment="Center"/>
+                        <Border Grid.Column="2" Height="1" VerticalAlignment="Center">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                    <GradientStop Color="#3049C27D" Offset="0.0"/>
+                                    <GradientStop Color="Transparent" Offset="1.0"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                        </Border>
+                        <Button x:Name="StopButton" x:Uid="ChatStopButton" Grid.Column="3"
+                                Click="StopGeneration_Click"
+                                Background="Transparent" BorderThickness="1"
+                                BorderBrush="{StaticResource AppStrokeBrush}"
+                                Foreground="{StaticResource AppTextSecondaryBrush}"
+                                Padding="10,2" FontSize="9" CornerRadius="6"
+                                FontFamily="{StaticResource JetBrainsMonoFont}"
+                                VerticalAlignment="Center" MinHeight="0"/>
                     </Grid>
                 </Border>
 
-                <!-- Input Area — Claude Code style -->
-                <StackPanel Grid.Row="3" Padding="18,8,18,14" Spacing="6">
-                    <!-- Input container with rounded border -->
-                    <Border Background="{StaticResource AppInsetBrush}"
-                            BorderBrush="{StaticResource AppStrokeBrush}"
-                            BorderThickness="1" CornerRadius="12" Padding="12,8">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <TextBox x:Name="PromptTextBox"
-                                     x:Uid="ChatPromptTextBox"
-                                     AcceptsReturn="True"
-                                     MaxHeight="200" MinHeight="36"
-                                     Background="Transparent"
-                                     BorderThickness="0"
-                                     Foreground="White"
-                                     TextWrapping="Wrap"
-                                     KeyDown="PromptTextBox_KeyDown"
-                                     TextChanged="PromptTextBox_TextChanged" />
-
-                            <Button x:Name="SendButton" x:Uid="ChatPageSendButton" Grid.Column="1"
-                                    Click="SendPrompt_Click"
-                                    VerticalAlignment="Bottom"
-                                    Background="Transparent" BorderThickness="0"
-                                    Padding="8" CornerRadius="8"
-                                    IsEnabled="False">
-                                <FontIcon Glyph="&#xE724;" FontSize="18"
-                                          Foreground="{StaticResource AppAccentBrush}" />
-                            </Button>
-                        </Grid>
+                <!-- Altar input: gold hairline + mono textarea + triangle send + eyebrow meta -->
+                <StackPanel Grid.Row="3" Padding="20,0,20,16" Spacing="6">
+                    <!-- Gold hairline (top) -->
+                    <Border Height="1" Margin="0,4,0,2">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="Transparent" Offset="0.0"/>
+                                <GradientStop Color="#60D4A017" Offset="0.2"/>
+                                <GradientStop Color="#60D4A017" Offset="0.8"/>
+                                <GradientStop Color="Transparent" Offset="1.0"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
                     </Border>
 
-                    <!-- Model switcher + Permission mode + disclaimer -->
-                    <Grid>
+                    <!-- Textarea + triangle send -->
+                    <Grid ColumnSpacing="12" Padding="0,6,0,2">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
-                        <!-- Model quick-switch -->
-                        <ComboBox x:Name="ModelSwitchCombo" FontSize="11" MinWidth="160" MaxWidth="240"
-                                  MinHeight="24" Padding="6,2" CornerRadius="4"
-                                  Background="{StaticResource AppInsetBrush}"
-                                  BorderBrush="{StaticResource AppStrokeBrush}"
-                                  VerticalAlignment="Center"
-                                  SelectionChanged="ModelSwitchCombo_SelectionChanged"/>
-                        <!-- Permission mode -->
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" Opacity="0.5" Margin="12,0,0,0">
+                        <TextBox x:Name="PromptTextBox"
+                                 x:Uid="ChatPromptTextBox"
+                                 AcceptsReturn="True"
+                                 MaxHeight="180" MinHeight="40"
+                                 Background="Transparent"
+                                 BorderThickness="0"
+                                 Foreground="{StaticResource AppTextPrimaryBrush}"
+                                 FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="13"
+                                 TextWrapping="Wrap"
+                                 VerticalAlignment="Bottom"
+                                 KeyDown="PromptTextBox_KeyDown"
+                                 TextChanged="PromptTextBox_TextChanged"/>
+                        <Button x:Name="SendButton" x:Uid="ChatPageSendButton" Grid.Column="1"
+                                Click="SendPrompt_Click"
+                                Width="40" Height="40"
+                                Background="Transparent" BorderThickness="1"
+                                BorderBrush="Transparent" CornerRadius="10"
+                                Padding="0" VerticalAlignment="Bottom"
+                                IsEnabled="False">
+                            <TextBlock x:Name="SendGlyph" Text="&#x25B2;"
+                                       FontFamily="{StaticResource JetBrainsMonoFont}"
+                                       FontSize="16"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        </Button>
+                    </Grid>
+
+                    <!-- Eyebrow meta: MODEL | MODE | disclaimer -->
+                    <Grid Margin="0,2,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                            <TextBlock Text="MODEL" FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}"
+                                       CharacterSpacing="200" VerticalAlignment="Center"/>
+                            <ComboBox x:Name="ModelSwitchCombo"
+                                      FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                      MinWidth="120" MaxWidth="220" MinHeight="0"
+                                      Background="Transparent" BorderThickness="0"
+                                      Foreground="{StaticResource AppTextPrimaryBrush}"
+                                      VerticalAlignment="Center" Padding="4,2"
+                                      SelectionChanged="ModelSwitchCombo_SelectionChanged"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                                    VerticalAlignment="Center" Margin="18,0,0,0">
                             <TextBlock x:Name="PermissionModeLabel" x:Uid="ChatPermissionModeLabel"
-                                       FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"
-                                       VerticalAlignment="Center" />
+                                       FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}"
+                                       CharacterSpacing="200" VerticalAlignment="Center"/>
                             <HyperlinkButton x:Name="PermissionModeToggle" x:Uid="ChatPermissionModeChange"
-                                             FontSize="11" Padding="0"
-                                             Click="PermissionModeToggle_Click" />
+                                             FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="10"
+                                             Padding="0" VerticalAlignment="Center"
+                                             Click="PermissionModeToggle_Click"/>
                         </StackPanel>
                         <TextBlock Grid.Column="2" x:Uid="ChatPageDisclaimer"
-                                   FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}"
-                                   Opacity="0.4" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                   FontFamily="{StaticResource JetBrainsMonoFont}" FontSize="9"
+                                   Foreground="{StaticResource AppTextMutedBrush}"
+                                   CharacterSpacing="50"
+                                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
                     </Grid>
                 </StackPanel>
             </Grid>

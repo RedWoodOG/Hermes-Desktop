@@ -329,7 +329,20 @@ public sealed partial class ChatPage : Page
 
     private void PromptTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
-        SendButton.IsEnabled = !string.IsNullOrWhiteSpace(PromptTextBox.Text) && !_isBusy;
+        var hasText = !string.IsNullOrWhiteSpace(PromptTextBox.Text);
+        SendButton.IsEnabled = hasText && !_isBusy;
+        UpdateSendGlow(hasText && !_isBusy);
+    }
+
+    private void UpdateSendGlow(bool active)
+    {
+        if (SendGlyph is null) return;
+        SendGlyph.Foreground = active
+            ? (Brush)Application.Current.Resources["AppAccentTextBrush"]
+            : (Brush)Application.Current.Resources["AppTextSecondaryBrush"];
+        SendButton.BorderBrush = active
+            ? (Brush)Application.Current.Resources["AppAccentBrush"]
+            : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
     }
 
     private async Task SendPromptAsync()
@@ -662,8 +675,10 @@ public sealed partial class ChatPage : Page
     private void SetBusy(bool busy)
     {
         _isBusy = busy;
-        SendButton.IsEnabled = !busy && !string.IsNullOrWhiteSpace(PromptTextBox.Text);
+        var hasText = !string.IsNullOrWhiteSpace(PromptTextBox.Text);
+        SendButton.IsEnabled = !busy && hasText;
         PromptTextBox.IsEnabled = !busy;
+        UpdateSendGlow(!busy && hasText);
     }
 
     private void ShowThinking(bool show, string? label = null)
