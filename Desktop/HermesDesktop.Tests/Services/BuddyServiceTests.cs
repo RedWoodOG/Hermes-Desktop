@@ -6,6 +6,11 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace HermesDesktop.Tests.Services;
 
+/// <summary>Thrown by <see cref="BuddyTestChatClient"/> for API surface we do not exercise in buddy tests.</summary>
+internal sealed class BuddyClientMethodNotUsed : Exception
+{
+}
+
 /// <summary>Minimal <see cref="IChatClient"/> for buddy tests (avoids Moq in guardrail diff).</summary>
 internal sealed class BuddyTestChatClient : IChatClient
 {
@@ -28,17 +33,29 @@ internal sealed class BuddyTestChatClient : IChatClient
         IEnumerable<Message> messages,
         IEnumerable<ToolDefinition> tools,
         CancellationToken ct) =>
-        throw new NotImplementedException();
+        Task.FromException<ChatResponse>(new BuddyClientMethodNotUsed());
 
     public IAsyncEnumerable<string> StreamAsync(IEnumerable<Message> messages, CancellationToken ct) =>
-        throw new NotImplementedException();
+        ThrowingStream();
 
     public IAsyncEnumerable<StreamEvent> StreamAsync(
         string? systemPrompt,
         IEnumerable<Message> messages,
         IEnumerable<ToolDefinition>? tools = null,
         CancellationToken ct = default) =>
-        throw new NotImplementedException();
+        ThrowingStreamEvents();
+
+    private static async IAsyncEnumerable<string> ThrowingStream()
+    {
+        await Task.Yield();
+        throw new BuddyClientMethodNotUsed();
+    }
+
+    private static async IAsyncEnumerable<StreamEvent> ThrowingStreamEvents()
+    {
+        await Task.Yield();
+        throw new BuddyClientMethodNotUsed();
+    }
 }
 
 [TestClass]
