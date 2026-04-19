@@ -123,25 +123,25 @@ public sealed class BuddyGenerator
         if (_forcedSpecies is not null &&
             TryResolveForcedSpecies(_forcedSpecies, out var forcedRarity, out var forcedSpeciesCanon))
         {
-            var shinyRoll = _rng();
-            var isShiny = shinyRoll < 0.005;
-            var eyes = SelectFrom(BuddyEyes.All);
-            var hatPool = forcedRarity switch
+            var forcedShinyRoll = _rng();
+            var forcedIsShiny = forcedShinyRoll < 0.005;
+            var forcedEyes = SelectFrom(BuddyEyes.All);
+            var forcedHatPool = forcedRarity switch
             {
                 BuddyRarity.Legendary => BuddyHats.Rare.Concat(BuddyHats.Common).ToArray(),
                 BuddyRarity.Rare => BuddyHats.Rare,
                 _ => BuddyHats.Common.Concat(BuddyHats.None).ToArray()
             };
-            var hat = SelectFrom(hatPool);
-            var stats = GenerateStats(forcedRarity);
+            var forcedHat = SelectFrom(forcedHatPool);
+            var forcedStats = GenerateStats(forcedRarity);
             return new Buddy
             {
                 Species = forcedSpeciesCanon,
                 Rarity = forcedRarity,
-                Eyes = eyes,
-                Hat = hat,
-                IsShiny = isShiny,
-                Stats = stats
+                Eyes = forcedEyes,
+                Hat = forcedHat,
+                IsShiny = forcedIsShiny,
+                Stats = forcedStats
             };
         }
 
