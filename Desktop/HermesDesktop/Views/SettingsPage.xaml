@@ -965,9 +965,9 @@
                                        Style="{StaticResource LabelTextStyle}"/>
                             <ComboBox x:Name="SearchProviderCombo" Grid.Column="1" HorizontalAlignment="Stretch"
                                       SelectionChanged="SearchProvider_SelectionChanged">
-                                <ComboBoxItem Content="DuckDuckGo (no key required)" Tag="duckduckgo"/>
-                                <ComboBoxItem Content="Google Custom Search" Tag="google"/>
-                                <ComboBoxItem Content="Bing Web Search" Tag="bing"/>
+                                <ComboBoxItem x:Uid="SettingsSearchProvDuckDuckGo" Tag="duckduckgo"/>
+                                <ComboBoxItem x:Uid="SettingsSearchProvGoogle" Tag="google"/>
+                                <ComboBoxItem x:Uid="SettingsSearchProvBing" Tag="bing"/>
                             </ComboBox>
 
                             <TextBlock Grid.Row="1" x:Uid="SettingsLblSearchGoogleApiKey" VerticalAlignment="Center"

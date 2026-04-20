@@ -1248,6 +1248,15 @@
   <data name="SettingsLblSearchProvider.Text" xml:space="preserve">
     <value>SEARCH PROVIDER</value>
   </data>
+  <data name="SettingsSearchProvDuckDuckGo.Content" xml:space="preserve">
+    <value>DuckDuckGo (no key required)</value>
+  </data>
+  <data name="SettingsSearchProvGoogle.Content" xml:space="preserve">
+    <value>Google Custom Search</value>
+  </data>
+  <data name="SettingsSearchProvBing.Content" xml:space="preserve">
+    <value>Bing Web Search</value>
+  </data>
   <data name="SettingsLblSearchGoogleApiKey.Text" xml:space="preserve">
     <value>GOOGLE API KEY</value>
   </data>

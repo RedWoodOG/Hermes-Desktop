@@ -1242,6 +1242,15 @@
   <data name="SettingsLblSearchProvider.Text" xml:space="preserve">
     <value>搜索提供商</value>
   </data>
+  <data name="SettingsSearchProvDuckDuckGo.Content" xml:space="preserve">
+    <value>DuckDuckGo（无需密钥）</value>
+  </data>
+  <data name="SettingsSearchProvGoogle.Content" xml:space="preserve">
+    <value>Google 自定义搜索</value>
+  </data>
+  <data name="SettingsSearchProvBing.Content" xml:space="preserve">
+    <value>Bing 网络搜索</value>
+  </data>
   <data name="SettingsLblSearchGoogleApiKey.Text" xml:space="preserve">
     <value>GOOGLE API 密钥</value>
   </data>
