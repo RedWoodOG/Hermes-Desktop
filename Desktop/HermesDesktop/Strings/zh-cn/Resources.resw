@@ -1239,6 +1239,21 @@
   <data name="SettingsExpSearchHeader.Text" xml:space="preserve">
     <value>网络搜索</value>
   </data>
+  <data name="SearchProviderDuckDuckGoItem.Content" xml:space="preserve">
+    <value>DuckDuckGo（无需密钥）</value>
+  </data>
+  <data name="SearchProviderGoogleItem.Content" xml:space="preserve">
+    <value>Google 自定义搜索</value>
+  </data>
+  <data name="SearchProviderBingItem.Content" xml:space="preserve">
+    <value>Bing 网络搜索</value>
+  </data>
+  <data name="SettingsSearchMissingGoogleKey" xml:space="preserve">
+    <value>Google 搜索需要 API 密钥和引擎 ID。</value>
+  </data>
+  <data name="SettingsSearchMissingBingKey" xml:space="preserve">
+    <value>Bing 搜索需要 API 密钥。</value>
+  </data>
   <data name="SettingsLblSearchProvider.Text" xml:space="preserve">
     <value>搜索提供商</value>
   </data>

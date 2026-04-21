@@ -1245,6 +1245,21 @@
   <data name="SettingsExpSearchHeader.Text" xml:space="preserve">
     <value>Web Search</value>
   </data>
+  <data name="SearchProviderDuckDuckGoItem.Content" xml:space="preserve">
+    <value>DuckDuckGo (no key required)</value>
+  </data>
+  <data name="SearchProviderGoogleItem.Content" xml:space="preserve">
+    <value>Google Custom Search</value>
+  </data>
+  <data name="SearchProviderBingItem.Content" xml:space="preserve">
+    <value>Bing Web Search</value>
+  </data>
+  <data name="SettingsSearchMissingGoogleKey" xml:space="preserve">
+    <value>Google search requires both API key and Engine ID.</value>
+  </data>
+  <data name="SettingsSearchMissingBingKey" xml:space="preserve">
+    <value>Bing search requires an API key.</value>
+  </data>
   <data name="SettingsLblSearchProvider.Text" xml:space="preserve">
     <value>SEARCH PROVIDER</value>
   </data>

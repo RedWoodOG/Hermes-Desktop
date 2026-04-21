@@ -809,12 +809,30 @@ This file is a living document about the human I work with. It helps me provide 
         try
         {
             var provider = (SearchProviderCombo.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "duckduckgo";
+            var googleKey = SearchGoogleApiKeyBox.Password.Trim();
+            var googleEngineId = SearchGoogleEngineIdBox.Text.Trim();
+            var bingKey = SearchBingApiKeyBox.Password.Trim();
+
+            if (provider == "google" && (string.IsNullOrEmpty(googleKey) || string.IsNullOrEmpty(googleEngineId)))
+            {
+                SearchSaveStatus.Text = ResourceLoader.GetString("SettingsSearchMissingGoogleKey");
+                SearchSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
+                return;
+            }
+
+            if (provider == "bing" && string.IsNullOrEmpty(bingKey))
+            {
+                SearchSaveStatus.Text = ResourceLoader.GetString("SettingsSearchMissingBingKey");
+                SearchSaveStatus.Foreground = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["ConnectionOfflineBrush"];
+                return;
+            }
+
             var settings = new Dictionary<string, string>
             {
                 ["provider"] = provider,
-                ["google_api_key"] = SearchGoogleApiKeyBox.Password.Trim(),
-                ["google_engine_id"] = SearchGoogleEngineIdBox.Text.Trim(),
-                ["bing_api_key"] = SearchBingApiKeyBox.Password.Trim(),
+                ["google_api_key"] = googleKey,
+                ["google_engine_id"] = googleEngineId,
+                ["bing_api_key"] = bingKey,
             };
 
             await HermesEnvironment.SaveConfigSectionAsync("search", settings);
