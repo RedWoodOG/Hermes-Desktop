@@ -551,12 +551,13 @@ public sealed class Agent : IAgent
                     break; // Defensive: shape changed underneath us; stop rather than corrupt.
             }
 
-            // ── Plugin turn end fires on EVERY exit path (success, no-tools, max-iter, exception) ──
-            if (_pluginManager is not null)
-            {
-                try { await _pluginManager.OnTurnEndAsync(message, finalResponse, session.Id, ct); }
-                catch (Exception ex) { _logger.LogWarning(ex, "Plugin OnTurnEnd failed"); }
-            }
+            // ── Plugin turn end fires on EVERY exit path (success, no-tools, max-iter, exception, cancellation) ──
+            // Routed through FirePluginTurnEndAsync so cleanup runs on a fresh
+            // bounded-timeout token instead of the original (possibly-cancelled)
+            // turn token. Without this, user-cancellation mid-turn would skip
+            // any plugin work that respects the token — silently violating the
+            // "always-fires" guarantee promised in the class doc.
+            await FirePluginTurnEndAsync(message, finalResponse, session.Id, "chat");
         }
     }
 
@@ -964,21 +965,58 @@ public sealed class Agent : IAgent
             // be a partial response; that's the right value for plugins observing
             // user-visible output (don't pretend the assistant said more than it
             // did). On normal completion it equals the saved assistant message.
-            if (_pluginManager is not null)
-            {
-                try
-                {
-                    await _pluginManager.OnTurnEndAsync(
-                        message,
-                        streamedResponse.ToString(),
-                        session.Id,
-                        ct);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Plugin OnTurnEnd failed (stream)");
-                }
-            }
+            //
+            // Routed through FirePluginTurnEndAsync so the call survives an
+            // already-cancelled `ct` (very common on the streaming path because
+            // the UI cancels the moment the user clicks Stop).
+            await FirePluginTurnEndAsync(message, streamedResponse.ToString(), session.Id, "stream");
+        }
+    }
+
+    /// <summary>
+    /// Maximum time we'll wait for a plugin's <c>OnTurnEnd</c> cleanup before
+    /// abandoning it. Picked to be long enough for legitimate persistence work
+    /// (transcript flush, learning-plugin index update, telemetry batch) but
+    /// short enough that an app shutdown isn't held hostage by a misbehaving
+    /// plugin. Tune via PR if real-world plugins need more headroom — but raise
+    /// it deliberately, not by accident.
+    /// </summary>
+    private static readonly TimeSpan PluginCleanupTimeout = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Fire <see cref="PluginManager.OnTurnEndAsync"/> on a DETACHED token with
+    /// a bounded timeout so cleanup runs even when the original turn token
+    /// is already cancelled — preserving the "always-fires" guarantee we
+    /// established when fixing the v2.4.0 lifecycle regression.
+    ///
+    /// Why detach: the original <c>ct</c> may already be cancelled by the time
+    /// we hit the <c>finally</c> (user clicked Stop, request aborted, etc.).
+    /// Passing that token straight to the plugin causes any well-behaved plugin
+    /// — i.e. one that calls <c>ct.ThrowIfCancellationRequested()</c> or forwards
+    /// the token to async I/O — to abort BEFORE persisting state. That silently
+    /// breaks the lifecycle invariant the surrounding comments promise.
+    ///
+    /// Why bound: a plugin that ignores cancellation and hangs (e.g. a network
+    /// post with no client-side timeout) would otherwise stall the entire turn
+    /// teardown and, transitively, app shutdown. The bounded timeout caps that
+    /// blast radius.
+    ///
+    /// Exceptions are swallowed (logged) so plugin bugs never bubble up after
+    /// the model has already returned its final answer to the caller.
+    /// </summary>
+    private async Task FirePluginTurnEndAsync(
+        string message, string finalResponse, string sessionId, string contextLabel)
+    {
+        if (_pluginManager is null) return;
+
+        using var cleanupCts = new CancellationTokenSource(PluginCleanupTimeout);
+        try
+        {
+            await _pluginManager.OnTurnEndAsync(message, finalResponse, sessionId, cleanupCts.Token);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Plugin OnTurnEnd failed ({Context})", contextLabel);
         }
     }
 
