@@ -731,10 +731,12 @@ public partial class App : Application
         // Agent tool (subagent spawning — needs chat client and tool registry)
         RegisterAndTrack(agent, toolRegistry, new AgentTool(chatClient, toolRegistry));
 
-        // Memory tool — share the directory with MemoryManager so save/list/delete
-        // and the auto-recall plugin operate on the same store.
+        // Memory tool — delegates to MemoryManager so save/list/delete and the
+        // auto-recall plugin operate on the same store and saved files always
+        // carry the YAML frontmatter the scanner requires.
         var memoryManager = services.GetRequiredService<MemoryManager>();
-        RegisterAndTrack(agent, toolRegistry, new MemoryTool(memoryManager.MemoryDir));
+        MigrateLegacyMemoriesIfNeeded(memoryManager.MemoryDir);
+        RegisterAndTrack(agent, toolRegistry, new MemoryTool(memoryManager));
 
         // Session search tool
         var transcriptDir = Path.Combine(
@@ -765,6 +767,39 @@ public partial class App : Application
     {
         agent.RegisterTool(tool);
         registry.RegisterTool(tool);
+    }
+
+    /// <summary>
+    /// Pre-v2.5 the MemoryTool wrote to HermesHomePath/memories while the
+    /// auto-recall plugin scanned HermesHomePath/hermes-cs/memory. If the old
+    /// directory has files and the new one is empty, copy them so legacy
+    /// memories remain accessible after the path alignment.
+    /// </summary>
+    private static void MigrateLegacyMemoriesIfNeeded(string currentMemoryDir)
+    {
+        try
+        {
+            var legacyDir = Path.Combine(HermesEnvironment.HermesHomePath, "memories");
+            if (!Directory.Exists(legacyDir)) return;
+
+            var legacyFiles = Directory.GetFiles(legacyDir, "*.md");
+            if (legacyFiles.Length == 0) return;
+
+            Directory.CreateDirectory(currentMemoryDir);
+            if (Directory.EnumerateFileSystemEntries(currentMemoryDir).Any())
+                return; // Current dir already populated; don't overwrite.
+
+            foreach (var src in legacyFiles)
+            {
+                var dst = Path.Combine(currentMemoryDir, Path.GetFileName(src));
+                if (!File.Exists(dst))
+                    File.Copy(src, dst);
+            }
+        }
+        catch (Exception ex)
+        {
+            BestEffort.LogFailure(TryGetAppLogger(), ex, "migrating legacy memory directory");
+        }
     }
 
     /// <summary>Find the repo's skills/ directory by walking up from the build output to find .git or skills/.</summary>
