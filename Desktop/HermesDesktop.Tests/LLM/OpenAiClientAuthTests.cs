@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.Json;
 using Hermes.Agent.Core;
 using Hermes.Agent.LLM;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -268,6 +269,48 @@ public class OpenAiClientAuthTests
         {
             Environment.SetEnvironmentVariable(envVarName, null);
         }
+    }
+
+    [TestMethod]
+    public async Task CompleteAsync_NormalizesMessagesForOpenAiCompatibleEndpoints()
+    {
+        string? capturedBody = null;
+        using var httpClient = new HttpClient(new CaptureHandler(request =>
+        {
+            capturedBody = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+            return CreateSuccessResponse();
+        }));
+
+        var client = new OpenAiClient(
+            new LlmConfig
+            {
+                Provider = "openai",
+                Model = "local-model",
+                BaseUrl = "http://localhost:8000/v1",
+                AuthMode = "none"
+            },
+            httpClient);
+
+        await client.CompleteAsync(
+            new[]
+            {
+                new Message { Role = "system", Content = "first system" },
+                new Message { Role = "user", Content = "hello" },
+                new Message { Role = "developer", Content = "unsupported" },
+                new Message { Role = "system", Content = "second system" },
+                new Message { Role = "assistant", Content = "hi" }
+            },
+            CancellationToken.None);
+
+        Assert.IsNotNull(capturedBody);
+        using var doc = JsonDocument.Parse(capturedBody!);
+        var messages = doc.RootElement.GetProperty("messages");
+
+        Assert.AreEqual(3, messages.GetArrayLength());
+        Assert.AreEqual("system", messages[0].GetProperty("role").GetString());
+        Assert.AreEqual("first system\n\nsecond system", messages[0].GetProperty("content").GetString());
+        Assert.AreEqual("user", messages[1].GetProperty("role").GetString());
+        Assert.AreEqual("assistant", messages[2].GetProperty("role").GetString());
     }
 
     private static HttpResponseMessage CreateSuccessResponse()

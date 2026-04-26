@@ -13,6 +13,13 @@ public sealed class OpenAiClient : IChatClient
     private readonly HttpClient _httpClient;
     private readonly LlmConfig _config;
     private readonly CredentialPool? _credentialPool;
+    private static readonly HashSet<string> ValidMessageRoles = new(StringComparer.Ordinal)
+    {
+        "system",
+        "user",
+        "assistant",
+        "tool"
+    };
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
@@ -179,29 +186,7 @@ public sealed class OpenAiClient : IChatClient
 
     private object BuildPayload(IEnumerable<Message> messages, object? tools, bool stream)
     {
-        var msgs = messages.Select(m =>
-        {
-            // Tool result message
-            if (m.Role == "tool")
-                return (object)new { role = "tool", content = m.Content, tool_call_id = m.ToolCallId };
-
-            // Assistant message with tool calls
-            if (m.Role == "assistant" && m.ToolCalls is { Count: > 0 })
-                return new
-                {
-                    role = "assistant",
-                    content = m.Content ?? (object?)null,
-                    tool_calls = m.ToolCalls.Select(tc => new
-                    {
-                        id = tc.Id,
-                        type = "function",
-                        function = new { name = tc.Name, arguments = tc.Arguments }
-                    }).ToArray()
-                };
-
-            // Regular message
-            return (object)new { role = m.Role, content = m.Content };
-        }).ToArray();
+        var msgs = NormalizeMessages(messages);
 
         if (tools is not null)
         {
@@ -223,6 +208,55 @@ public sealed class OpenAiClient : IChatClient
             temperature = 0.7,
             stream
         };
+    }
+
+    private static object[] NormalizeMessages(IEnumerable<Message> messages)
+    {
+        var valid = messages
+            .Where(m => ValidMessageRoles.Contains(m.Role))
+            .ToArray();
+        var systems = valid.Where(m => m.Role == "system").ToArray();
+        var normalized = new List<object>(valid.Length);
+
+        if (systems.Length > 0)
+        {
+            normalized.Add(new
+            {
+                role = "system",
+                content = string.Join("\n\n", systems.Select(m => m.Content))
+            });
+        }
+
+        foreach (var message in valid.Where(m => m.Role != "system"))
+        {
+            normalized.Add(ToOpenAiMessage(message));
+        }
+
+        return normalized.ToArray();
+    }
+
+    private static object ToOpenAiMessage(Message message)
+    {
+        // Tool result message
+        if (message.Role == "tool")
+            return new { role = "tool", content = message.Content, tool_call_id = message.ToolCallId };
+
+        // Assistant message with tool calls
+        if (message.Role == "assistant" && message.ToolCalls is { Count: > 0 })
+            return new
+            {
+                role = "assistant",
+                content = message.Content ?? (object?)null,
+                tool_calls = message.ToolCalls.Select(tc => new
+                {
+                    id = tc.Id,
+                    type = "function",
+                    function = new { name = tc.Name, arguments = tc.Arguments }
+                }).ToArray()
+            };
+
+        // Regular message
+        return new { role = message.Role, content = message.Content };
     }
 
     private async Task<HttpResponseMessage> PostAsync(object payload, CancellationToken ct)
