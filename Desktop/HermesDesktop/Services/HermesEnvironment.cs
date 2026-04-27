@@ -475,7 +475,8 @@ internal static class HermesEnvironment
 
     internal static string ModelProvider => ReadModelSetting("provider") ?? "custom";
 
-    internal static string ModelBaseUrl => NormalizeBaseUrl(ReadModelSetting("base_url") ?? "http://127.0.0.1:11434/v1");
+    internal static string ModelBaseUrl =>
+        NormalizeModelBaseUrl(ModelProvider, ReadModelSetting("base_url") ?? "http://127.0.0.1:11434/v1");
 
     // 0.0.0.0 and :: are wildcard bind addresses for servers (e.g. llama-server.exe --host 0.0.0.0);
     // they aren't valid client destinations, so HttpClient connections fail. Rewrite to loopback.
@@ -493,6 +494,25 @@ internal static class HermesEnvironment
         if (replacement is null) return raw;
 
         return new UriBuilder(uri) { Host = replacement }.Uri.ToString();
+    }
+
+    private static string NormalizeModelBaseUrl(string provider, string raw)
+    {
+        var normalized = NormalizeBaseUrl(raw);
+
+        // Hermes uses MiniMax through its Anthropic-compatible API because the
+        // desktop agent sends tool definitions on normal chat turns. Normalize
+        // older OpenAI-compatible MiniMax profiles so existing portable installs
+        // keep working after an update.
+        if (string.Equals(provider, "minimax", StringComparison.OrdinalIgnoreCase) &&
+            (string.Equals(normalized.TrimEnd('/'), "https://api.minimax.chat/v1", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(normalized.TrimEnd('/'), "https://api.minimax.io/v1", StringComparison.OrdinalIgnoreCase) ||
+             string.Equals(normalized.TrimEnd('/'), "https://api.minimaxi.com/v1", StringComparison.OrdinalIgnoreCase)))
+        {
+            return "https://api.minimaxi.com/anthropic/v1";
+        }
+
+        return normalized;
     }
 
     internal static string DefaultModel => ReadModelSetting("default") ?? "minimax-m2.7:cloud";

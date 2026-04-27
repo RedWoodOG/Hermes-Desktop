@@ -33,10 +33,15 @@ public sealed class AnthropicClient : IChatClient
 
         if (_credentialPool is null && !string.IsNullOrEmpty(config.ApiKey))
         {
-            _httpClient.DefaultRequestHeaders.Add("x-api-key", config.ApiKey);
+            if (IsMiniMaxProvider)
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiKey);
+            else
+                _httpClient.DefaultRequestHeaders.Add("x-api-key", config.ApiKey);
         }
 
-        _httpClient.DefaultRequestHeaders.Add("anthropic-version", ApiVersion);
+        if (!IsMiniMaxProvider)
+            _httpClient.DefaultRequestHeaders.Add("anthropic-version", ApiVersion);
+
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }
     
@@ -81,13 +86,13 @@ public sealed class AnthropicClient : IChatClient
             nonSystemMessages, tools, stream: false);
 
         var json = JsonSerializer.Serialize(payload, JsonOptions);
-        var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages")
+        var request = new HttpRequestMessage(HttpMethod.Post, MessagesEndpoint)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
 
         var response = await _httpClient.SendAsync(request, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessStatusCodeWithBodyAsync(response, ct);
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
         var root = doc.RootElement;
@@ -159,13 +164,13 @@ public sealed class AnthropicClient : IChatClient
         var json = JsonSerializer.Serialize(payload, JsonOptions);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
         
-        var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages")
+        var request = new HttpRequestMessage(HttpMethod.Post, MessagesEndpoint)
         {
             Content = content
         };
         
         var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessStatusCodeWithBodyAsync(response, ct);
         
         var stream = await response.Content.ReadAsStreamAsync(ct);
         using var reader = new StreamReader(stream);
@@ -410,7 +415,7 @@ public sealed class AnthropicClient : IChatClient
         {
             ["model"] = _config.Model,
             ["messages"] = formattedMessages,
-            ["max_tokens"] = _config.MaxTokens,
+            ["max_tokens"] = EffectiveMaxTokens,
         };
         
         if (!string.IsNullOrEmpty(systemPrompt))
@@ -434,5 +439,61 @@ public sealed class AnthropicClient : IChatClient
         }
         
         return payload;
+    }
+
+    private bool IsMiniMaxProvider =>
+        string.Equals(_config.Provider, "minimax", StringComparison.OrdinalIgnoreCase);
+
+    private int EffectiveMaxTokens =>
+        IsMiniMaxProvider
+            ? Math.Clamp(_config.MaxTokens, 1, 2048)
+            : _config.MaxTokens;
+
+    private string MessagesEndpoint =>
+        $"{NormalizeBaseUrl(_config.BaseUrl)}/messages";
+
+    private static string NormalizeBaseUrl(string? baseUrl)
+    {
+        var normalized = string.IsNullOrWhiteSpace(baseUrl)
+            ? "https://api.anthropic.com/v1"
+            : baseUrl.TrimEnd('/');
+
+        return normalized.EndsWith("/messages", StringComparison.OrdinalIgnoreCase)
+            ? normalized[..^"/messages".Length]
+            : normalized;
+    }
+
+    private async Task EnsureSuccessStatusCodeWithBodyAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        string responseBody;
+        try
+        {
+            responseBody = response.Content is null
+                ? string.Empty
+                : await response.Content.ReadAsStringAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            responseBody = $"<failed to read response body: {ex.Message}>";
+        }
+
+        var provider = string.IsNullOrWhiteSpace(_config.Provider) ? "anthropic-compatible" : _config.Provider;
+        var model = string.IsNullOrWhiteSpace(_config.Model) ? "unknown-model" : _config.Model;
+        var endpoint = NormalizeBaseUrl(_config.BaseUrl);
+        var trimmedBody = responseBody
+            .Replace("\r", "\\r", StringComparison.Ordinal)
+            .Replace("\n", "\\n", StringComparison.Ordinal);
+
+        if (trimmedBody.Length > 8_000)
+            trimmedBody = trimmedBody[..8_000] + "...";
+
+        throw new HttpRequestException(
+            $"Provider '{provider}' request failed for model '{model}' at '{endpoint}': " +
+            $"{(int)response.StatusCode} ({response.ReasonPhrase}). Response body: {trimmedBody}",
+            null,
+            response.StatusCode);
     }
 }

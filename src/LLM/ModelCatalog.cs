@@ -159,7 +159,7 @@ public static class ModelCatalog
             ["anthropic"]  = "https://api.anthropic.com",
             ["qwen"]       = "https://dashscope.aliyuncs.com/compatible-mode/v1",
             ["deepseek"]   = "https://api.deepseek.com/v1",
-            ["minimax"]    = "https://api.minimax.chat/v1",
+            ["minimax"]    = "https://api.minimaxi.com/anthropic/v1",
             ["openrouter"] = "https://openrouter.ai/api/v1",
             ["nous"]       = "https://openrouter.ai/api/v1",
             ["ollama"]     = "http://127.0.0.1:11434/v1",

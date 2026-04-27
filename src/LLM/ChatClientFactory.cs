@@ -86,7 +86,7 @@ public sealed class ChatClientFactory
 
         return provider switch
         {
-            "anthropic" or "claude" => new AnthropicClient(config, CreateHttpClientForProvider(config), _credentialPool),
+            "anthropic" or "claude" or "minimax" => new AnthropicClient(config, CreateHttpClientForProvider(config), _credentialPool),
             _ => new OpenAiClient(config, CreateHttpClientForProvider(config), _credentialPool),
         };
     }
