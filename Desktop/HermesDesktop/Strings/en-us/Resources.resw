@@ -72,6 +72,15 @@
   <data name="ChatErrorMessageFormat" xml:space="preserve">
     <value>The Hermes request failed: {0}</value>
   </data>
+  <data name="ChatErrorBanner.Title" xml:space="preserve">
+    <value>Provider error</value>
+  </data>
+  <data name="ChatErrorRetryButton.Content" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="ChatErrorSwitchModelButton.Content" xml:space="preserve">
+    <value>Switch model</value>
+  </data>
   <data name="ChatUserLabel" xml:space="preserve">
     <value>You</value>
   </data>
@@ -494,6 +503,12 @@
   </data>
   <data name="ChatPermissionModeChange.Content" xml:space="preserve">
     <value>change</value>
+  </data>
+  <data name="ChatPermissionModeClearWorkspacePermissions" xml:space="preserve">
+    <value>Clear workspace permissions</value>
+  </data>
+  <data name="ChatPermissionModeClearWorkspacePermissionsConfirm" xml:space="preserve">
+    <value>Workspace permissions cleared.</value>
   </data>
   <data name="ChatPageDisclaimer.Text" xml:space="preserve">
     <value>Hermes can make mistakes. Verify important information.</value>
@@ -1241,6 +1256,48 @@
   </data>
   <data name="SettingsSavePluginBtn.Content" xml:space="preserve">
     <value>Save Plugin Config</value>
+  </data>
+  <data name="SettingsExpSearchHeader.Text" xml:space="preserve">
+    <value>Web Search</value>
+  </data>
+  <data name="SearchProviderDuckDuckGoItem.Content" xml:space="preserve">
+    <value>DuckDuckGo (no key required)</value>
+  </data>
+  <data name="SearchProviderGoogleItem.Content" xml:space="preserve">
+    <value>Google Custom Search</value>
+  </data>
+  <data name="SearchProviderBingItem.Content" xml:space="preserve">
+    <value>Bing Web Search</value>
+  </data>
+  <data name="SettingsSearchMissingGoogleKey" xml:space="preserve">
+    <value>Google search requires both API key and Engine ID.</value>
+  </data>
+  <data name="SettingsSearchMissingBingKey" xml:space="preserve">
+    <value>Bing search requires an API key.</value>
+  </data>
+  <data name="SettingsLblSearchProvider.Text" xml:space="preserve">
+    <value>SEARCH PROVIDER</value>
+  </data>
+  <data name="SettingsLblSearchGoogleApiKey.Text" xml:space="preserve">
+    <value>GOOGLE API KEY</value>
+  </data>
+  <data name="SettingsSearchGoogleApiKeyBox.PlaceholderText" xml:space="preserve">
+    <value>Required for Google Custom Search</value>
+  </data>
+  <data name="SettingsLblSearchGoogleEngineId.Text" xml:space="preserve">
+    <value>GOOGLE ENGINE ID (CX)</value>
+  </data>
+  <data name="SettingsSearchGoogleEngineIdBox.PlaceholderText" xml:space="preserve">
+    <value>Custom Search Engine identifier</value>
+  </data>
+  <data name="SettingsLblSearchBingApiKey.Text" xml:space="preserve">
+    <value>BING API KEY</value>
+  </data>
+  <data name="SettingsSearchBingApiKeyBox.PlaceholderText" xml:space="preserve">
+    <value>Required for Bing Web Search</value>
+  </data>
+  <data name="SettingsSaveSearchBtn.Content" xml:space="preserve">
+    <value>Save Search Config</value>
   </data>
   <data name="SettingsExpPathsSystemHeader.Text" xml:space="preserve">
     <value>Paths &amp; System</value>

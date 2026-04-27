@@ -38,9 +38,10 @@ try
         messageArgument,
     };
 
-    chatCommand.SetAction(parseResult =>
+    chatCommand.SetAction(async (parseResult, ct) =>
     {
-        Environment.ExitCode = InvokeChatAsync(parseResult, messageArgument, shutdownCts.Token).GetAwaiter().GetResult();
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(shutdownCts.Token, ct);
+        Environment.ExitCode = await InvokeChatAsync(parseResult, messageArgument, linked.Token);
     });
 
     rootCommand.Subcommands.Add(chatCommand);
@@ -80,7 +81,8 @@ static async Task<int> InvokeChatAsync(
         builder.SetMinimumLevel(LogLevel.Information);
     });
 
-    // TODO: Load config from ~/.hermes-cs/config.yaml
+    // NOTE: Hermes Desktop loads config from %LOCALAPPDATA%\hermes\config.yaml.
+    // The CLI currently uses inline defaults; unify with desktop config resolution.
     var config = new LlmConfig
     {
         Provider = "custom",

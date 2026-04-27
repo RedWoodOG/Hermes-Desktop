@@ -939,7 +939,76 @@
                 </Expander.Content>
             </Expander>
 
-            <!-- ═══ I. Paths & System ═══ -->
+            <!-- ═══ I. Web Search ═══ -->
+            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <FontIcon Glyph="&#xE721;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
+                        <TextBlock x:Uid="SettingsExpSearchHeader" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Expander.Header>
+                <Expander.Content>
+                    <StackPanel Spacing="12" Padding="4,8,4,4">
+                        <Grid ColumnSpacing="12" RowSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="200"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock x:Uid="SettingsLblSearchProvider" VerticalAlignment="Center"
+                                       Style="{StaticResource LabelTextStyle}"/>
+                            <ComboBox x:Name="SearchProviderCombo" Grid.Column="1" HorizontalAlignment="Stretch"
+                                      SelectionChanged="SearchProvider_SelectionChanged">
+                                <ComboBoxItem x:Uid="SearchProviderDuckDuckGoItem" Tag="duckduckgo"/>
+                                <ComboBoxItem x:Uid="SearchProviderGoogleItem" Tag="google"/>
+                                <ComboBoxItem x:Uid="SearchProviderBingItem" Tag="bing"/>
+                            </ComboBox>
+
+                            <TextBlock Grid.Row="1" x:Uid="SettingsLblSearchGoogleApiKey" VerticalAlignment="Center"
+                                       Style="{StaticResource LabelTextStyle}"/>
+                            <PasswordBox x:Name="SearchGoogleApiKeyBox" Grid.Row="1" Grid.Column="1"
+                                         x:Uid="SettingsSearchGoogleApiKeyBox"
+                                         Background="{StaticResource AppInsetBrush}"
+                                         BorderBrush="{StaticResource AppStrokeBrush}"
+                                         Foreground="White"/>
+
+                            <TextBlock Grid.Row="2" x:Uid="SettingsLblSearchGoogleEngineId" VerticalAlignment="Center"
+                                       Style="{StaticResource LabelTextStyle}"/>
+                            <TextBox x:Name="SearchGoogleEngineIdBox" Grid.Row="2" Grid.Column="1"
+                                     x:Uid="SettingsSearchGoogleEngineIdBox"
+                                     Background="{StaticResource AppInsetBrush}"
+                                     BorderBrush="{StaticResource AppStrokeBrush}"
+                                     Foreground="White"/>
+
+                            <TextBlock Grid.Row="3" x:Uid="SettingsLblSearchBingApiKey" VerticalAlignment="Center"
+                                       Style="{StaticResource LabelTextStyle}"/>
+                            <PasswordBox x:Name="SearchBingApiKeyBox" Grid.Row="3" Grid.Column="1"
+                                         x:Uid="SettingsSearchBingApiKeyBox"
+                                         Background="{StaticResource AppInsetBrush}"
+                                         BorderBrush="{StaticResource AppStrokeBrush}"
+                                         Foreground="White"/>
+                        </Grid>
+
+                        <!-- Save -->
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Button x:Uid="SettingsSaveSearchBtn" Click="SaveSearchConfig_Click"
+                                    Background="{StaticResource AppAccentGradientBrush}"
+                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
+                                    Foreground="#16110D" Padding="20,8"/>
+                            <TextBlock x:Name="SearchSaveStatus" VerticalAlignment="Center"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Expander.Content>
+            </Expander>
+
+            <!-- ═══ J. Paths & System ═══ -->
             <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal" Spacing="10">

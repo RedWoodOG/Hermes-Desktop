@@ -53,6 +53,38 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
+                <InfoBar x:Name="ChatErrorBanner"
+                         x:Uid="ChatErrorBanner"
+                         Grid.Row="0"
+                         Margin="12,12,12,0"
+                         IsOpen="False"
+                         Severity="Error">
+                    <InfoBar.Content>
+                        <Grid ColumnSpacing="10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="ChatErrorText"
+                                       VerticalAlignment="Center"
+                                       TextWrapping="WrapWholeWords" />
+                            <Button x:Name="ChatErrorRetryButton"
+                                    x:Uid="ChatErrorRetryButton"
+                                    Grid.Column="1"
+                                    Click="RetryLastPrompt_Click"
+                                    MinWidth="0"
+                                    Padding="10,4" />
+                            <Button x:Name="ChatErrorSwitchModelButton"
+                                    x:Uid="ChatErrorSwitchModelButton"
+                                    Grid.Column="2"
+                                    Click="OpenModelSwitcher_Click"
+                                    MinWidth="0"
+                                    Padding="10,4" />
+                        </Grid>
+                    </InfoBar.Content>
+                </InfoBar>
+
                 <!-- Messages -->
                 <ListView x:Name="MessagesList" Grid.Row="1" Padding="18" Background="Transparent" BorderThickness="0"
                     SelectionMode="None">

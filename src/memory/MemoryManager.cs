@@ -13,7 +13,9 @@ public sealed class MemoryManager
     private readonly string _memoryDir;
     private readonly IChatClient _chatClient;
     private readonly ILogger<MemoryManager> _logger;
-    
+
+    public string MemoryDir => _memoryDir;
+
     public MemoryManager(string memoryDir, IChatClient chatClient, ILogger<MemoryManager> logger)
     {
         _memoryDir = memoryDir;

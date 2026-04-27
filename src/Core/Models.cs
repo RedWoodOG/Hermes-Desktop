@@ -48,6 +48,14 @@ public interface ITool
     Task<ToolResult> ExecuteAsync(object parameters, CancellationToken ct);
 }
 
+/// <summary>
+/// Optional extension for tools that already have a provider-native JSON schema.
+/// </summary>
+public interface IToolSchemaProvider
+{
+    JsonElement? GetParameterSchema();
+}
+
 public interface IAgent
 {
     Task<string> ChatAsync(string message, Session session, CancellationToken ct);

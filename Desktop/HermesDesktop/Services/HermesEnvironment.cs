@@ -736,6 +736,24 @@ internal static class HermesEnvironment
     /// <summary>Read a value from the integrations section of config.yaml.</summary>
     internal static string? ReadIntegrationSetting(string key) => ReadConfigSetting("integrations", key);
 
+    // ── Web search ──
+    /// <summary>
+    /// Provider the WebSearchTool should use. Normalization lives next to the
+    /// tool itself (<see cref="Hermes.Agent.Tools.WebSearchConfig.NormalizeProvider"/>)
+    /// so the list of supported providers stays in one place.
+    /// </summary>
+    internal static string WebSearchProvider =>
+        Hermes.Agent.Tools.WebSearchConfig.NormalizeProvider(ReadConfigSetting("search", "provider"));
+
+    internal static string? WebSearchGoogleApiKey =>
+        ReadConfigSetting("search", "google_api_key");
+
+    internal static string? WebSearchGoogleEngineId =>
+        ReadConfigSetting("search", "google_engine_id");
+
+    internal static string? WebSearchBingApiKey =>
+        ReadConfigSetting("search", "bing_api_key");
+
     /// <summary>Max tool-call iterations per agent turn. Default 90 matches the SettingsPage UI default.</summary>
     internal static int MaxAgentIterations
     {

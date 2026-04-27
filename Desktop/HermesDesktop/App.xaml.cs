@@ -538,7 +538,7 @@ public partial class App : Application
 
         // ── Post-build: Register all tools and connect MCP ──
         RegisterAllTools(provider);
-        InitializeMcpAsync(provider, projectDir);
+        _ = InitializeMcpAsync(provider, projectDir);
 
         // Wire permission prompt callback to show a ContentDialog in the UI
         WirePermissionCallback(provider);
@@ -707,10 +707,19 @@ public partial class App : Application
         RegisterAndTrack(agent, toolRegistry, new BashTool());
         RegisterAndTrack(agent, toolRegistry, new TerminalTool());
 
-        // Web tools
+        // Web tools — pull provider + API keys from HermesEnvironment so the user's
+        // configured search provider in config.yaml is honored. Hardcoding "duckduckgo"
+        // here was the v2.4.0 regression that silently ignored Google/Bing config.
         RegisterAndTrack(agent, toolRegistry, new WebFetchTool(httpClient));
         RegisterAndTrack(agent, toolRegistry, new WebSearchTool(
-            new WebSearchConfig { Provider = "duckduckgo" }, httpClient));
+            new WebSearchConfig
+            {
+                Provider = HermesEnvironment.WebSearchProvider,
+                GoogleApiKey = HermesEnvironment.WebSearchGoogleApiKey,
+                GoogleSearchEngineId = HermesEnvironment.WebSearchGoogleEngineId,
+                BingApiKey = HermesEnvironment.WebSearchBingApiKey,
+            },
+            httpClient));
 
         // Task management
         RegisterAndTrack(agent, toolRegistry, new TodoWriteTool());
@@ -722,9 +731,12 @@ public partial class App : Application
         // Agent tool (subagent spawning — needs chat client and tool registry)
         RegisterAndTrack(agent, toolRegistry, new AgentTool(chatClient, toolRegistry));
 
-        // Memory tool
-        var memoryToolDir = Path.Combine(HermesEnvironment.HermesHomePath, "memories");
-        RegisterAndTrack(agent, toolRegistry, new MemoryTool(memoryToolDir));
+        // Memory tool — delegates to MemoryManager so save/list/delete and the
+        // auto-recall plugin operate on the same store and saved files always
+        // carry the YAML frontmatter the scanner requires.
+        var memoryManager = services.GetRequiredService<MemoryManager>();
+        MigrateLegacyMemoriesIfNeeded(memoryManager.MemoryDir);
+        RegisterAndTrack(agent, toolRegistry, new MemoryTool(memoryManager));
 
         // Session search tool
         var transcriptDir = Path.Combine(
@@ -755,6 +767,39 @@ public partial class App : Application
     {
         agent.RegisterTool(tool);
         registry.RegisterTool(tool);
+    }
+
+    /// <summary>
+    /// Pre-v2.5 the MemoryTool wrote to HermesHomePath/memories while the
+    /// auto-recall plugin scanned HermesHomePath/hermes-cs/memory. If the old
+    /// directory has files and the new one is empty, copy them so legacy
+    /// memories remain accessible after the path alignment.
+    /// </summary>
+    private static void MigrateLegacyMemoriesIfNeeded(string currentMemoryDir)
+    {
+        try
+        {
+            var legacyDir = Path.Combine(HermesEnvironment.HermesHomePath, "memories");
+            if (!Directory.Exists(legacyDir)) return;
+
+            var legacyFiles = Directory.GetFiles(legacyDir, "*.md");
+            if (legacyFiles.Length == 0) return;
+
+            Directory.CreateDirectory(currentMemoryDir);
+            if (Directory.EnumerateFileSystemEntries(currentMemoryDir).Any())
+                return; // Current dir already populated; don't overwrite.
+
+            foreach (var src in legacyFiles)
+            {
+                var dst = Path.Combine(currentMemoryDir, Path.GetFileName(src));
+                if (!File.Exists(dst))
+                    File.Copy(src, dst);
+            }
+        }
+        catch (Exception ex)
+        {
+            BestEffort.LogFailure(TryGetAppLogger(), ex, "migrating legacy memory directory");
+        }
     }
 
     /// <summary>Find the repo's skills/ directory by walking up from the build output to find .git or skills/.</summary>
@@ -897,47 +942,30 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Load MCP server configs and connect (fire-and-forget on startup).
-    /// <summary>
     /// Initializes the MCP subsystem by loading MCP configuration files from standard locations, connecting to configured MCP servers, and registering any discovered MCP tools with the Agent and tool registry.
     /// </summary>
     /// <param name="projectDir">Path to the project directory; used as one of the locations to search for an mcp.json configuration file.</param>
     /// <remarks>
     /// Initialization errors are non-fatal: exceptions are logged and startup continues without MCP tools.
     /// </remarks>
-    private static async void InitializeMcpAsync(IServiceProvider services, string projectDir)
+    private static async Task InitializeMcpAsync(IServiceProvider services, string projectDir)
     {
         try
         {
             var mcpManager = services.GetRequiredService<McpManager>();
             var agent = services.GetRequiredService<Agent>();
             var toolRegistry = services.GetRequiredService<IToolRegistry>();
+            var logger = services.GetRequiredService<ILogger<App>>();
 
-            // Check for MCP config in standard locations
-            var mcpConfigPaths = new[]
+            var mcpConfigPaths = new List<string>
             {
                 Path.Combine(projectDir, "mcp.json"),
                 Path.Combine(HermesEnvironment.HermesHomePath, "mcp.json"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Hermes", "mcp.json"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".hermes", "mcp.json")
             };
 
-            foreach (var configPath in mcpConfigPaths)
-            {
-                if (File.Exists(configPath))
-                {
-                    await mcpManager.LoadFromConfigAsync(configPath);
-                }
-            }
-
-            // Connect to all configured servers
-            await mcpManager.ConnectAllAsync();
-
-            // Register discovered MCP tools with the Agent
-            foreach (var mcpTool in mcpManager.Tools.Values)
-            {
-                agent.RegisterTool(mcpTool);
-                toolRegistry.RegisterTool(mcpTool);
-            }
+            await McpBootstrap.AttachAsync(mcpManager, agent, toolRegistry, mcpConfigPaths, logger);
         }
         catch (Exception ex)
         {

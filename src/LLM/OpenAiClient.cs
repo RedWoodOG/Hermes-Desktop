@@ -152,14 +152,15 @@ public sealed class OpenAiClient : IChatClient
                 {
                     chunk = JsonDocument.Parse(data);
                 }
-                catch (JsonException)
+                catch (JsonException ex)
                 {
-                    continue; // Skip malformed chunks
+                    throw LlmProviderException.StreamParse(ex, "Malformed JSON chunk from provider stream.");
                 }
 
-                using (chunk)
+                var parsedChunk = chunk!;
+                using (parsedChunk)
                 {
-                    if (!chunk.RootElement.TryGetProperty("choices", out var choices) ||
+                    if (!parsedChunk.RootElement.TryGetProperty("choices", out var choices) ||
                         choices.GetArrayLength() == 0) continue;
 
                     var delta = choices[0].GetProperty("delta");
@@ -444,13 +445,14 @@ public sealed class OpenAiClient : IChatClient
             response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
             response.EnsureSuccessStatusCode();
         }
-        catch (HttpRequestException ex) { response?.Dispose(); connectError = ex; }
+        catch (HttpRequestException ex) { response?.Dispose(); connectError = LlmProviderException.FromHttp(ex); }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
-        { response?.Dispose(); connectError = new TimeoutException("Request timed out"); }
+        { response?.Dispose(); connectError = LlmProviderException.Timeout(new TimeoutException("Request timed out")); }
 
         if (connectError is not null)
         {
-            yield return new StreamEvent.StreamError(connectError);
+            var code = connectError is LlmProviderException providerError ? providerError.Code : ProviderErrorCode.Transport;
+            yield return new StreamEvent.StreamError(connectError, code);
             yield break;
         }
 
@@ -478,7 +480,9 @@ public sealed class OpenAiClient : IChatClient
 
                 if (ioError is not null)
                 {
-                    yield return new StreamEvent.StreamError(ioError);
+                    yield return new StreamEvent.StreamError(
+                        LlmProviderException.Transport(ioError),
+                        ProviderErrorCode.Transport);
                     yield break;
                 }
 
@@ -487,13 +491,26 @@ public sealed class OpenAiClient : IChatClient
                 var data = line["data: ".Length..];
                 if (data == "[DONE]") break;
 
-                JsonDocument? chunk;
+                JsonDocument? chunk = null;
+                StreamEvent.StreamError? parseError = null;
                 try { chunk = JsonDocument.Parse(data); }
-                catch (JsonException) { continue; }
-
-                using (chunk)
+                catch (JsonException ex)
                 {
-                    if (!chunk.RootElement.TryGetProperty("choices", out var choices) ||
+                    parseError = new StreamEvent.StreamError(
+                        LlmProviderException.StreamParse(ex, "Malformed JSON chunk from provider stream."),
+                        ProviderErrorCode.StreamParseError);
+                }
+
+                if (parseError is not null)
+                {
+                    yield return parseError;
+                    yield break;
+                }
+
+                var parsedChunk = chunk!;
+                using (parsedChunk)
+                {
+                    if (!parsedChunk.RootElement.TryGetProperty("choices", out var choices) ||
                         choices.GetArrayLength() == 0) continue;
 
                     var delta = choices[0].GetProperty("delta");

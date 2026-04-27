@@ -39,13 +39,22 @@ public sealed class Agent : IAgent
     /// <summary>Safety limit to prevent infinite tool loops.</summary>
     public int MaxToolIterations { get; set; } = 25;
 
+    /// <summary>Maximum idle time between provider stream events before surfacing a timeout.</summary>
+    public TimeSpan StreamWatchdogTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
     /// <summary>Max concurrent workers for parallel tool execution.</summary>
     private const int MaxParallelWorkers = 8;
 
-    /// <summary>Read-only tools safe for concurrent execution.</summary>
+    /// <summary>
+    /// Read-only tools safe for concurrent execution.
+    /// Names must match the runtime <see cref="ITool.Name"/> values registered with the agent —
+    /// not human-readable variants. The web tools register as "webfetch"/"websearch"
+    /// (no underscore), so any underscore variants would be silently bypassed by
+    /// <see cref="ShouldParallelize"/> and never benefit from parallelization.
+    /// </summary>
     private static readonly HashSet<string> ParallelSafeTools = new(StringComparer.OrdinalIgnoreCase)
     {
-        "read_file", "glob", "grep", "web_fetch", "web_search",
+        "read_file", "glob", "grep", "webfetch", "websearch",
         "session_search", "skill_invoke", "memory", "lsp"
     };
 
@@ -167,6 +176,16 @@ public sealed class Agent : IAgent
     /// Full chat loop with tool calling. Sends the user message, then iterates:
     /// LLM responds -> if tool calls, execute them -> feed results back -> repeat
     /// until LLM produces a final text response or we hit MaxToolIterations.
+    ///
+    /// Lifecycle guarantees:
+    ///   * Plugin/memory/soul system blocks injected for this turn are removed
+    ///     from <c>session.Messages</c> in <c>finally</c> so they do not accumulate
+    ///     across turns and silently exhaust the model's context window — this
+    ///     was the root cause of the v2.4.0 "tool-limit exhaustion" regression.
+    ///   * <see cref="PluginManager.OnTurnEndAsync"/> fires on every exit path
+    ///     (no-tools fast path, normal completion, max-iteration fallback,
+    ///     and exception unwind), so plugin state stays consistent even when
+    ///     the model misbehaves.
     /// </summary>
     public async Task<string> ChatAsync(string message, Session session, CancellationToken ct)
     {
@@ -177,77 +196,86 @@ public sealed class Agent : IAgent
             catch (Exception ex) { _logger.LogWarning(ex, "Plugin OnTurnStart failed"); }
         }
 
-        // ── Plugin system prompt blocks (includes memory via BuiltinMemoryPlugin) ──
-        if (_pluginManager is not null)
+        // Transient system messages injected at index 0 for THIS turn only.
+        // Tracked so we can pop them in finally — see class doc above.
+        int transientSystemMessages = 0;
+        string finalResponse = "";
+
+        try
         {
-            try
-            {
-                var pluginBlocks = await _pluginManager.GetSystemPromptBlocksAsync(ct);
-                if (!string.IsNullOrWhiteSpace(pluginBlocks))
-                {
-                    session.Messages.Insert(0, new Message
-                    {
-                        Role = "system",
-                        Content = pluginBlocks
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Plugin system prompt blocks failed");
-            }
-        }
-        else
-        {
-            await AgentContextAssembler.InjectMemoriesAsync(
-                session, message, _tools.Keys, _memories, _logger, ct);
-        }
-
-        // ── Add user message ──
-        await AgentSessionWriter.AppendUserMessageAsync(session, message, _transcripts, ct);
-
-        _logger.LogInformation("Processing message for session {SessionId}", session.Id);
-
-        await AgentContextAssembler.InjectSoulFallbackAsync(session, _contextManager, _soulService, _logger);
-
-        var preparedContext = await AgentContextAssembler.PrepareOptimizedContextAsync(
-            session.Id, message, _contextManager, _logger, ct);
-
-        if (_tools.Count == 0)
-        {
-            // No tools registered — simple completion
-            var messagesToSend = preparedContext ?? session.Messages;
-            // INV-004/005: Use active client (with fallback support)
-            var activeClient = GetActiveChatClient();
-            string response;
-            try
-            {
-                response = await activeClient.CompleteAsync(messagesToSend, ct);
-            }
-            catch (HttpRequestException ex) when (_fallbackChatClient is not null)
-            {
-                activeClient = ActivateFallback(ex);
-                response = await activeClient.CompleteAsync(messagesToSend, ct);
-            }
-            await AgentSessionWriter.AppendAssistantMessageAsync(session, response, _transcripts, ct);
-            if (_contextManager is not null)
-                await _contextManager.UpdateAfterResponseAsync(session.Id, ct: ct);
-
-            // Plugin turn end
+            // ── Plugin system prompt blocks (includes memory via BuiltinMemoryPlugin) ──
             if (_pluginManager is not null)
             {
-                try { await _pluginManager.OnTurnEndAsync(message, response, session.Id, ct); }
-                catch (Exception ex) { _logger.LogWarning(ex, "Plugin OnTurnEnd failed"); }
+                try
+                {
+                    var pluginBlocks = await _pluginManager.GetSystemPromptBlocksAsync(ct);
+                    if (!string.IsNullOrWhiteSpace(pluginBlocks))
+                    {
+                        session.Messages.Insert(0, new Message
+                        {
+                            Role = "system",
+                            Content = pluginBlocks
+                        });
+                        transientSystemMessages++;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Plugin system prompt blocks failed");
+                }
+            }
+            else
+            {
+                int before = session.Messages.Count;
+                await AgentContextAssembler.InjectMemoriesAsync(
+                    session, message, _tools.Keys, _memories, _logger, ct);
+                transientSystemMessages += Math.Max(0, session.Messages.Count - before);
             }
 
-            return response;
-        }
+            // ── Add user message ──
+            await AgentSessionWriter.AppendUserMessageAsync(session, message, _transcripts, ct);
 
-        var toolDefs = GetToolDefinitions();
-        var iterations = 0;
+            _logger.LogInformation("Processing message for session {SessionId}", session.Id);
 
-        while (iterations < MaxToolIterations)
-        {
+            int beforeSoul = session.Messages.Count;
+            await AgentContextAssembler.InjectSoulFallbackAsync(session, _contextManager, _soulService, _logger);
+            // Soul fallback inserts at index 0 too — track for cleanup.
+            int afterSoul = session.Messages.Count;
+            if (afterSoul > beforeSoul)
+                transientSystemMessages += (afterSoul - beforeSoul);
+
+            var preparedContext = await AgentContextAssembler.PrepareOptimizedContextAsync(
+                session.Id, message, _contextManager, _logger, ct);
+
+            if (_tools.Count == 0)
+            {
+                // No tools registered — simple completion
+                var messagesToSend = preparedContext ?? session.Messages;
+                // INV-004/005: Use active client (with fallback support)
+                var activeClient = GetActiveChatClient();
+                string response;
+                try
+                {
+                    response = await activeClient.CompleteAsync(messagesToSend, ct);
+                }
+                catch (HttpRequestException ex) when (_fallbackChatClient is not null)
+                {
+                    activeClient = ActivateFallback(ex);
+                    response = await activeClient.CompleteAsync(messagesToSend, ct);
+                }
+                await AgentSessionWriter.AppendAssistantMessageAsync(session, response, _transcripts, ct);
+                if (_contextManager is not null)
+                    await _contextManager.UpdateAfterResponseAsync(session.Id, ct: ct);
+
+                finalResponse = response;
+                return response;
+            }
+
+            var toolDefs = GetToolDefinitions();
+            var iterations = 0;
+
+            while (iterations < MaxToolIterations)
+            {
             iterations++;
 
             // Use prepared context for first iteration, then fall back to session.Messages
@@ -276,6 +304,7 @@ public sealed class Agent : IAgent
                 await AgentSessionWriter.AppendAssistantMessageAsync(session, finalContent, _transcripts, ct);
                 if (_contextManager is not null)
                     await _contextManager.UpdateAfterResponseAsync(session.Id, ct: ct);
+                finalResponse = finalContent;
                 return finalContent;
             }
 
@@ -502,10 +531,37 @@ public sealed class Agent : IAgent
             } // end else (sequential path)
         }
 
-        _logger.LogWarning("Hit max tool iterations ({Max}) for session {SessionId}", MaxToolIterations, session.Id);
-        var fallback = "I've reached the maximum number of tool call iterations. Here's what I've accomplished so far based on the conversation above.";
-        await AgentSessionWriter.AppendAssistantMessageAsync(session, fallback, _transcripts, ct);
-        return fallback;
+            _logger.LogWarning("Hit max tool iterations ({Max}) for session {SessionId}", MaxToolIterations, session.Id);
+            var fallback = "I've reached the maximum number of tool call iterations. Here's what I've accomplished so far based on the conversation above.";
+            await AgentSessionWriter.AppendAssistantMessageAsync(session, fallback, _transcripts, ct);
+            if (_contextManager is not null)
+                await _contextManager.UpdateAfterResponseAsync(session.Id, ct: ct);
+            finalResponse = fallback;
+            return fallback;
+        }
+        finally
+        {
+            // ── Pop transient system messages so they don't accumulate across turns ──
+            // Plugin/memory/soul blocks are regenerated every turn against the latest
+            // session state; if we leave them in session.Messages, we both bloat the
+            // context window AND duplicate stale snapshots that confuse the model.
+            // This is the regression that surfaced as "tool-limit exhaustion" in v2.4.0.
+            for (int i = 0; i < transientSystemMessages && session.Messages.Count > 0; i++)
+            {
+                if (session.Messages[0].Role == "system")
+                    session.Messages.RemoveAt(0);
+                else
+                    break; // Defensive: shape changed underneath us; stop rather than corrupt.
+            }
+
+            // ── Plugin turn end fires on EVERY exit path (success, no-tools, max-iter, exception, cancellation) ──
+            // Routed through FirePluginTurnEndAsync so cleanup runs on a fresh
+            // bounded-timeout token instead of the original (possibly-cancelled)
+            // turn token. Without this, user-cancellation mid-turn would skip
+            // any plugin work that respects the token — silently violating the
+            // "always-fires" guarantee promised in the class doc.
+            await FirePluginTurnEndAsync(message, finalResponse, session.Id, "chat");
+        }
     }
 
     /// <summary>
@@ -517,8 +573,60 @@ public sealed class Agent : IAgent
         string message, Session session,
         [EnumeratorCancellation] CancellationToken ct)
     {
+        // Track transient system messages injected this turn (memory + soul) so we
+        // can pop them in finally and avoid the v2.4.0 context-bloat regression
+        // where every streaming turn left another stale snapshot at index 0.
+        int transientSystemMessages = 0;
+
+        // Streamed text accumulator. Fed into OnTurnEndAsync so plugins observing
+        // assistant output (e.g. learning plugins, transcript indexers) see the
+        // SAME final text the user saw — even when streaming is interrupted by
+        // cancellation, errors, or the max-iteration fallback. Built up by
+        // intercepting every TokenDelta yielded downstream.
+        var streamedResponse = new System.Text.StringBuilder();
+
+        // ── Plugin turn start ──
+        // StreamChatAsync historically skipped the plugin lifecycle entirely,
+        // so plugins observed only non-streaming turns and silently desynced
+        // when the UI used streaming. Mirror ChatAsync semantics: fire start
+        // here, and rely on the bottom finally to fire end on every exit path.
+        if (_pluginManager is not null)
+        {
+            try { await _pluginManager.OnTurnStartAsync(session.Messages.Count, message, ct); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Plugin OnTurnStart failed (stream)"); }
+        }
+
+        // ── Plugin system prompt blocks ──
+        // Same source of truth as ChatAsync. Without these, the streaming path
+        // ignores the BuiltinMemoryPlugin and any registered context plugins,
+        // producing visibly different model behavior between streaming and
+        // non-streaming flows.
+        if (_pluginManager is not null)
+        {
+            try
+            {
+                var pluginBlocks = await _pluginManager.GetSystemPromptBlocksAsync(ct);
+                if (!string.IsNullOrWhiteSpace(pluginBlocks))
+                {
+                    session.Messages.Insert(0, new Message
+                    {
+                        Role = "system",
+                        Content = pluginBlocks
+                    });
+                    transientSystemMessages++;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Plugin system prompt blocks failed (stream)");
+            }
+        }
+
         // ── Memory injection ──
-        if (_memories is not null)
+        // Only run the legacy direct-memory path when the plugin manager is
+        // ABSENT — otherwise BuiltinMemoryPlugin already injected the same
+        // content via GetSystemPromptBlocksAsync above and we'd double-stamp.
+        if (_pluginManager is null && _memories is not null)
         {
             try
             {
@@ -533,6 +641,7 @@ public sealed class Agent : IAgent
                         Role = "system",
                         Content = $"[Relevant Memories]\n{memoryBlock}"
                     });
+                    transientSystemMessages++;
                 }
             }
             catch (Exception ex)
@@ -562,6 +671,7 @@ public sealed class Agent : IAgent
                         Role = "system",
                         Content = soulContext
                     });
+                    transientSystemMessages++;
                 }
             }
             catch (Exception ex)
@@ -570,6 +680,12 @@ public sealed class Agent : IAgent
             }
         }
 
+        // Wrap the rest of the iterator in try/finally so transient system messages
+        // get cleaned up on every exit path — including yield break, exception unwind,
+        // and consumer-driven cancellation. C# iterators allow `yield return` inside
+        // a try block that has a finally clause.
+        try
+        {
         // ── Context manager integration ──
         List<Message>? preparedContext = null;
         if (_contextManager is not null)
@@ -589,18 +705,18 @@ public sealed class Agent : IAgent
         {
             // No tools registered — stream the response directly
             var messagesToSend = preparedContext ?? session.Messages;
-            var fullResponse = new System.Text.StringBuilder();
 
-            await foreach (var evt in _chatClient.StreamAsync(null, messagesToSend, null, ct))
+            await foreach (var evt in WatchProviderStreamAsync(
+                _chatClient.StreamAsync(null, messagesToSend, null, ct), ct))
             {
                 if (evt is StreamEvent.TokenDelta td)
-                    fullResponse.Append(td.Text);
+                    streamedResponse.Append(td.Text);
 
                 yield return evt;
             }
 
             // Save accumulated response — always save, even if empty, to match ChatAsync behavior
-            var assistantMsg = new Message { Role = "assistant", Content = fullResponse.ToString() };
+            var assistantMsg = new Message { Role = "assistant", Content = streamedResponse.ToString() };
             session.AddMessage(assistantMsg);
             if (_transcripts is not null)
                 await _transcripts.SaveMessageAsync(session.Id, assistantMsg, ct);
@@ -628,7 +744,10 @@ public sealed class Agent : IAgent
                 // LLM is done — stream the final text as a single token delta
                 var finalContent = response.Content ?? "";
                 if (!string.IsNullOrEmpty(finalContent))
+                {
+                    streamedResponse.Append(finalContent);
                     yield return new StreamEvent.TokenDelta(finalContent);
+                }
 
                 var finalMsg = new Message { Role = "assistant", Content = finalContent };
                 session.AddMessage(finalMsg);
@@ -823,11 +942,171 @@ public sealed class Agent : IAgent
         // Hit max iterations
         _logger.LogWarning("Hit max tool iterations ({Max}) for session {SessionId}", MaxToolIterations, session.Id);
         var fallback = "I've reached the maximum number of tool call iterations. Here's what I've accomplished so far based on the conversation above.";
+        streamedResponse.Append(fallback);
         yield return new StreamEvent.TokenDelta(fallback);
         var fallbackMsg = new Message { Role = "assistant", Content = fallback };
         session.AddMessage(fallbackMsg);
         if (_transcripts is not null)
             await _transcripts.SaveMessageAsync(session.Id, fallbackMsg, ct);
+        if (_contextManager is not null)
+            await _contextManager.UpdateAfterResponseAsync(session.Id, ct: ct);
+        }
+        finally
+        {
+            // Pop transient system messages so they do not leak across turns.
+            // See ChatAsync for the full rationale.
+            for (int i = 0; i < transientSystemMessages && session.Messages.Count > 0; i++)
+            {
+                if (session.Messages[0].Role == "system")
+                    session.Messages.RemoveAt(0);
+                else
+                    break;
+            }
+
+            // ── Plugin turn end fires on EVERY exit path ──
+            // streamedResponse holds whatever text actually reached the consumer
+            // before exit. On consumer-cancellation or mid-stream error it will
+            // be a partial response; that's the right value for plugins observing
+            // user-visible output (don't pretend the assistant said more than it
+            // did). On normal completion it equals the saved assistant message.
+            //
+            // Routed through FirePluginTurnEndAsync so the call survives an
+            // already-cancelled `ct` (very common on the streaming path because
+            // the UI cancels the moment the user clicks Stop).
+            await FirePluginTurnEndAsync(message, streamedResponse.ToString(), session.Id, "stream");
+        }
+    }
+
+    private async IAsyncEnumerable<StreamEvent> WatchProviderStreamAsync(
+        IAsyncEnumerable<StreamEvent> stream,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        using var watchdogCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var enumerator = stream.GetAsyncEnumerator(watchdogCts.Token);
+
+        try
+        {
+            while (true)
+            {
+                var moveNextTask = enumerator.MoveNextAsync().AsTask();
+                var timeoutTask = Task.Delay(StreamWatchdogTimeout, ct);
+                var completed = await Task.WhenAny(moveNextTask, timeoutTask);
+
+                if (completed == timeoutTask)
+                {
+                    if (ct.IsCancellationRequested)
+                        throw new OperationCanceledException(ct);
+
+                    await watchdogCts.CancelAsync();
+                    yield return new StreamEvent.StreamError(
+                        LlmProviderException.Timeout(new TimeoutException(
+                            $"Provider stream produced no events for {StreamWatchdogTimeout.TotalSeconds:0.#} seconds.")),
+                        ProviderErrorCode.ProviderTimeout);
+                    yield break;
+                }
+
+                bool hasNext = false;
+                StreamEvent.StreamError? streamError = null;
+                try
+                {
+                    hasNext = await moveNextTask;
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (OperationCanceledException ex)
+                {
+                    streamError = new StreamEvent.StreamError(
+                        LlmProviderException.Timeout(ex),
+                        ProviderErrorCode.ProviderTimeout);
+                }
+                catch (HttpRequestException ex)
+                {
+                    var providerError = LlmProviderException.FromHttp(ex);
+                    streamError = new StreamEvent.StreamError(providerError, providerError.Code);
+                }
+                catch (JsonException ex)
+                {
+                    var providerError = LlmProviderException.StreamParse(ex);
+                    streamError = new StreamEvent.StreamError(providerError, providerError.Code);
+                }
+                catch (Exception ex)
+                {
+                    var providerError = LlmProviderException.Transport(ex);
+                    streamError = new StreamEvent.StreamError(providerError, providerError.Code);
+                }
+
+                if (streamError is not null)
+                {
+                    yield return streamError;
+                    yield break;
+                }
+
+                if (!hasNext)
+                    yield break;
+
+                yield return enumerator.Current;
+            }
+        }
+        finally
+        {
+            try
+            {
+                await enumerator.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Provider stream enumerator disposal failed");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Maximum time we'll wait for a plugin's <c>OnTurnEnd</c> cleanup before
+    /// abandoning it. Picked to be long enough for legitimate persistence work
+    /// (transcript flush, learning-plugin index update, telemetry batch) but
+    /// short enough that an app shutdown isn't held hostage by a misbehaving
+    /// plugin. Tune via PR if real-world plugins need more headroom — but raise
+    /// it deliberately, not by accident.
+    /// </summary>
+    private static readonly TimeSpan PluginCleanupTimeout = TimeSpan.FromSeconds(5);
+
+    /// <summary>
+    /// Fire <see cref="PluginManager.OnTurnEndAsync"/> on a DETACHED token with
+    /// a bounded timeout so cleanup runs even when the original turn token
+    /// is already cancelled — preserving the "always-fires" guarantee we
+    /// established when fixing the v2.4.0 lifecycle regression.
+    ///
+    /// Why detach: the original <c>ct</c> may already be cancelled by the time
+    /// we hit the <c>finally</c> (user clicked Stop, request aborted, etc.).
+    /// Passing that token straight to the plugin causes any well-behaved plugin
+    /// — i.e. one that calls <c>ct.ThrowIfCancellationRequested()</c> or forwards
+    /// the token to async I/O — to abort BEFORE persisting state. That silently
+    /// breaks the lifecycle invariant the surrounding comments promise.
+    ///
+    /// Why bound: a plugin that ignores cancellation and hangs (e.g. a network
+    /// post with no client-side timeout) would otherwise stall the entire turn
+    /// teardown and, transitively, app shutdown. The bounded timeout caps that
+    /// blast radius.
+    ///
+    /// Exceptions are swallowed (logged) so plugin bugs never bubble up after
+    /// the model has already returned its final answer to the caller.
+    /// </summary>
+    private async Task FirePluginTurnEndAsync(
+        string message, string finalResponse, string sessionId, string contextLabel)
+    {
+        if (_pluginManager is null) return;
+
+        using var cleanupCts = new CancellationTokenSource(PluginCleanupTimeout);
+        try
+        {
+            await _pluginManager.OnTurnEndAsync(message, finalResponse, sessionId, cleanupCts.Token);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Plugin OnTurnEnd failed ({Context})", contextLabel);
+        }
     }
 
     /// <summary>Determine if a batch of tool calls can be safely parallelized.</summary>
@@ -886,6 +1165,13 @@ public sealed class Agent : IAgent
 
     private static JsonElement BuildParameterSchema(ITool tool)
     {
+        if (tool is IToolSchemaProvider schemaProvider)
+        {
+            var customSchema = schemaProvider.GetParameterSchema();
+            if (customSchema.HasValue && customSchema.Value.ValueKind is not JsonValueKind.Undefined and not JsonValueKind.Null)
+                return customSchema.Value.Clone();
+        }
+
         // Build a JSON Schema from the tool's ParametersType using reflection
         var props = tool.ParametersType.GetProperties();
         var properties = new Dictionary<string, object>();
