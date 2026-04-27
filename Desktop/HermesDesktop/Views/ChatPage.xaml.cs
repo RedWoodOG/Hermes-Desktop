@@ -47,6 +47,7 @@ public sealed partial class ChatPage : Page
 
     private bool _initialized;
     private bool _isBusy;
+    private string? _lastPromptForRetry;
     private OnboardingState _onboarding = OnboardingState.None;
 
     public ChatPage()
@@ -317,6 +318,8 @@ public sealed partial class ChatPage : Page
         var prompt = PromptTextBox.Text.Trim();
         if (string.IsNullOrWhiteSpace(prompt)) return;
 
+        _lastPromptForRetry = prompt;
+        HideChatError();
         PromptTextBox.Text = "";
         AppendUserMessage(prompt);
         ScrollToBottom();
@@ -358,6 +361,7 @@ public sealed partial class ChatPage : Page
             // This prevents an empty bubble sitting on screen during the thinking phase.
             var thinkingBuffer = new System.Text.StringBuilder();
             var hasContent = false;
+            var streamFailed = false;
 
             // Stream structured events (tokens + thinking)
             await foreach (var evt in _chatService.StreamStructuredAsync(prompt, CancellationToken.None))
@@ -392,7 +396,10 @@ public sealed partial class ChatPage : Page
                         break;
 
                     case ChatStreamEventType.Error:
-                        AppendSystemMessage($"Stream error: {evt.Text}");
+                        streamFailed = true;
+                        ShowThinking(false);
+                        ApplyConnectionState(RuntimeConnectionState.Error);
+                        ShowChatError(evt.Text);
                         break;
                 }
             }
@@ -402,7 +409,7 @@ public sealed partial class ChatPage : Page
                 assistantItem.IsStreaming = false;
             }
 
-            if (!hasContent)
+            if (!hasContent && !streamFailed)
             {
                 // Stream completed without producing any content tokens.
                 // Don't fall back to SendAsync — StreamStructuredAsync already
@@ -418,12 +425,14 @@ public sealed partial class ChatPage : Page
             // Scroll to the final message
             ScrollToBottom();
 
-            ApplyConnectionState(RuntimeConnectionState.Connected);
+            if (!streamFailed)
+                ApplyConnectionState(RuntimeConnectionState.Connected);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             ShowThinking(false);
             ApplyConnectionState(RuntimeConnectionState.Error);
+            ShowChatError(ex.Message);
             AppendSystemMessage($"Error: {ex.Message}");
         }
         catch (OperationCanceledException)
@@ -518,10 +527,41 @@ public sealed partial class ChatPage : Page
         _chatService.CancelStream();
     }
 
+    private async void RetryLastPrompt_Click(object sender, RoutedEventArgs e)
+    {
+        if (_isBusy || string.IsNullOrWhiteSpace(_lastPromptForRetry))
+            return;
+
+        PromptTextBox.Text = _lastPromptForRetry;
+        await SendPromptAsync();
+    }
+
+    private void OpenModelSwitcher_Click(object sender, RoutedEventArgs e)
+    {
+        ModelSwitchCombo.Focus(FocusState.Programmatic);
+        ModelSwitchCombo.IsDropDownOpen = true;
+    }
+
+    private void ShowChatError(string detail)
+    {
+        ChatErrorText.Text = string.Format(
+            CultureInfo.CurrentCulture,
+            ResourceLoader.GetString("ChatErrorMessageFormat"),
+            detail);
+        ChatErrorBanner.IsOpen = true;
+    }
+
+    private void HideChatError()
+    {
+        ChatErrorBanner.IsOpen = false;
+        ChatErrorText.Text = "";
+    }
+
     // ── New Chat ──
 
     private async void NewChat_Click(object sender, RoutedEventArgs e)
     {
+        HideChatError();
         _chatService.ResetConversation();
         _agent.ClearActivityLog();
         ReplayPanelView.Clear();

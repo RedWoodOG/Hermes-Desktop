@@ -1295,6 +1295,25 @@ public class AgentStreamChatTests
             "Non-token events like MessageComplete should be yielded");
     }
 
+    [TestMethod]
+    public async Task StreamChatAsync_NoTools_ProviderIdleTimeout_YieldsStructuredError()
+    {
+        _agent.StreamWatchdogTimeout = TimeSpan.FromMilliseconds(25);
+        _stubClient.DelayBeforeFirstEvent = TimeSpan.FromMilliseconds(250);
+        _stubClient.StreamEvents = new StreamEvent[] { new StreamEvent.TokenDelta("late") };
+
+        var session = new Session { Id = "stream-watchdog" };
+        var events = new List<StreamEvent>();
+
+        await foreach (var evt in _agent.StreamChatAsync("msg", session, CancellationToken.None))
+            events.Add(evt);
+
+        var error = events.OfType<StreamEvent.StreamError>().SingleOrDefault();
+        Assert.IsNotNull(error);
+        Assert.AreEqual(ProviderErrorCode.ProviderTimeout, error.Code);
+        Assert.IsFalse(events.OfType<StreamEvent.TokenDelta>().Any(t => t.Text == "late"));
+    }
+
     // ── With registered tools — tool loop path ──
 
     [TestMethod]
@@ -1411,6 +1430,7 @@ public class AgentStreamChatTests
     private sealed class StubStreamingChatClient : IChatClient
     {
         public IReadOnlyList<StreamEvent> StreamEvents { get; set; } = Array.Empty<StreamEvent>();
+        public TimeSpan DelayBeforeFirstEvent { get; set; } = TimeSpan.Zero;
         public Exception? ThrowOnStream { get; set; }
         public Func<IEnumerable<Message>, IEnumerable<ToolDefinition>, CancellationToken, Task<ChatResponse>>? OnCompleteWithTools { get; set; }
 
@@ -1440,6 +1460,9 @@ public class AgentStreamChatTests
 
             if (ThrowOnStream is not null)
                 throw ThrowOnStream;
+
+            if (DelayBeforeFirstEvent > TimeSpan.Zero)
+                await Task.Delay(DelayBeforeFirstEvent, ct);
 
             foreach (var evt in StreamEvents)
             {

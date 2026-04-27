@@ -39,6 +39,9 @@ public sealed class Agent : IAgent
     /// <summary>Safety limit to prevent infinite tool loops.</summary>
     public int MaxToolIterations { get; set; } = 25;
 
+    /// <summary>Maximum idle time between provider stream events before surfacing a timeout.</summary>
+    public TimeSpan StreamWatchdogTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
     /// <summary>Max concurrent workers for parallel tool execution.</summary>
     private const int MaxParallelWorkers = 8;
 
@@ -703,7 +706,8 @@ public sealed class Agent : IAgent
             // No tools registered — stream the response directly
             var messagesToSend = preparedContext ?? session.Messages;
 
-            await foreach (var evt in _chatClient.StreamAsync(null, messagesToSend, null, ct))
+            await foreach (var evt in WatchProviderStreamAsync(
+                _chatClient.StreamAsync(null, messagesToSend, null, ct), ct))
             {
                 if (evt is StreamEvent.TokenDelta td)
                     streamedResponse.Append(td.Text);
@@ -970,6 +974,91 @@ public sealed class Agent : IAgent
             // already-cancelled `ct` (very common on the streaming path because
             // the UI cancels the moment the user clicks Stop).
             await FirePluginTurnEndAsync(message, streamedResponse.ToString(), session.Id, "stream");
+        }
+    }
+
+    private async IAsyncEnumerable<StreamEvent> WatchProviderStreamAsync(
+        IAsyncEnumerable<StreamEvent> stream,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        using var watchdogCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        var enumerator = stream.GetAsyncEnumerator(watchdogCts.Token);
+
+        try
+        {
+            while (true)
+            {
+                var moveNextTask = enumerator.MoveNextAsync().AsTask();
+                var timeoutTask = Task.Delay(StreamWatchdogTimeout, ct);
+                var completed = await Task.WhenAny(moveNextTask, timeoutTask);
+
+                if (completed == timeoutTask)
+                {
+                    if (ct.IsCancellationRequested)
+                        throw new OperationCanceledException(ct);
+
+                    await watchdogCts.CancelAsync();
+                    yield return new StreamEvent.StreamError(
+                        LlmProviderException.Timeout(new TimeoutException(
+                            $"Provider stream produced no events for {StreamWatchdogTimeout.TotalSeconds:0.#} seconds.")),
+                        ProviderErrorCode.ProviderTimeout);
+                    yield break;
+                }
+
+                bool hasNext = false;
+                StreamEvent.StreamError? streamError = null;
+                try
+                {
+                    hasNext = await moveNextTask;
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    throw;
+                }
+                catch (OperationCanceledException ex)
+                {
+                    streamError = new StreamEvent.StreamError(
+                        LlmProviderException.Timeout(ex),
+                        ProviderErrorCode.ProviderTimeout);
+                }
+                catch (HttpRequestException ex)
+                {
+                    var providerError = LlmProviderException.FromHttp(ex);
+                    streamError = new StreamEvent.StreamError(providerError, providerError.Code);
+                }
+                catch (JsonException ex)
+                {
+                    var providerError = LlmProviderException.StreamParse(ex);
+                    streamError = new StreamEvent.StreamError(providerError, providerError.Code);
+                }
+                catch (Exception ex)
+                {
+                    var providerError = LlmProviderException.Transport(ex);
+                    streamError = new StreamEvent.StreamError(providerError, providerError.Code);
+                }
+
+                if (streamError is not null)
+                {
+                    yield return streamError;
+                    yield break;
+                }
+
+                if (!hasNext)
+                    yield break;
+
+                yield return enumerator.Current;
+            }
+        }
+        finally
+        {
+            try
+            {
+                await enumerator.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Provider stream enumerator disposal failed");
+            }
         }
     }
 
