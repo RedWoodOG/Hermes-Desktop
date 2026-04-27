@@ -1,6 +1,6 @@
 # Hermes Desktop Roadmap
 
-> Last updated: 2026-04-25 | Current version: v2.4.0
+> Last updated: 2026-04-27 | Current version: v2.5.0
 
 This roadmap closes competitive gaps against Superset, Nimbalyst, Codex, Cursor, Claude Code, and Capy while preserving Hermes's unique strengths: native Windows UI, runtime model swapping, soul/identity system, and native messaging.
 
@@ -33,10 +33,10 @@ This roadmap closes competitive gaps against Superset, Nimbalyst, Codex, Cursor,
 
 | Item | Files | Owner | Status |
 |------|-------|-------|--------|
-| Streaming watchdog — 30s timeout with `StreamEvent.Error` yield | `src/Core/Agent.cs`, `src/LLM/AnthropicClient.cs`, `OpenAiClient.cs` | — | Planned |
-| Transport-layer error surfacing — HTTP, timeout, JSON parse errors | `src/LLM/*Client.cs` | — | Planned |
-| Chat error banner — Retry / Switch Model actions | `Desktop/HermesDesktop/Views/ChatPage.xaml.cs` | — | Planned |
-| Structured error codes — ProviderTimeout, ProviderAuth, RateLimit, StreamParseError | `src/Core/Agent.cs` | — | Planned |
+| Streaming watchdog � 30s timeout with `StreamEvent.Error` yield | `src/Core/Agent.cs`, `src/LLM/AnthropicClient.cs`, `OpenAiClient.cs` | Codex | Done |
+| Transport-layer error surfacing � HTTP, timeout, JSON parse errors | `src/LLM/*Client.cs` | Codex | Done |
+| Chat error banner � Retry / Switch Model actions | `Desktop/HermesDesktop/Views/ChatPage.xaml.cs` | Codex | Done |
+| Structured error codes � ProviderTimeout, ProviderAuth, RateLimit, StreamParseError | `src/Core/Agent.cs` | Codex | Done |
 | Auto-updater — GitHub Releases check, portable zip download, SHA256 verify | `Desktop/HermesDesktop/Services/UpdateService.cs` (new) | — | Planned |
 | MSIX update channel wiring | `Desktop/HermesDesktop/packaging/` | — | Planned |
 | Settings: "Check for updates" button + "Auto-update" toggle | `Desktop/HermesDesktop/Views/SettingsPage.xaml` | — | Planned |
