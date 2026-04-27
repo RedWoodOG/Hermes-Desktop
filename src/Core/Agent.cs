@@ -1165,6 +1165,13 @@ public sealed class Agent : IAgent
 
     private static JsonElement BuildParameterSchema(ITool tool)
     {
+        if (tool is IToolSchemaProvider schemaProvider)
+        {
+            var customSchema = schemaProvider.GetParameterSchema();
+            if (customSchema.HasValue && customSchema.Value.ValueKind is not JsonValueKind.Undefined and not JsonValueKind.Null)
+                return customSchema.Value.Clone();
+        }
+
         // Build a JSON Schema from the tool's ParametersType using reflection
         var props = tool.ParametersType.GetProperties();
         var properties = new Dictionary<string, object>();

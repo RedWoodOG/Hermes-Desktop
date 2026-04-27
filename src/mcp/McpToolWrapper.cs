@@ -1,12 +1,13 @@
 namespace Hermes.Agent.Mcp;
 
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Hermes.Agent.Core;
 
 /// <summary>
 /// Wraps an MCP tool as an ITool for integration with the existing tool system.
 /// </summary>
-public sealed class McpToolWrapper : ITool
+public sealed class McpToolWrapper : ITool, IToolSchemaProvider
 {
     private readonly McpServerConnection _connection;
     private readonly McpToolDefinition _definition;
@@ -29,7 +30,7 @@ public sealed class McpToolWrapper : ITool
         
         try
         {
-            var result = await _connection.CallToolAsync(_definition.Name, p.Arguments, ct);
+            var result = await _connection.CallToolAsync(_definition.Name, p.ToToolArguments(), ct);
             
             if (result.IsError)
             {
@@ -82,6 +83,8 @@ public sealed class McpToolWrapper : ITool
     /// Get the JSON schema for the tool parameters.
     /// </summary>
     public JsonElement? GetInputSchema() => _definition.InputSchema;
+
+    public JsonElement? GetParameterSchema() => GetInputSchema();
 }
 
 /// <summary>
@@ -90,9 +93,18 @@ public sealed class McpToolWrapper : ITool
 public sealed class McpToolParameters
 {
     /// <summary>
-    /// JSON object containing tool arguments.
+    /// JSON object containing tool arguments. Kept for backwards compatibility with
+    /// older Hermes builds that advertised MCP tools as { "arguments": { ... } }.
     /// </summary>
+    [JsonPropertyName("arguments")]
     public JsonElement? Arguments { get; init; }
+
+    /// <summary>
+    /// Captures provider-native MCP tool arguments when the model calls the tool
+    /// using the server's advertised input schema directly.
+    /// </summary>
+    [JsonExtensionData]
+    public Dictionary<string, JsonElement>? DirectArguments { get; set; }
     
     /// <summary>
     /// Create from a dictionary.
@@ -114,5 +126,16 @@ public sealed class McpToolParameters
         {
             Arguments = JsonSerializer.SerializeToElement(args)
         };
+    }
+
+    public JsonElement? ToToolArguments()
+    {
+        if (Arguments.HasValue && Arguments.Value.ValueKind is not JsonValueKind.Undefined and not JsonValueKind.Null)
+            return Arguments.Value;
+
+        if (DirectArguments is { Count: > 0 })
+            return JsonSerializer.SerializeToElement(DirectArguments);
+
+        return null;
     }
 }

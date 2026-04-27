@@ -15,6 +15,8 @@ public sealed class McpManager : IAsyncDisposable
     
     public IReadOnlyDictionary<string, McpServerConnection> Connections => _connections;
     public IReadOnlyDictionary<string, McpToolWrapper> Tools => _tools;
+    public int ServerCount => _connections.Count;
+    public int ConfiguredServerCount => _configs.Count;
     
     public McpManager(ILogger<McpManager> logger)
     {

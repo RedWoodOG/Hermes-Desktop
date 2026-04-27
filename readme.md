@@ -6,7 +6,7 @@
 
 A **Windows-native AI agent** that lives on your desktop. Chat with it, give it tools, let it learn who you are. Built with WinUI 3 and .NET 10.
 
-**v2.5.0** &mdash; [Download](https://github.com/RedWoodOG/Hermes-Desktop/releases/latest) | [Changelog](#changelog) | [Discussion](https://github.com/RedWoodOG/Hermes-Desktop/discussions/10)
+**v2.5.1** &mdash; [Download](https://github.com/RedWoodOG/Hermes-Desktop/releases/latest) | [Changelog](#changelog) | [Discussion](https://github.com/RedWoodOG/Hermes-Desktop/discussions/10)
 
 ---
 
@@ -105,6 +105,7 @@ Built from lessons across 168+ upstream PRs and 46+ production incidents:
 - Streaming watchdog surfaces stalled providers within 30 seconds instead of leaving chat hung
 - Structured provider error codes for timeouts, auth failures, rate limits, transport failures, and malformed stream chunks
 - Chat error banner with Retry and Switch Model actions when streaming fails
+- MCP host bootstrap loads `mcp.json` at startup and registers discovered MCP tools beside native tools
 - Compression cooldown (600s) to prevent infinite token-burning loops
 - Provider fallback with automatic 5-minute restoration
 - Credential pool rotation on 401/429
@@ -224,6 +225,7 @@ Hermes.CS/
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| **v2.5.1** | 2026-04-27 | **MCP host:** startup bootstrap for `mcp.json`, standard config search paths, MCP tools registered with Agent and shared tool registry, native MCP input schemas exposed to models, docs at `docs/mcp.md`. Assembly / MSIX manifest **2.5.1.0**. |
 | **v2.5.0** | 2026-04-27 | **Reliability:** 30s streaming watchdog, structured provider errors (`ProviderTimeout`, `ProviderAuth`, `RateLimit`, `StreamParseError`), OpenAI/Anthropic transport + parse error surfacing. **Chat UX:** visible error banner with Retry and Switch Model actions. **Tests:** stream watchdog regression plus full desktop test suite. Assembly / MSIX manifest **2.5.0.0**. |
 | **v2.4.0** | 2026-04-19 | **Buddy:** persist to `buddy/buddy.json`, species hatch UI, LLM-off fallback soul, aligned panel identity. **Integrations:** native Telegram/Discord adapter status fix, clearer optional-Python messaging. **Tests:** `BuddyServiceTests`. Assembly / MSIX manifest **2.4.0.0**. |
 | **v2.3.1** | 2026-04-13 | Fix v2.3.0 source zip `DreamerStatusSnapshot.LastLocalDigestHint` compile error, fix portable startup `XamlParseException` on `ReplayPanel` (disable `PublishTrimmed`), add `ReplayPanel` constructor diagnostic capture, refresh readme screenshots |

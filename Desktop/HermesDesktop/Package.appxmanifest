@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" xmlns:systemai="http://schemas.microsoft.com/appx/manifest/systemai/windows10" IgnorableNamespaces="uap rescap systemai">
-  <Identity Name="EDC29F63-281C-4D34-8723-155C8122DEA2" Publisher="CN=AppPublisher" Version="2.5.0.0" />
+  <Identity Name="EDC29F63-281C-4D34-8723-155C8122DEA2" Publisher="CN=AppPublisher" Version="2.5.1.0" />
   <mp:PhoneIdentity PhoneProductId="EDC29F63-281C-4D34-8723-155C8122DEA2" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
   <Properties>
     <DisplayName>HermesDesktop</DisplayName>
