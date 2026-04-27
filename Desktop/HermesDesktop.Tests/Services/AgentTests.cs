@@ -4,6 +4,7 @@ using Hermes.Agent.Plugins;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using System.Text.Json;
 
 namespace HermesDesktop.Tests.Services;
 
@@ -122,6 +123,22 @@ public class AgentTests
         Assert.AreEqual(1, defs.Count);
         Assert.AreEqual("my_tool", defs[0].Name);
         Assert.AreEqual("Does things", defs[0].Description);
+    }
+
+    [TestMethod]
+    public void GetToolDefinitions_UsesProviderNativeSchemaWhenAvailable()
+    {
+        var tool = new SchemaBackedTool();
+        _agent.RegisterTool(tool);
+
+        var defs = _agent.GetToolDefinitions();
+
+        Assert.AreEqual(1, defs.Count);
+        Assert.IsTrue(defs[0].Parameters.TryGetProperty("properties", out var properties));
+        Assert.IsTrue(properties.TryGetProperty("path", out var path));
+        Assert.AreEqual("string", path.GetProperty("type").GetString());
+        Assert.IsFalse(properties.TryGetProperty("arguments", out _),
+            "Schema-backed tools should expose their native input schema instead of the generic wrapper type.");
     }
 
     // ── ChatAsync — no tools ──
@@ -336,6 +353,27 @@ public class AgentTests
         mock.Setup(t => t.Description).Returns($"Description of {name}");
         mock.Setup(t => t.ParametersType).Returns(typeof(EmptyParams));
         return mock;
+    }
+
+    private sealed class SchemaBackedTool : ITool, IToolSchemaProvider
+    {
+        public string Name => "schema_tool";
+        public string Description => "Uses provider-native schema";
+        public Type ParametersType => typeof(EmptyParams);
+
+        public Task<ToolResult> ExecuteAsync(object parameters, CancellationToken ct) =>
+            Task.FromResult(ToolResult.Ok("ok"));
+
+        public JsonElement? GetParameterSchema() =>
+            JsonSerializer.SerializeToElement(new
+            {
+                type = "object",
+                properties = new
+                {
+                    path = new { type = "string" }
+                },
+                required = new[] { "path" }
+            });
     }
 
     /// <summary>Minimal parameter type used to satisfy Agent's schema builder.</summary>
@@ -1295,6 +1333,25 @@ public class AgentStreamChatTests
             "Non-token events like MessageComplete should be yielded");
     }
 
+    [TestMethod]
+    public async Task StreamChatAsync_NoTools_ProviderIdleTimeout_YieldsStructuredError()
+    {
+        _agent.StreamWatchdogTimeout = TimeSpan.FromMilliseconds(25);
+        _stubClient.DelayBeforeFirstEvent = TimeSpan.FromMilliseconds(250);
+        _stubClient.StreamEvents = new StreamEvent[] { new StreamEvent.TokenDelta("late") };
+
+        var session = new Session { Id = "stream-watchdog" };
+        var events = new List<StreamEvent>();
+
+        await foreach (var evt in _agent.StreamChatAsync("msg", session, CancellationToken.None))
+            events.Add(evt);
+
+        var error = events.OfType<StreamEvent.StreamError>().SingleOrDefault();
+        Assert.IsNotNull(error);
+        Assert.AreEqual(ProviderErrorCode.ProviderTimeout, error.Code);
+        Assert.IsFalse(events.OfType<StreamEvent.TokenDelta>().Any(t => t.Text == "late"));
+    }
+
     // ── With registered tools — tool loop path ──
 
     [TestMethod]
@@ -1411,6 +1468,7 @@ public class AgentStreamChatTests
     private sealed class StubStreamingChatClient : IChatClient
     {
         public IReadOnlyList<StreamEvent> StreamEvents { get; set; } = Array.Empty<StreamEvent>();
+        public TimeSpan DelayBeforeFirstEvent { get; set; } = TimeSpan.Zero;
         public Exception? ThrowOnStream { get; set; }
         public Func<IEnumerable<Message>, IEnumerable<ToolDefinition>, CancellationToken, Task<ChatResponse>>? OnCompleteWithTools { get; set; }
 
@@ -1440,6 +1498,9 @@ public class AgentStreamChatTests
 
             if (ThrowOnStream is not null)
                 throw ThrowOnStream;
+
+            if (DelayBeforeFirstEvent > TimeSpan.Zero)
+                await Task.Delay(DelayBeforeFirstEvent, ct);
 
             foreach (var evt in StreamEvents)
             {

@@ -72,6 +72,15 @@
   <data name="ChatErrorMessageFormat" xml:space="preserve">
     <value>Hermes 请求失败：{0}</value>
   </data>
+  <data name="ChatErrorBanner.Title" xml:space="preserve">
+    <value>æä¾›å•†é”™è¯¯</value>
+  </data>
+  <data name="ChatErrorRetryButton.Content" xml:space="preserve">
+    <value>é‡è¯•</value>
+  </data>
+  <data name="ChatErrorSwitchModelButton.Content" xml:space="preserve">
+    <value>åˆ‡æ¢æ¨¡åž‹</value>
+  </data>
   <data name="ChatUserLabel" xml:space="preserve">
     <value>您</value>
   </data>

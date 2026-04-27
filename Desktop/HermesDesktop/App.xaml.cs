@@ -538,7 +538,7 @@ public partial class App : Application
 
         // ── Post-build: Register all tools and connect MCP ──
         RegisterAllTools(provider);
-        InitializeMcpAsync(provider, projectDir);
+        _ = InitializeMcpAsync(provider, projectDir);
 
         // Wire permission prompt callback to show a ContentDialog in the UI
         WirePermissionCallback(provider);
@@ -942,47 +942,30 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Load MCP server configs and connect (fire-and-forget on startup).
-    /// <summary>
     /// Initializes the MCP subsystem by loading MCP configuration files from standard locations, connecting to configured MCP servers, and registering any discovered MCP tools with the Agent and tool registry.
     /// </summary>
     /// <param name="projectDir">Path to the project directory; used as one of the locations to search for an mcp.json configuration file.</param>
     /// <remarks>
     /// Initialization errors are non-fatal: exceptions are logged and startup continues without MCP tools.
     /// </remarks>
-    private static async void InitializeMcpAsync(IServiceProvider services, string projectDir)
+    private static async Task InitializeMcpAsync(IServiceProvider services, string projectDir)
     {
         try
         {
             var mcpManager = services.GetRequiredService<McpManager>();
             var agent = services.GetRequiredService<Agent>();
             var toolRegistry = services.GetRequiredService<IToolRegistry>();
+            var logger = services.GetRequiredService<ILogger<App>>();
 
-            // Check for MCP config in standard locations
-            var mcpConfigPaths = new[]
+            var mcpConfigPaths = new List<string>
             {
                 Path.Combine(projectDir, "mcp.json"),
                 Path.Combine(HermesEnvironment.HermesHomePath, "mcp.json"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Hermes", "mcp.json"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".hermes", "mcp.json")
             };
 
-            foreach (var configPath in mcpConfigPaths)
-            {
-                if (File.Exists(configPath))
-                {
-                    await mcpManager.LoadFromConfigAsync(configPath);
-                }
-            }
-
-            // Connect to all configured servers
-            await mcpManager.ConnectAllAsync();
-
-            // Register discovered MCP tools with the Agent
-            foreach (var mcpTool in mcpManager.Tools.Values)
-            {
-                agent.RegisterTool(mcpTool);
-                toolRegistry.RegisterTool(mcpTool);
-            }
+            await McpBootstrap.AttachAsync(mcpManager, agent, toolRegistry, mcpConfigPaths, logger);
         }
         catch (Exception ex)
         {

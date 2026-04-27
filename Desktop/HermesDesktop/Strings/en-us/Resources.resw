@@ -72,6 +72,15 @@
   <data name="ChatErrorMessageFormat" xml:space="preserve">
     <value>The Hermes request failed: {0}</value>
   </data>
+  <data name="ChatErrorBanner.Title" xml:space="preserve">
+    <value>Provider error</value>
+  </data>
+  <data name="ChatErrorRetryButton.Content" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="ChatErrorSwitchModelButton.Content" xml:space="preserve">
+    <value>Switch model</value>
+  </data>
   <data name="ChatUserLabel" xml:space="preserve">
     <value>You</value>
   </data>

@@ -40,7 +40,7 @@ public abstract record StreamEvent
     /// <summary>
     /// Error occurred during streaming.
     /// </summary>
-    public sealed record StreamError(Exception Error) : StreamEvent;
+    public sealed record StreamError(Exception Error, ProviderErrorCode Code = ProviderErrorCode.Unknown) : StreamEvent;
 }
 
 /// <summary>
