@@ -4,6 +4,7 @@ using Hermes.Agent.Plugins;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using System.Text.Json;
 
 namespace HermesDesktop.Tests.Services;
 
@@ -122,6 +123,22 @@ public class AgentTests
         Assert.AreEqual(1, defs.Count);
         Assert.AreEqual("my_tool", defs[0].Name);
         Assert.AreEqual("Does things", defs[0].Description);
+    }
+
+    [TestMethod]
+    public void GetToolDefinitions_UsesProviderNativeSchemaWhenAvailable()
+    {
+        var tool = new SchemaBackedTool();
+        _agent.RegisterTool(tool);
+
+        var defs = _agent.GetToolDefinitions();
+
+        Assert.AreEqual(1, defs.Count);
+        Assert.IsTrue(defs[0].Parameters.TryGetProperty("properties", out var properties));
+        Assert.IsTrue(properties.TryGetProperty("path", out var path));
+        Assert.AreEqual("string", path.GetProperty("type").GetString());
+        Assert.IsFalse(properties.TryGetProperty("arguments", out _),
+            "Schema-backed tools should expose their native input schema instead of the generic wrapper type.");
     }
 
     // ── ChatAsync — no tools ──
@@ -338,6 +355,27 @@ public class AgentTests
         return mock;
     }
 
+    private sealed class SchemaBackedTool : ITool, IToolSchemaProvider
+    {
+        public string Name => "schema_tool";
+        public string Description => "Uses provider-native schema";
+        public Type ParametersType => typeof(EmptyParams);
+
+        public Task<ToolResult> ExecuteAsync(object parameters, CancellationToken ct) =>
+            Task.FromResult(ToolResult.Ok("ok"));
+
+        public JsonElement? GetParameterSchema() =>
+            JsonSerializer.SerializeToElement(new
+            {
+                type = "object",
+                properties = new
+                {
+                    path = new { type = "string" }
+                },
+                required = new[] { "path" }
+            });
+    }
+
     /// <summary>Minimal parameter type used to satisfy Agent's schema builder.</summary>
     private sealed class EmptyParams { }
 }
@@ -462,18 +500,22 @@ public class AgentPluginManagerTests
         var agent = new Agent(_mockChatClient.Object, NullLogger<Agent>.Instance, pluginManager: _pluginManager);
         var session = new Session { Id = "pm-sess-3" };
 
-        IEnumerable<Message>? captured = null;
+        // Snapshot at callback time. We changed Agent.ChatAsync to pop transient
+        // system messages in finally so they don't accumulate across turns —
+        // capturing the live reference and materializing it later observes
+        // post-cleanup state, which would falsely fail. What we actually care
+        // about is what got SENT to the LLM, which is the snapshot at the call site.
+        List<Message>? captured = null;
         _mockChatClient
             .Setup(c => c.CompleteAsync(It.IsAny<IEnumerable<Message>>(), It.IsAny<CancellationToken>()))
-            .Callback<IEnumerable<Message>, CancellationToken>((msgs, _) => captured = msgs)
+            .Callback<IEnumerable<Message>, CancellationToken>((msgs, _) => captured = msgs.ToList())
             .ReturnsAsync("ok");
 
         await agent.ChatAsync("question", session, CancellationToken.None);
 
         Assert.IsNotNull(captured);
-        var messages = captured.ToList();
-        Assert.IsTrue(messages.Any(m => m.Role == "system"),
-            "A system message from the plugin should have been inserted");
+        Assert.IsTrue(captured.Any(m => m.Role == "system"),
+            "A system message from the plugin should have been sent to the LLM");
     }
 
     [TestMethod]
@@ -485,10 +527,11 @@ public class AgentPluginManagerTests
         var agent = new Agent(_mockChatClient.Object, NullLogger<Agent>.Instance, pluginManager: _pluginManager);
         var session = new Session { Id = "pm-content-check" };
 
-        IEnumerable<Message>? captured = null;
+        // See sibling test for the "snapshot at callback time" rationale.
+        List<Message>? captured = null;
         _mockChatClient
             .Setup(c => c.CompleteAsync(It.IsAny<IEnumerable<Message>>(), It.IsAny<CancellationToken>()))
-            .Callback<IEnumerable<Message>, CancellationToken>((msgs, _) => captured = msgs)
+            .Callback<IEnumerable<Message>, CancellationToken>((msgs, _) => captured = msgs.ToList())
             .ReturnsAsync("ok");
 
         await agent.ChatAsync("q", session, CancellationToken.None);
@@ -1290,6 +1333,25 @@ public class AgentStreamChatTests
             "Non-token events like MessageComplete should be yielded");
     }
 
+    [TestMethod]
+    public async Task StreamChatAsync_NoTools_ProviderIdleTimeout_YieldsStructuredError()
+    {
+        _agent.StreamWatchdogTimeout = TimeSpan.FromMilliseconds(25);
+        _stubClient.DelayBeforeFirstEvent = TimeSpan.FromMilliseconds(250);
+        _stubClient.StreamEvents = new StreamEvent[] { new StreamEvent.TokenDelta("late") };
+
+        var session = new Session { Id = "stream-watchdog" };
+        var events = new List<StreamEvent>();
+
+        await foreach (var evt in _agent.StreamChatAsync("msg", session, CancellationToken.None))
+            events.Add(evt);
+
+        var error = events.OfType<StreamEvent.StreamError>().SingleOrDefault();
+        Assert.IsNotNull(error);
+        Assert.AreEqual(ProviderErrorCode.ProviderTimeout, error.Code);
+        Assert.IsFalse(events.OfType<StreamEvent.TokenDelta>().Any(t => t.Text == "late"));
+    }
+
     // ── With registered tools — tool loop path ──
 
     [TestMethod]
@@ -1406,6 +1468,7 @@ public class AgentStreamChatTests
     private sealed class StubStreamingChatClient : IChatClient
     {
         public IReadOnlyList<StreamEvent> StreamEvents { get; set; } = Array.Empty<StreamEvent>();
+        public TimeSpan DelayBeforeFirstEvent { get; set; } = TimeSpan.Zero;
         public Exception? ThrowOnStream { get; set; }
         public Func<IEnumerable<Message>, IEnumerable<ToolDefinition>, CancellationToken, Task<ChatResponse>>? OnCompleteWithTools { get; set; }
 
@@ -1435,6 +1498,9 @@ public class AgentStreamChatTests
 
             if (ThrowOnStream is not null)
                 throw ThrowOnStream;
+
+            if (DelayBeforeFirstEvent > TimeSpan.Zero)
+                await Task.Delay(DelayBeforeFirstEvent, ct);
 
             foreach (var evt in StreamEvents)
             {

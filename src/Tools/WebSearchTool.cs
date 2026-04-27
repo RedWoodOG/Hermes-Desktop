@@ -187,6 +187,26 @@ public sealed class WebSearchConfig
     public string? GoogleApiKey { get; init; }
     public string? GoogleSearchEngineId { get; init; }
     public string? BingApiKey { get; init; }
+
+    /// <summary>The providers WebSearchTool actually knows how to call.</summary>
+    public static readonly IReadOnlyCollection<string> SupportedProviders = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        "duckduckgo", "google", "bing"
+    };
+
+    /// <summary>
+    /// Normalize a persisted provider string to one of <see cref="SupportedProviders"/>.
+    /// Null, whitespace, or unknown values fall back to <c>duckduckgo</c> so a typo
+    /// in config.yaml can't turn every web-search call into NotSupportedException.
+    /// </summary>
+    public static string NormalizeProvider(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "duckduckgo";
+        var trimmed = raw.Trim().ToLowerInvariant();
+        // "ddg" is the other alias ExecuteAsync accepts.
+        if (trimmed == "ddg") return "duckduckgo";
+        return SupportedProviders.Contains(trimmed) ? trimmed : "duckduckgo";
+    }
 }
 
 public sealed class WebSearchParameters

@@ -43,7 +43,7 @@ public sealed class MemoryTool : ITool
             return ToolResult.Fail("Content is required for save_memory.");
 
         var filename = $"memory_{DateTime.UtcNow:yyyyMMdd_HHmmss}_{Guid.NewGuid().ToString("N")[..8]}.md";
-        await _memoryManager.SaveMemoryAsync(filename, content, type ?? "session", ct);
+        await _memoryManager.SaveMemoryAsync(filename, content, type ?? "user", ct);
         return ToolResult.Ok($"Memory saved: {filename}");
     }
 

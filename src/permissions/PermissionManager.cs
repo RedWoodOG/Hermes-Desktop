@@ -275,9 +275,17 @@ public sealed class PermissionManager
     
     private bool IsInWorkspace<T>(T input)
     {
-        // Check if path is within workspace
-        // This is a simplified check - real implementation would validate paths
-        return true; // TODO: Implement proper workspace checking
+        var inputStr = input?.ToString() ?? "";
+        if (string.IsNullOrWhiteSpace(inputStr))
+            return true; // No path to check
+        if (_context.AdditionalWorkingDirectories.Count == 0)
+            return true; // No workspace boundaries configured
+        foreach (var dir in _context.AdditionalWorkingDirectories)
+        {
+            if (!string.IsNullOrWhiteSpace(dir) && inputStr.Contains(dir, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+        return false;
     }
     
     private static PermissionDecision Allow<T>(T input, string? reason = null) => new()

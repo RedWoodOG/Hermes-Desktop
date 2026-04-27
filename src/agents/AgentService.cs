@@ -31,19 +31,22 @@ public sealed class AgentService
     private readonly string _worktreesDir;
     private readonly IChatClient _chatClient;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly int? _defaultMaxToolIterations;
 
     public AgentService(
         IServiceProvider services,
         ILogger<AgentService> logger,
         ILoggerFactory loggerFactory,
         IChatClient chatClient,
-        string worktreesDir)
+        string worktreesDir,
+        int? defaultMaxToolIterations = null)
     {
         _services = services;
         _logger = logger;
         _loggerFactory = loggerFactory;
         _chatClient = chatClient;
         _worktreesDir = worktreesDir;
+        _defaultMaxToolIterations = defaultMaxToolIterations;
         Directory.CreateDirectory(worktreesDir);
     }
 
@@ -70,7 +73,8 @@ public sealed class AgentService
                 IsSubagent = true,
                 ParentAgentId = AgentTracker.CurrentAgentId,
                 TeamName = request.TeamName,
-                AllowedTools = request.AllowedTools
+                AllowedTools = request.AllowedTools,
+                MaxToolIterations = request.MaxToolIterations ?? _defaultMaxToolIterations,
             };
 
             var runner = new AgentRunner(context, _chatClient, _loggerFactory.CreateLogger<AgentRunner>(), _loggerFactory);
@@ -313,6 +317,8 @@ public sealed class AgentRunner
         try
         {
             var agent = new Core.Agent(_chatClient, _loggerFactory.CreateLogger<Core.Agent>());
+            if (_context.MaxToolIterations is int max && max > 0)
+                agent.MaxToolIterations = max;
 
             // Register allowed tools
             if (_context.AllowedTools is not null)
@@ -615,6 +621,8 @@ public sealed class AgentRequest
     public RemoteConfig? RemoteConfig { get; init; }
     public string? WorkspaceRoot { get; init; }
     public List<ITool>? AllowedTools { get; init; }
+    /// <summary>Optional per-request override for the spawned subagent's MaxToolIterations.</summary>
+    public int? MaxToolIterations { get; init; }
 }
 
 public sealed class AgentResult
@@ -636,6 +644,8 @@ public sealed class AgentContext
     public string? ParentAgentId { get; init; }
     public string? TeamName { get; init; }
     public List<ITool>? AllowedTools { get; init; }
+    /// <summary>Max tool-call iterations before the subagent bails out. Null uses Core.Agent's default.</summary>
+    public int? MaxToolIterations { get; init; }
 }
 
 public sealed class RemoteConfig

@@ -85,6 +85,18 @@ Hermes.CS is a C# port of NousResearch/hermes-agent (Python) with native Windows
 - Integrations: native adapter status key fix; optional Python gateway messaging
 - See `docs/releases/v2.4.0.md` and root `readme.md` changelog
 
+## Hermes Desktop v2.5.0 (2026-04-27)
+
+- Reliability foundation: 30s stream watchdog, structured provider errors, OpenAI / Anthropic transport and parse error surfacing
+- Chat error banner with Retry and Switch Model actions
+- See `docs/releases/v2.5.0.md` and root `readme.md` changelog
+
+## Hermes Desktop v2.5.1 (2026-04-27)
+
+- MCP host bootstrap: load `mcp.json`, connect servers, register discovered tools with native MCP input schemas
+- Added MCP docs and tests for schema-backed tools / argument passthrough
+- See `docs/releases/v2.5.1.md` and root `readme.md` changelog
+
 ## Key Files
 - `readme.md` -- project README
 

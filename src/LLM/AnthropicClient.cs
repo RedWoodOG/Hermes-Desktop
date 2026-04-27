@@ -60,6 +60,10 @@ public sealed class AnthropicClient : IChatClient
             {
                 content.Append(delta.Text);
             }
+            else if (evt is StreamEvent.StreamError error)
+            {
+                throw error.Error;
+            }
         }
 
         return content.ToString();
@@ -164,10 +168,30 @@ public sealed class AnthropicClient : IChatClient
             Content = content
         };
         
-        var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-        response.EnsureSuccessStatusCode();
+        HttpResponseMessage? response = null;
+        StreamEvent.StreamError? connectError = null;
+        try
+        {
+            response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (HttpRequestException ex)
+        {
+            var providerError = LlmProviderException.FromHttp(ex);
+            connectError = new StreamEvent.StreamError(providerError, providerError.Code);
+        }
+        catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
+        {
+            connectError = new StreamEvent.StreamError(LlmProviderException.Timeout(ex), ProviderErrorCode.ProviderTimeout);
+        }
+
+        if (connectError is not null)
+        {
+            yield return connectError;
+            yield break;
+        }
         
-        var stream = await response.Content.ReadAsStreamAsync(ct);
+        var stream = await response!.Content.ReadAsStreamAsync(ct);
         using var reader = new StreamReader(stream);
         
         var toolUseBuilder = new Dictionary<string, (string Name, StringBuilder Json)>();
@@ -208,144 +232,169 @@ public sealed class AnthropicClient : IChatClient
             }
             
             var data = line.Substring(6);
-            using var doc = JsonDocument.Parse(data);
-            var root = doc.RootElement;
-            
-            var type = root.TryGetProperty("type", out var typeProp) ? typeProp.GetString() : null;
-            
-            switch (type)
+            JsonDocument? doc = null;
+            StreamEvent.StreamError? parseError = null;
+            try
             {
-                case "content_block_start":
+                doc = JsonDocument.Parse(data);
+            }
+            catch (JsonException ex)
+            {
+                parseError = new StreamEvent.StreamError(
+                    LlmProviderException.StreamParse(ex, "Malformed JSON chunk from Anthropic stream."),
+                    ProviderErrorCode.StreamParseError);
+            }
+
+            if (parseError is not null)
+            {
+                yield return parseError;
+                yield break;
+            }
+
+            var parsedDoc = doc!;
+            using (parsedDoc)
+            {
+                var root = parsedDoc.RootElement;
+            
+                var type = root.TryGetProperty("type", out var typeProp) ? typeProp.GetString() : null;
+            
+                switch (type)
                 {
-                    var block = root.GetProperty("content_block");
-                    var blockType = block.GetProperty("type").GetString();
-                    var index = root.GetProperty("index").GetInt32();
+                    case "content_block_start":
+                    {
+                        var block = root.GetProperty("content_block");
+                        var blockType = block.GetProperty("type").GetString();
+                        var index = root.GetProperty("index").GetInt32();
                     
-                    if (blockType == "text")
-                    {
-                        // Text block started
-                    }
-                    else if (blockType == "tool_use")
-                    {
-                        var id = block.GetProperty("id").GetString() ?? $"tool_{index}";
-                        var name = block.GetProperty("name").GetString() ?? "";
-                        toolUseBuilder[id] = (name, new StringBuilder());
-                        yield return new StreamEvent.ToolUseStart(id, name);
-                    }
-                    break;
-                }
-                
-                case "content_block_delta":
-                {
-                    var index = root.GetProperty("index").GetInt32();
-                    var delta = root.GetProperty("delta");
-                    var deltaType = delta.GetProperty("type").GetString();
-                    
-                    if (deltaType == "text_delta")
-                    {
-                        var text = delta.GetProperty("text").GetString() ?? "";
-                        if (!string.IsNullOrEmpty(text))
+                        if (blockType == "text")
                         {
-                            yield return new StreamEvent.TokenDelta(text);
+                            // Text block started
                         }
-                    }
-                    else if (deltaType == "input_json_delta")
-                    {
-                        var partialJson = delta.GetProperty("partial_json").GetString() ?? "";
-                        
-                        // Find the tool by index
-                        var toolEntry = toolUseBuilder.FirstOrDefault(kvp => 
+                        else if (blockType == "tool_use")
                         {
-                            // Match by order since we don't have index tracking
-                            return toolUseBuilder.Keys.ToList().IndexOf(kvp.Key) == index;
-                        });
+                            var id = block.GetProperty("id").GetString() ?? $"tool_{index}";
+                            var name = block.GetProperty("name").GetString() ?? "";
+                            toolUseBuilder[id] = (name, new StringBuilder());
+                            yield return new StreamEvent.ToolUseStart(id, name);
+                        }
+                        break;
+                    }
+                
+                    case "content_block_delta":
+                    {
+                        var index = root.GetProperty("index").GetInt32();
+                        var delta = root.GetProperty("delta");
+                        var deltaType = delta.GetProperty("type").GetString();
+                    
+                        if (deltaType == "text_delta")
+                        {
+                            var text = delta.GetProperty("text").GetString() ?? "";
+                            if (!string.IsNullOrEmpty(text))
+                            {
+                                yield return new StreamEvent.TokenDelta(text);
+                            }
+                        }
+                        else if (deltaType == "input_json_delta")
+                        {
+                            var partialJson = delta.GetProperty("partial_json").GetString() ?? "";
                         
+                            // Find the tool by index
+                            var toolEntry = toolUseBuilder.FirstOrDefault(kvp => 
+                            {
+                                // Match by order since we don't have index tracking
+                                return toolUseBuilder.Keys.ToList().IndexOf(kvp.Key) == index;
+                            });
+                        
+                            if (!string.IsNullOrEmpty(toolEntry.Key))
+                            {
+                                toolEntry.Value.Json.Append(partialJson);
+                                yield return new StreamEvent.ToolUseDelta(toolEntry.Key, partialJson);
+                            }
+                        }
+                        else if (deltaType == "thinking_delta")
+                        {
+                            var thinking = delta.GetProperty("thinking").GetString() ?? "";
+                            if (!string.IsNullOrEmpty(thinking))
+                            {
+                                yield return new StreamEvent.ThinkingDelta(thinking);
+                            }
+                        }
+                        break;
+                    }
+                
+                    case "content_block_stop":
+                    {
+                        var index = root.GetProperty("index").GetInt32();
+                    
+                        // Complete the tool use if this was a tool block
+                        var toolEntry = toolUseBuilder.ElementAtOrDefault(index);
                         if (!string.IsNullOrEmpty(toolEntry.Key))
                         {
-                            toolEntry.Value.Json.Append(partialJson);
-                            yield return new StreamEvent.ToolUseDelta(toolEntry.Key, partialJson);
+                            var fullJson = toolEntry.Value.Json.ToString();
+                            StreamEvent toolEvt;
+                            try
+                            {
+                                var args = JsonDocument.Parse(fullJson).RootElement;
+                                toolEvt = new StreamEvent.ToolUseComplete(
+                                    toolEntry.Key,
+                                    toolEntry.Value.Name,
+                                    args.Clone());
+                            }
+                            catch (JsonException ex)
+                            {
+                                toolEvt = new StreamEvent.StreamError(
+                                    LlmProviderException.StreamParse(ex, $"Invalid tool arguments: {fullJson}"),
+                                    ProviderErrorCode.StreamParseError);
+                            }
+                            yield return toolEvt;
                         }
+                        break;
                     }
-                    else if (deltaType == "thinking_delta")
-                    {
-                        var thinking = delta.GetProperty("thinking").GetString() ?? "";
-                        if (!string.IsNullOrEmpty(thinking))
-                        {
-                            yield return new StreamEvent.ThinkingDelta(thinking);
-                        }
-                    }
-                    break;
-                }
                 
-                case "content_block_stop":
-                {
-                    var index = root.GetProperty("index").GetInt32();
+                    case "message_delta":
+                    {
+                        var delta = root.GetProperty("delta");
+                        var stopReason = delta.TryGetProperty("stop_reason", out var srProp) 
+                            ? srProp.GetString() 
+                            : null;
                     
-                    // Complete the tool use if this was a tool block
-                    var toolEntry = toolUseBuilder.ElementAtOrDefault(index);
-                    if (!string.IsNullOrEmpty(toolEntry.Key))
-                    {
-                        var fullJson = toolEntry.Value.Json.ToString();
-                        StreamEvent toolEvt;
-                        try
-                        {
-                            var args = JsonDocument.Parse(fullJson).RootElement;
-                            toolEvt = new StreamEvent.ToolUseComplete(
-                                toolEntry.Key,
-                                toolEntry.Value.Name,
-                                args.Clone());
-                        }
-                        catch (JsonException)
-                        {
-                            toolEvt = new StreamEvent.StreamError(
-                                new JsonException($"Invalid tool arguments: {fullJson}"));
-                        }
-                        yield return toolEvt;
-                    }
-                    break;
-                }
-                
-                case "message_delta":
-                {
-                    var delta = root.GetProperty("delta");
-                    var stopReason = delta.TryGetProperty("stop_reason", out var srProp) 
-                        ? srProp.GetString() 
-                        : null;
+                        var usage = root.GetProperty("usage");
+                        outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
                     
-                    var usage = root.GetProperty("usage");
-                    outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
-                    
-                    if (!string.IsNullOrEmpty(stopReason))
-                    {
-                        yield return new StreamEvent.MessageComplete(
-                            stopReason,
-                            new UsageStats(inputTokens, outputTokens, cacheCreationTokens, cacheReadTokens));
+                        if (!string.IsNullOrEmpty(stopReason))
+                        {
+                            yield return new StreamEvent.MessageComplete(
+                                stopReason,
+                                new UsageStats(inputTokens, outputTokens, cacheCreationTokens, cacheReadTokens));
+                        }
+                        break;
                     }
-                    break;
-                }
                 
-                case "message_start":
-                {
-                    var message = root.GetProperty("message");
-                    if (message.TryGetProperty("usage", out var usage))
+                    case "message_start":
                     {
-                        inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
-                        cacheCreationTokens = usage.TryGetProperty("cache_creation_input_tokens", out var cc) 
-                            ? cc.GetInt32() 
-                            : 0;
-                        cacheReadTokens = usage.TryGetProperty("cache_read_input_tokens", out var cr) 
-                            ? cr.GetInt32() 
-                            : 0;
+                        var message = root.GetProperty("message");
+                        if (message.TryGetProperty("usage", out var usage))
+                        {
+                            inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
+                            cacheCreationTokens = usage.TryGetProperty("cache_creation_input_tokens", out var cc) 
+                                ? cc.GetInt32() 
+                                : 0;
+                            cacheReadTokens = usage.TryGetProperty("cache_read_input_tokens", out var cr) 
+                                ? cr.GetInt32() 
+                                : 0;
+                        }
+                        break;
                     }
-                    break;
-                }
                 
-                case "error":
-                {
-                    var error = root.GetProperty("error");
-                    var message = error.GetProperty("message").GetString() ?? "Unknown error";
-                    yield return new StreamEvent.StreamError(new Exception(message));
-                    break;
+                    case "error":
+                    {
+                        var error = root.GetProperty("error");
+                        var message = error.GetProperty("message").GetString() ?? "Unknown error";
+                        yield return new StreamEvent.StreamError(
+                            new LlmProviderException(ProviderErrorCode.Transport, message),
+                            ProviderErrorCode.Transport);
+                        break;
+                    }
                 }
             }
         }

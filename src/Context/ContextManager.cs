@@ -79,6 +79,25 @@ public sealed class ContextManager
             var recentTurns = _budget.TrimToRecentWindow(allMessages);
             var evictedMessages = _budget.GetEvictedMessages(allMessages);
 
+            // ── De-dupe trailing user message ──
+            // Agent.ChatAsync persists the current user message to the transcript
+            // BEFORE calling PrepareContextAsync, so it appears at the tail of
+            // recentTurns. PromptBuilder.ToOpenAiMessages then re-appends
+            // CurrentUserMessage as its final layer, which would duplicate the
+            // turn and confuse the model (it commonly responds twice or treats
+            // the prior turn as if it were a separate question). Strip only the
+            // LAST matching user message — earlier user messages with the same
+            // content are legitimate repeat asks and must be preserved.
+            if (recentTurns.Count > 0)
+            {
+                var tail = recentTurns[^1];
+                if (string.Equals(tail.Role, "user", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(tail.Content, userMessage, StringComparison.Ordinal))
+                {
+                    recentTurns = recentTurns.Take(recentTurns.Count - 1).ToList();
+                }
+            }
+
             // Estimate current token usage (all layers that will be sent)
             // Use EstimateMessageTokens for standalone text that PromptBuilder wraps in Message objects
             var systemTokens = _budget.EstimateMessageTokens("system", _promptBuilder.SystemPrompt);

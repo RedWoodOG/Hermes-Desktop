@@ -478,25 +478,34 @@ public partial class App : Application
         // Dreamer (background free-association worker) — status for Dashboard; loop started post-build
         services.AddSingleton(_ => new DreamerStatus());
 
-        // Core agent — wired with all optional dependencies
-        services.AddSingleton(sp => new Agent(
-            sp.GetRequiredService<IChatClient>(),
-            sp.GetRequiredService<ILogger<Agent>>(),
-            permissions: sp.GetRequiredService<PermissionManager>(),
-            transcripts: sp.GetRequiredService<TranscriptStore>(),
-            memories: sp.GetRequiredService<MemoryManager>(),
-            contextManager: sp.GetRequiredService<ContextManager>(),
-            soulService: sp.GetRequiredService<SoulService>(),
-            pluginManager: sp.GetRequiredService<PluginManager>()));
+        // Core agent — wired with all optional dependencies. MaxToolIterations
+        // is read from config.yaml (agent.max_turns) so the SettingsPage value
+        // actually takes effect; otherwise the default would be 25.
+        services.AddSingleton(sp =>
+        {
+            var agent = new Agent(
+                sp.GetRequiredService<IChatClient>(),
+                sp.GetRequiredService<ILogger<Agent>>(),
+                permissions: sp.GetRequiredService<PermissionManager>(),
+                transcripts: sp.GetRequiredService<TranscriptStore>(),
+                memories: sp.GetRequiredService<MemoryManager>(),
+                contextManager: sp.GetRequiredService<ContextManager>(),
+                soulService: sp.GetRequiredService<SoulService>(),
+                pluginManager: sp.GetRequiredService<PluginManager>());
+            agent.MaxToolIterations = HermesEnvironment.MaxAgentIterations;
+            return agent;
+        });
 
-        // Agent service (subagent spawning, worktree isolation)
+        // Agent service (subagent spawning, worktree isolation). Pass the
+        // configured iteration limit so subagents honor agent.max_turns too.
         var worktreesDir = Path.Combine(projectDir, "worktrees");
         services.AddSingleton(sp => new AgentService(
             sp,
             sp.GetRequiredService<ILogger<AgentService>>(),
             sp.GetRequiredService<ILoggerFactory>(),
             sp.GetRequiredService<IChatClient>(),
-            worktreesDir));
+            worktreesDir,
+            defaultMaxToolIterations: HermesEnvironment.MaxAgentIterations));
 
         // Coordinator service (multi-worker orchestration)
         var coordinatorStateDir = Path.Combine(projectDir, "coordinator");
@@ -529,7 +538,7 @@ public partial class App : Application
 
         // ── Post-build: Register all tools and connect MCP ──
         RegisterAllTools(provider);
-        InitializeMcpAsync(provider, projectDir);
+        _ = InitializeMcpAsync(provider, projectDir);
 
         // Wire permission prompt callback to show a ContentDialog in the UI
         WirePermissionCallback(provider);
@@ -698,10 +707,19 @@ public partial class App : Application
         RegisterAndTrack(agent, toolRegistry, new BashTool());
         RegisterAndTrack(agent, toolRegistry, new TerminalTool());
 
-        // Web tools
+        // Web tools — pull provider + API keys from HermesEnvironment so the user's
+        // configured search provider in config.yaml is honored. Hardcoding "duckduckgo"
+        // here was the v2.4.0 regression that silently ignored Google/Bing config.
         RegisterAndTrack(agent, toolRegistry, new WebFetchTool(httpClient));
         RegisterAndTrack(agent, toolRegistry, new WebSearchTool(
-            new WebSearchConfig { Provider = "duckduckgo" }, httpClient));
+            new WebSearchConfig
+            {
+                Provider = HermesEnvironment.WebSearchProvider,
+                GoogleApiKey = HermesEnvironment.WebSearchGoogleApiKey,
+                GoogleSearchEngineId = HermesEnvironment.WebSearchGoogleEngineId,
+                BingApiKey = HermesEnvironment.WebSearchBingApiKey,
+            },
+            httpClient));
 
         // Task management
         RegisterAndTrack(agent, toolRegistry, new TodoWriteTool());
@@ -924,47 +942,30 @@ public partial class App : Application
     }
 
     /// <summary>
-    /// Load MCP server configs and connect (fire-and-forget on startup).
-    /// <summary>
     /// Initializes the MCP subsystem by loading MCP configuration files from standard locations, connecting to configured MCP servers, and registering any discovered MCP tools with the Agent and tool registry.
     /// </summary>
     /// <param name="projectDir">Path to the project directory; used as one of the locations to search for an mcp.json configuration file.</param>
     /// <remarks>
     /// Initialization errors are non-fatal: exceptions are logged and startup continues without MCP tools.
     /// </remarks>
-    private static async void InitializeMcpAsync(IServiceProvider services, string projectDir)
+    private static async Task InitializeMcpAsync(IServiceProvider services, string projectDir)
     {
         try
         {
             var mcpManager = services.GetRequiredService<McpManager>();
             var agent = services.GetRequiredService<Agent>();
             var toolRegistry = services.GetRequiredService<IToolRegistry>();
+            var logger = services.GetRequiredService<ILogger<App>>();
 
-            // Check for MCP config in standard locations
-            var mcpConfigPaths = new[]
+            var mcpConfigPaths = new List<string>
             {
                 Path.Combine(projectDir, "mcp.json"),
                 Path.Combine(HermesEnvironment.HermesHomePath, "mcp.json"),
+                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Hermes", "mcp.json"),
                 Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".hermes", "mcp.json")
             };
 
-            foreach (var configPath in mcpConfigPaths)
-            {
-                if (File.Exists(configPath))
-                {
-                    await mcpManager.LoadFromConfigAsync(configPath);
-                }
-            }
-
-            // Connect to all configured servers
-            await mcpManager.ConnectAllAsync();
-
-            // Register discovered MCP tools with the Agent
-            foreach (var mcpTool in mcpManager.Tools.Values)
-            {
-                agent.RegisterTool(mcpTool);
-                toolRegistry.RegisterTool(mcpTool);
-            }
+            await McpBootstrap.AttachAsync(mcpManager, agent, toolRegistry, mcpConfigPaths, logger);
         }
         catch (Exception ex)
         {
