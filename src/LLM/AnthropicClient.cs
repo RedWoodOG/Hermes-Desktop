@@ -33,13 +33,18 @@ public sealed class AnthropicClient : IChatClient
 
         if (_credentialPool is null && !string.IsNullOrEmpty(config.ApiKey))
         {
-            _httpClient.DefaultRequestHeaders.Add("x-api-key", config.ApiKey);
+            if (IsMiniMaxProvider)
+                _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", config.ApiKey);
+            else
+                _httpClient.DefaultRequestHeaders.Add("x-api-key", config.ApiKey);
         }
 
-        _httpClient.DefaultRequestHeaders.Add("anthropic-version", ApiVersion);
+        if (!IsMiniMaxProvider)
+            _httpClient.DefaultRequestHeaders.Add("anthropic-version", ApiVersion);
+
         _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
     }
-    
+
     public async Task<string> CompleteAsync(IEnumerable<Message> messages, CancellationToken ct)
     {
         // Extract system messages to pass as Anthropic's system parameter
@@ -85,13 +90,13 @@ public sealed class AnthropicClient : IChatClient
             nonSystemMessages, tools, stream: false);
 
         var json = JsonSerializer.Serialize(payload, JsonOptions);
-        var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages")
+        var request = new HttpRequestMessage(HttpMethod.Post, MessagesEndpoint)
         {
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
 
         var response = await _httpClient.SendAsync(request, ct);
-        response.EnsureSuccessStatusCode();
+        await EnsureSuccessStatusCodeWithBodyAsync(response, ct);
 
         using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
         var root = doc.RootElement;
@@ -152,7 +157,7 @@ public sealed class AnthropicClient : IChatClient
         IEnumerable<ToolDefinition>? tools = null,
         CancellationToken ct = default)
         => StreamEventsAsync(systemPrompt, messages, tools, ct);
-    
+
     private async IAsyncEnumerable<StreamEvent> StreamEventsAsync(
         string? systemPrompt,
         IEnumerable<Message> messages,
@@ -162,18 +167,18 @@ public sealed class AnthropicClient : IChatClient
         var payload = BuildPayload(systemPrompt, messages, tools, stream: true);
         var json = JsonSerializer.Serialize(payload, JsonOptions);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
-        
-        var request = new HttpRequestMessage(HttpMethod.Post, "https://api.anthropic.com/v1/messages")
+
+        var request = new HttpRequestMessage(HttpMethod.Post, MessagesEndpoint)
         {
             Content = content
         };
-        
+
         HttpResponseMessage? response = null;
         StreamEvent.StreamError? connectError = null;
         try
         {
             response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-            response.EnsureSuccessStatusCode();
+            await EnsureSuccessStatusCodeWithBodyAsync(response, ct);
         }
         catch (HttpRequestException ex)
         {
@@ -190,16 +195,16 @@ public sealed class AnthropicClient : IChatClient
             yield return connectError;
             yield break;
         }
-        
+
         var stream = await response!.Content.ReadAsStreamAsync(ct);
         using var reader = new StreamReader(stream);
-        
+
         var toolUseBuilder = new Dictionary<string, (string Name, StringBuilder Json)>();
         var inputTokens = 0;
         var outputTokens = 0;
         var cacheCreationTokens = 0;
         var cacheReadTokens = 0;
-        
+
         while (true)
         {
             if (ct.IsCancellationRequested) break;
@@ -224,13 +229,13 @@ public sealed class AnthropicClient : IChatClient
 
             if (line is null) break;
             if (string.IsNullOrEmpty(line)) continue;
-            
+
             if (!line.StartsWith("data: "))
             {
                 // Could be event type line
                 continue;
             }
-            
+
             var data = line.Substring(6);
             JsonDocument? doc = null;
             StreamEvent.StreamError? parseError = null;
@@ -255,9 +260,9 @@ public sealed class AnthropicClient : IChatClient
             using (parsedDoc)
             {
                 var root = parsedDoc.RootElement;
-            
+
                 var type = root.TryGetProperty("type", out var typeProp) ? typeProp.GetString() : null;
-            
+
                 switch (type)
                 {
                     case "content_block_start":
@@ -265,7 +270,7 @@ public sealed class AnthropicClient : IChatClient
                         var block = root.GetProperty("content_block");
                         var blockType = block.GetProperty("type").GetString();
                         var index = root.GetProperty("index").GetInt32();
-                    
+
                         if (blockType == "text")
                         {
                             // Text block started
@@ -279,13 +284,13 @@ public sealed class AnthropicClient : IChatClient
                         }
                         break;
                     }
-                
+
                     case "content_block_delta":
                     {
                         var index = root.GetProperty("index").GetInt32();
                         var delta = root.GetProperty("delta");
                         var deltaType = delta.GetProperty("type").GetString();
-                    
+
                         if (deltaType == "text_delta")
                         {
                             var text = delta.GetProperty("text").GetString() ?? "";
@@ -297,14 +302,14 @@ public sealed class AnthropicClient : IChatClient
                         else if (deltaType == "input_json_delta")
                         {
                             var partialJson = delta.GetProperty("partial_json").GetString() ?? "";
-                        
+
                             // Find the tool by index
-                            var toolEntry = toolUseBuilder.FirstOrDefault(kvp => 
+                            var toolEntry = toolUseBuilder.FirstOrDefault(kvp =>
                             {
                                 // Match by order since we don't have index tracking
                                 return toolUseBuilder.Keys.ToList().IndexOf(kvp.Key) == index;
                             });
-                        
+
                             if (!string.IsNullOrEmpty(toolEntry.Key))
                             {
                                 toolEntry.Value.Json.Append(partialJson);
@@ -321,11 +326,11 @@ public sealed class AnthropicClient : IChatClient
                         }
                         break;
                     }
-                
+
                     case "content_block_stop":
                     {
                         var index = root.GetProperty("index").GetInt32();
-                    
+
                         // Complete the tool use if this was a tool block
                         var toolEntry = toolUseBuilder.ElementAtOrDefault(index);
                         if (!string.IsNullOrEmpty(toolEntry.Key))
@@ -350,17 +355,17 @@ public sealed class AnthropicClient : IChatClient
                         }
                         break;
                     }
-                
+
                     case "message_delta":
                     {
                         var delta = root.GetProperty("delta");
-                        var stopReason = delta.TryGetProperty("stop_reason", out var srProp) 
-                            ? srProp.GetString() 
+                        var stopReason = delta.TryGetProperty("stop_reason", out var srProp)
+                            ? srProp.GetString()
                             : null;
-                    
+
                         var usage = root.GetProperty("usage");
                         outputTokens = usage.TryGetProperty("output_tokens", out var ot) ? ot.GetInt32() : 0;
-                    
+
                         if (!string.IsNullOrEmpty(stopReason))
                         {
                             yield return new StreamEvent.MessageComplete(
@@ -369,23 +374,23 @@ public sealed class AnthropicClient : IChatClient
                         }
                         break;
                     }
-                
+
                     case "message_start":
                     {
                         var message = root.GetProperty("message");
                         if (message.TryGetProperty("usage", out var usage))
                         {
                             inputTokens = usage.TryGetProperty("input_tokens", out var it) ? it.GetInt32() : 0;
-                            cacheCreationTokens = usage.TryGetProperty("cache_creation_input_tokens", out var cc) 
-                                ? cc.GetInt32() 
+                            cacheCreationTokens = usage.TryGetProperty("cache_creation_input_tokens", out var cc)
+                                ? cc.GetInt32()
                                 : 0;
-                            cacheReadTokens = usage.TryGetProperty("cache_read_input_tokens", out var cr) 
-                                ? cr.GetInt32() 
+                            cacheReadTokens = usage.TryGetProperty("cache_read_input_tokens", out var cr)
+                                ? cr.GetInt32()
                                 : 0;
                         }
                         break;
                     }
-                
+
                     case "error":
                     {
                         var error = root.GetProperty("error");
@@ -399,11 +404,11 @@ public sealed class AnthropicClient : IChatClient
             }
         }
     }
-    
+
     private object BuildPayload(string? systemPrompt, IEnumerable<Message> messages, IEnumerable<ToolDefinition>? tools, bool stream)
     {
         var formattedMessages = new List<object>();
-        
+
         foreach (var msg in messages)
         {
             // Skip system messages — they're passed as the top-level "system" parameter
@@ -454,24 +459,24 @@ public sealed class AnthropicClient : IChatClient
                 });
             }
         }
-        
+
         var payload = new Dictionary<string, object>
         {
             ["model"] = _config.Model,
             ["messages"] = formattedMessages,
-            ["max_tokens"] = _config.MaxTokens,
+            ["max_tokens"] = EffectiveMaxTokens,
         };
-        
+
         if (!string.IsNullOrEmpty(systemPrompt))
         {
             payload["system"] = systemPrompt;
         }
-        
+
         if (stream)
         {
             payload["stream"] = true;
         }
-        
+
         if (tools is not null)
         {
             payload["tools"] = tools.Select(t => new
@@ -481,7 +486,63 @@ public sealed class AnthropicClient : IChatClient
                 input_schema = t.Parameters
             }).ToList();
         }
-        
+
         return payload;
+    }
+
+    private bool IsMiniMaxProvider =>
+        string.Equals(_config.Provider, "minimax", StringComparison.OrdinalIgnoreCase);
+
+    private int EffectiveMaxTokens =>
+        IsMiniMaxProvider
+            ? Math.Clamp(_config.MaxTokens, 1, 2048)
+            : _config.MaxTokens;
+
+    private string MessagesEndpoint =>
+        $"{NormalizeBaseUrl(_config.BaseUrl)}/messages";
+
+    private static string NormalizeBaseUrl(string? baseUrl)
+    {
+        var normalized = string.IsNullOrWhiteSpace(baseUrl)
+            ? "https://api.anthropic.com/v1"
+            : baseUrl.TrimEnd('/');
+
+        return normalized.EndsWith("/messages", StringComparison.OrdinalIgnoreCase)
+            ? normalized[..^"/messages".Length]
+            : normalized;
+    }
+
+    private async Task EnsureSuccessStatusCodeWithBodyAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        if (response.IsSuccessStatusCode)
+            return;
+
+        string responseBody;
+        try
+        {
+            responseBody = response.Content is null
+                ? string.Empty
+                : await response.Content.ReadAsStringAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            responseBody = $"<failed to read response body: {ex.Message}>";
+        }
+
+        var provider = string.IsNullOrWhiteSpace(_config.Provider) ? "anthropic-compatible" : _config.Provider;
+        var model = string.IsNullOrWhiteSpace(_config.Model) ? "unknown-model" : _config.Model;
+        var endpoint = NormalizeBaseUrl(_config.BaseUrl);
+        var trimmedBody = responseBody
+            .Replace("\r", "\\r", StringComparison.Ordinal)
+            .Replace("\n", "\\n", StringComparison.Ordinal);
+
+        if (trimmedBody.Length > 8_000)
+            trimmedBody = trimmedBody[..8_000] + "...";
+
+        throw new HttpRequestException(
+            $"Provider '{provider}' request failed for model '{model}' at '{endpoint}': " +
+            $"{(int)response.StatusCode} ({response.ReasonPhrase}). Response body: {trimmedBody}",
+            null,
+            response.StatusCode);
     }
 }
