@@ -1,0 +1,58 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Hermes Desktop Logo</title>
+  <desc id="desc">A black rounded-square app icon with a beveled gold Hermes monogram.</desc>
+  <defs>
+    <radialGradient id="bgGlow" cx="50%" cy="12%" r="85%">
+      <stop offset="0%" stop-color="#3D3F43"/>
+      <stop offset="48%" stop-color="#16181B"/>
+      <stop offset="100%" stop-color="#07090C"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="98" y1="70" x2="414" y2="430" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFF2A4"/>
+      <stop offset="18%" stop-color="#FFD232"/>
+      <stop offset="48%" stop-color="#C98A00"/>
+      <stop offset="72%" stop-color="#FFE36B"/>
+      <stop offset="100%" stop-color="#A76400"/>
+    </linearGradient>
+    <linearGradient id="goldEdge" x1="78" y1="84" x2="438" y2="410" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFF7B8"/>
+      <stop offset="38%" stop-color="#FFD43D"/>
+      <stop offset="100%" stop-color="#7B4500"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.55"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#FFC629" flood-opacity="0.32"/>
+    </filter>
+    <filter id="innerLift" x="-10%" y="-10%" width="120%" height="120%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="-2" stdDeviation="1.5" flood-color="#FFF2A4" flood-opacity="0.55"/>
+      <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#5D3300" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <rect x="36" y="36" width="440" height="440" rx="92" fill="url(#bgGlow)"/>
+  <rect x="38.5" y="38.5" width="435" height="435" rx="89.5" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="5"/>
+
+  <g filter="url(#softShadow)">
+    <path d="M115 126L220 171V264L256 284L292 264V171L397 126V174L333 205V358L285 338V295L256 311L227 295V338L179 358V205L115 174V126Z"
+          fill="url(#gold)" stroke="url(#goldEdge)" stroke-width="7" stroke-linejoin="round" filter="url(#innerLift)"/>
+
+    <path d="M121 206L177 231V270L136 252L121 206Z"
+          fill="url(#gold)" stroke="url(#goldEdge)" stroke-width="6" stroke-linejoin="round" filter="url(#innerLift)"/>
+    <path d="M391 206L335 231V270L376 252L391 206Z"
+          fill="url(#gold)" stroke="url(#goldEdge)" stroke-width="6" stroke-linejoin="round" filter="url(#innerLift)"/>
+
+    <path d="M181 222L225 241V268L181 248V222Z" fill="#111317" fill-opacity="0.92"/>
+    <path d="M331 222L287 241V268L331 248V222Z" fill="#111317" fill-opacity="0.92"/>
+
+    <path d="M179 358L227 338V383L179 407V358Z"
+          fill="url(#gold)" stroke="url(#goldEdge)" stroke-width="7" stroke-linejoin="round" filter="url(#innerLift)"/>
+    <path d="M333 358L285 338V383L333 407V358Z"
+          fill="url(#gold)" stroke="url(#goldEdge)" stroke-width="7" stroke-linejoin="round" filter="url(#innerLift)"/>
+
+    <path d="M224 171L256 191L288 171V219L256 238L224 219V171Z"
+          fill="url(#gold)" stroke="url(#goldEdge)" stroke-width="7" stroke-linejoin="round" filter="url(#innerLift)"/>
+  </g>
+
+  <path d="M111 124L221 171M401 124L291 171M225 383L179 407M287 383L333 407"
+        stroke="#FFF6B3" stroke-opacity="0.42" stroke-width="4" stroke-linecap="round"/>
+</svg>
