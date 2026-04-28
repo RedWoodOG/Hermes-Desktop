@@ -253,15 +253,24 @@ public sealed class Agent : IAgent
                 var messagesToSend = preparedContext ?? session.Messages;
                 // INV-004/005: Use active client (with fallback support)
                 var activeClient = GetActiveChatClient();
+                // Coalesce any role:"system" entries (soul, persona, plugins,
+                // memory, wiki, session state) into a single leading system
+                // message. Strict OpenAI-compatible servers — vLLM with Qwen
+                // / Llama-3 chat templates, llama.cpp strict templates, TGI,
+                // several LMStudio strict-template models — reject any mid-
+                // list system message with a Jinja error. CoalesceWith hoists
+                // the strays into the rendered system block before the wire
+                // call, regardless of how upstream built the message list.
+                var (_, coalescedMessages) = SystemContext.Empty.CoalesceWith(messagesToSend);
                 string response;
                 try
                 {
-                    response = await activeClient.CompleteAsync(messagesToSend, ct);
+                    response = await activeClient.CompleteAsync(coalescedMessages, ct);
                 }
                 catch (HttpRequestException ex) when (_fallbackChatClient is not null)
                 {
                     activeClient = ActivateFallback(ex);
-                    response = await activeClient.CompleteAsync(messagesToSend, ct);
+                    response = await activeClient.CompleteAsync(coalescedMessages, ct);
                 }
                 await AgentSessionWriter.AppendAssistantMessageAsync(session, response, _transcripts, ct);
                 if (_contextManager is not null)
@@ -286,15 +295,22 @@ public sealed class Agent : IAgent
 
             // INV-004/005: Use active client with fallback support
             var activeClientForTools = GetActiveChatClient();
+            // Coalesce role:"system" entries into a single leading system message
+            // before calling the provider — required by strict OpenAI-compatible
+            // servers (vLLM/Qwen, llama.cpp strict templates, TGI). Anthropic's
+            // legacy CompleteWithToolsAsync extracts that leading system
+            // internally and routes it to the top-level "system" parameter,
+            // so this works for both provider families.
+            var (_, coalescedToolMessages) = SystemContext.Empty.CoalesceWith(messagesToUse);
             ChatResponse response;
             try
             {
-                response = await activeClientForTools.CompleteWithToolsAsync(messagesToUse, toolDefs, ct);
+                response = await activeClientForTools.CompleteWithToolsAsync(coalescedToolMessages, toolDefs, ct);
             }
             catch (HttpRequestException ex) when (_fallbackChatClient is not null)
             {
                 activeClientForTools = ActivateFallback(ex);
-                response = await activeClientForTools.CompleteWithToolsAsync(messagesToUse, toolDefs, ct);
+                response = await activeClientForTools.CompleteWithToolsAsync(coalescedToolMessages, toolDefs, ct);
             }
 
             if (!response.HasToolCalls)
@@ -706,8 +722,18 @@ public sealed class Agent : IAgent
             // No tools registered — stream the response directly
             var messagesToSend = preparedContext ?? session.Messages;
 
+            // Thread coalesced system content into both channels: the
+            // systemPrompt parameter (which AnthropicClient streaming uses to
+            // populate the top-level "system" field — it drops role:"system"
+            // entries from the messages list at BuildPayload) AND a leading
+            // system message in the conversation (which OpenAiClient
+            // streaming reads verbatim, ignoring systemPrompt). Strict
+            // OpenAI-compatible servers see exactly one system at index 0;
+            // Anthropic gets its system via the dedicated parameter.
+            var (streamSystemPrompt, streamCoalescedMessages) =
+                SystemContext.Empty.CoalesceWith(messagesToSend);
             await foreach (var evt in WatchProviderStreamAsync(
-                _chatClient.StreamAsync((string?)null, messagesToSend, null, ct), ct))
+                _chatClient.StreamAsync(streamSystemPrompt, streamCoalescedMessages, null, ct), ct))
             {
                 if (evt is StreamEvent.TokenDelta td)
                     streamedResponse.Append(td.Text);
@@ -737,7 +763,10 @@ public sealed class Agent : IAgent
                 ? preparedContext
                 : session.Messages;
 
-            var response = await _chatClient.CompleteWithToolsAsync(messagesToUse, toolDefs, ct);
+            // Same coalescing as the non-streaming tool loop — strict
+            // OpenAI-compatible servers reject mid-list role:"system" entries.
+            var (_, streamToolMessages) = SystemContext.Empty.CoalesceWith(messagesToUse);
+            var response = await _chatClient.CompleteWithToolsAsync(streamToolMessages, toolDefs, ct);
 
             if (!response.HasToolCalls)
             {

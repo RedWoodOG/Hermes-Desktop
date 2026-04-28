@@ -90,4 +90,48 @@ public sealed record SystemContext
         }
         return (new SystemContext { Transient = transient }, conversation);
     }
+
+    /// <summary>
+    /// Combines this SystemContext with <paramref name="conversation"/> and
+    /// returns the inputs ready for a legacy IChatClient call:
+    /// <list type="bullet">
+    ///   <item>A rendered system prompt (for providers like AnthropicClient
+    ///         streaming that read the <c>systemPrompt</c> parameter to set
+    ///         the top-level <c>system</c> field), or <c>null</c> when no
+    ///         layers are present.</item>
+    ///   <item>A messages list with at most one leading <c>role:"system"</c>
+    ///         entry and zero mid-list system messages — required by strict
+    ///         OpenAI-compatible servers (vLLM with Qwen / Llama-3 chat
+    ///         templates, llama.cpp strict templates, TGI, several LMStudio
+    ///         strict-template models).</item>
+    /// </list>
+    /// Stray <c>role:"system"</c> entries inside <paramref name="conversation"/>
+    /// are hoisted into the rendered system block — the contract holds
+    /// regardless of how the caller built the conversation list.
+    /// </summary>
+    public (string? SystemPrompt, IEnumerable<Message> Messages) CoalesceWith(
+        IEnumerable<Message> conversation)
+    {
+        var stray = new List<string>();
+        var clean = new List<Message>();
+        foreach (var m in conversation)
+        {
+            if (m.Role == "system")
+            {
+                if (!string.IsNullOrWhiteSpace(m.Content)) stray.Add(m.Content);
+                continue;
+            }
+            clean.Add(m);
+        }
+
+        var effective = stray.Count == 0
+            ? this
+            : this with { Transient = Transient.Concat(stray).ToList() };
+
+        if (effective.IsEmpty)
+            return (null, clean);
+
+        var rendered = effective.Render("\n\n");
+        return (rendered, clean.Prepend(new Message { Role = "system", Content = rendered }));
+    }
 }

@@ -40,6 +40,20 @@ public interface IChatClient
     // unlock prompt caching on stable layers).
 
     /// <summary>
+    /// Simple completion with system context passed structurally. Stray
+    /// <c>role: "system"</c> entries inside <paramref name="conversation"/>
+    /// are hoisted into the coalesced system block.
+    /// </summary>
+    Task<string> CompleteAsync(
+        SystemContext system,
+        IEnumerable<Message> conversation,
+        CancellationToken ct)
+    {
+        var prepared = PrepareLegacyCall(system, conversation);
+        return CompleteAsync(prepared.Messages, ct);
+    }
+
+    /// <summary>
     /// Completion with system context passed structurally. Stray
     /// <c>role: "system"</c> entries inside <paramref name="conversation"/>
     /// are hoisted into the coalesced system block before the call reaches
@@ -79,42 +93,15 @@ public interface IChatClient
     }
 
     /// <summary>
-    /// Hoists stray <c>role:"system"</c> messages from
-    /// <paramref name="conversation"/> into the SystemContext, then renders
-    /// the effective system content. Returns both the rendered string (for
-    /// providers that read a <c>systemPrompt</c> parameter, e.g. Anthropic
-    /// streaming) and a message list with a leading system message (for
-    /// providers that read the messages array verbatim, e.g. OpenAI). The
-    /// returned list never contains a mid-list system message — the
-    /// load-bearing invariant strict OpenAI-compatible servers depend on.
+    /// Delegates to <see cref="SystemContext.CoalesceWith"/> — kept as a
+    /// thin alias so existing tests that reference PrepareLegacyCall via
+    /// reflection still work, and so the bridge contract reads naturally
+    /// inside the interface body.
     /// </summary>
     private static (string? SystemPrompt, IEnumerable<Message> Messages) PrepareLegacyCall(
         SystemContext system,
         IEnumerable<Message> conversation)
-    {
-        var stray = new List<string>();
-        var clean = new List<Message>();
-        foreach (var m in conversation)
-        {
-            if (m.Role == "system")
-            {
-                if (!string.IsNullOrWhiteSpace(m.Content)) stray.Add(m.Content);
-                continue;
-            }
-            clean.Add(m);
-        }
-
-        var effective = stray.Count == 0
-            ? system
-            : system with { Transient = system.Transient.Concat(stray).ToList() };
-
-        if (effective.IsEmpty)
-            return (null, clean);
-
-        var rendered = effective.Render("\n\n");
-        var leading = new Message { Role = "system", Content = rendered };
-        return (rendered, clean.Prepend(leading));
-    }
+        => system.CoalesceWith(conversation);
 }
 
 public sealed class LlmConfig
