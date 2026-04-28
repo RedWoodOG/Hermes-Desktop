@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Hermes.Agent.Soul;
+using Hermes.Agent.LLM;
 
 namespace HermesDesktop.Views;
 
@@ -13,6 +14,7 @@ public sealed partial class AgentPage : Page
     private readonly SoulService _soulService = App.Services.GetRequiredService<SoulService>();
     private readonly SoulRegistry _soulRegistry = App.Services.GetRequiredService<SoulRegistry>();
     private readonly AgentProfileManager _profileManager = App.Services.GetRequiredService<AgentProfileManager>();
+    private readonly ChatClientFactory _chatClientFactory = App.Services.GetRequiredService<ChatClientFactory>();
 
     private string _activeTab = "agents";
     private SoulTemplate? _selectedSoul;
@@ -25,13 +27,16 @@ public sealed partial class AgentPage : Page
 
     private void Refresh()
     {
-        // Update active label
-        var activeName = _profileManager.GetActiveProfileName();
-        ActiveSoulLabel.Text = activeName ?? "Default";
+        _ = RefreshActiveSoulLabelAsync();
 
         if (_activeTab == "identity") _ = RefreshIdentityAsync();
         else if (_activeTab == "souls") RefreshSouls();
         else if (_activeTab == "agents") RefreshAgents();
+    }
+
+    private async System.Threading.Tasks.Task RefreshActiveSoulLabelAsync()
+    {
+        ActiveSoulLabel.Text = await _soulService.GetRuntimeSoulNameAsync(_soulRegistry, _profileManager);
     }
 
     // ── Tab switching ──
@@ -99,11 +104,12 @@ public sealed partial class AgentPage : Page
 
     private async void ResetSoul_Click(object sender, RoutedEventArgs e)
     {
-        var defaultSoul = _soulRegistry.GetSoul("Hermes Default");
+        var defaultSoul = _soulRegistry.GetSoul("Default");
         if (defaultSoul is not null)
         {
             await _soulService.SaveFileAsync(SoulFileType.Soul, defaultSoul.Content);
             SoulEditor.Text = defaultSoul.Content;
+            await RefreshActiveSoulLabelAsync();
         }
     }
 
@@ -131,7 +137,7 @@ public sealed partial class AgentPage : Page
     {
         if (_selectedSoul is null) return;
         await _soulService.SaveFileAsync(SoulFileType.Soul, _selectedSoul.Content);
-        ActiveSoulLabel.Text = _selectedSoul.Name;
+        await RefreshActiveSoulLabelAsync();
 
         // Switch to identity tab
         _activeTab = "identity";
@@ -192,6 +198,8 @@ public sealed partial class AgentPage : Page
                 Name = nameBox.Text,
                 Description = descBox.Text ?? "",
                 SoulContent = currentSoul,
+                PreferredProvider = _chatClientFactory.CurrentProvider,
+                PreferredModel = _chatClientFactory.CurrentModel,
                 IsActive = false
             };
             await _profileManager.SaveProfileAsync(profile);
@@ -207,7 +215,7 @@ public sealed partial class AgentPage : Page
         if (profile is not null)
         {
             await _profileManager.ActivateProfileAsync(profile);
-            ActiveSoulLabel.Text = profile.Name;
+            await RefreshActiveSoulLabelAsync();
             RefreshAgents();
         }
     }

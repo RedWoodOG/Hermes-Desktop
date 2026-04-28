@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Hermes.Agent.LLM;
 using Hermes.Agent.Soul;
 
 using HermesDesktop.Views;
@@ -16,6 +17,7 @@ public sealed partial class AgentPanel : UserControl
     private SoulService? _soulService;
     private SoulRegistry? _soulRegistry;
     private AgentProfileManager? _profileManager;
+    private ChatClientFactory? _chatClientFactory;
     private string _activeTab = "identity";
     private SoulTemplate? _selectedSoul;
 
@@ -27,6 +29,7 @@ public sealed partial class AgentPanel : UserControl
             _soulService = App.Services?.GetService<SoulService>();
             _soulRegistry = App.Services?.GetService<SoulRegistry>();
             _profileManager = App.Services?.GetService<AgentProfileManager>();
+            _chatClientFactory = App.Services?.GetService<ChatClientFactory>();
             Refresh();
         };
     }
@@ -69,9 +72,7 @@ public sealed partial class AgentPanel : UserControl
             SoulEditor.Text = await _soulService.LoadFileAsync(SoulFileType.Soul);
             UserEditor.Text = await _soulService.LoadFileAsync(SoulFileType.User);
 
-            // Active profile
-            var activeName = _profileManager?.GetActiveProfileName();
-            ActiveSoulLabel.Text = activeName ?? "Default";
+            ActiveSoulLabel.Text = await _soulService.GetRuntimeSoulNameAsync(_soulRegistry, _profileManager);
 
             // Mistakes
             var mistakes = await _soulService.LoadMistakesAsync();
@@ -105,11 +106,12 @@ public sealed partial class AgentPanel : UserControl
     {
         if (_soulService is null) return;
         // Apply the default soul template
-        var defaultSoul = _soulRegistry?.GetSoul("Hermes Default");
+        var defaultSoul = _soulRegistry?.GetSoul("Default");
         if (defaultSoul is not null)
         {
             await _soulService.SaveFileAsync(SoulFileType.Soul, defaultSoul.Content);
             SoulEditor.Text = defaultSoul.Content;
+            ActiveSoulLabel.Text = await _soulService.GetRuntimeSoulNameAsync(_soulRegistry, _profileManager);
         }
     }
 
@@ -140,7 +142,7 @@ public sealed partial class AgentPanel : UserControl
     {
         if (_soulService is null || _selectedSoul is null) return;
         await _soulService.SaveFileAsync(SoulFileType.Soul, _selectedSoul.Content);
-        ActiveSoulLabel.Text = _selectedSoul.Name;
+        ActiveSoulLabel.Text = await _soulService.GetRuntimeSoulNameAsync(_soulRegistry, _profileManager);
 
         // Switch to identity tab to show the applied soul
         _activeTab = "identity";
@@ -201,6 +203,8 @@ public sealed partial class AgentPanel : UserControl
                 Name = nameBox.Text,
                 Description = descBox.Text ?? "",
                 SoulContent = currentSoul,
+                PreferredProvider = _chatClientFactory?.CurrentProvider,
+                PreferredModel = _chatClientFactory?.CurrentModel,
                 IsActive = false
             };
             await _profileManager.SaveProfileAsync(profile);
@@ -216,7 +220,8 @@ public sealed partial class AgentPanel : UserControl
         if (profile is not null)
         {
             await _profileManager.ActivateProfileAsync(profile);
-            ActiveSoulLabel.Text = profile.Name;
+            if (_soulService is not null)
+                ActiveSoulLabel.Text = await _soulService.GetRuntimeSoulNameAsync(_soulRegistry, _profileManager);
             RefreshAgents();
         }
     }

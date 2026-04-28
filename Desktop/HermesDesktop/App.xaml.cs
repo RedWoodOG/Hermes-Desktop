@@ -21,6 +21,7 @@ using Hermes.Agent.Tools;
 using Hermes.Agent.Execution;
 using Hermes.Agent.Gateway;
 using Hermes.Agent.Gateway.Platforms;
+using Hermes.Agent.Dream;
 using Hermes.Agent.Dreamer;
 using HermesDesktop.Services;
 using System;
@@ -36,7 +37,9 @@ public partial class App : Application
     private Window? _window;
     private static readonly object _dreamerCtsLock = new();
     private static readonly object _dreamerHttpClientsLock = new();
+    private static readonly object _autoDreamCtsLock = new();
     private static System.Threading.CancellationTokenSource? _dreamerCts;
+    private static System.Threading.CancellationTokenSource? _autoDreamCts;
     private static DreamerHttpClients? _dreamerHttpClients;
 
     /// <summary>Global service provider for DI — accessed by pages via App.Services.</summary>
@@ -82,6 +85,7 @@ public partial class App : Application
         }
 
         TryCancelDreamerCts(logger, "app unhandled exception");
+        TryCancelAndDisposeAutoDreamCts(logger, "app unhandled exception");
 
         if (exception is OperationCanceledException or ObjectDisposedException)
             e.Handled = true;
@@ -91,6 +95,7 @@ public partial class App : Application
     {
         var logger = TryGetAppLogger();
         TryCancelAndDisposeDreamerCts(logger, "process exit");
+        TryCancelAndDisposeAutoDreamCts(logger, "process exit");
         TryDisposeDreamerHttpClients(logger, "process exit");
     }
 
@@ -125,6 +130,52 @@ public partial class App : Application
         catch (Exception ex)
         {
             BestEffort.LogFailure(logger, ex, "cancelling Dreamer cancellation token source", $"reason={reason}");
+        }
+    }
+
+    private static void TryCancelAndDisposeAutoDreamCts(ILogger? logger, string reason)
+    {
+        System.Threading.CancellationTokenSource? autoDreamCts;
+        lock (_autoDreamCtsLock)
+        {
+            autoDreamCts = _autoDreamCts;
+            _autoDreamCts = null;
+        }
+
+        if (autoDreamCts is null)
+            return;
+
+        try
+        {
+            autoDreamCts.Cancel();
+            autoDreamCts.Dispose();
+        }
+        catch (Exception ex)
+        {
+            BestEffort.LogFailure(logger, ex, "cancelling and disposing AutoDream cancellation token source", $"reason={reason}");
+        }
+    }
+
+    private static void SetAutoDreamCts(System.Threading.CancellationTokenSource autoDreamCts, ILogger? logger, string reason)
+    {
+        System.Threading.CancellationTokenSource? previousAutoDreamCts;
+        lock (_autoDreamCtsLock)
+        {
+            previousAutoDreamCts = _autoDreamCts;
+            _autoDreamCts = autoDreamCts;
+        }
+
+        if (previousAutoDreamCts is not null)
+        {
+            try
+            {
+                previousAutoDreamCts.Cancel();
+                previousAutoDreamCts.Dispose();
+            }
+            catch (Exception ex)
+            {
+                BestEffort.LogFailure(logger, ex, "replacing AutoDream cancellation token source", $"reason={reason}");
+            }
         }
     }
 
@@ -321,21 +372,6 @@ public partial class App : Application
         {
             Directory.CreateDirectory(dir);
         }
-        // Ensure SOUL.md and USER.md exist with defaults (non-fatal if write fails)
-        try
-        {
-            var soulPath = Path.Combine(hermesHome, "SOUL.md");
-            var userPath = Path.Combine(hermesHome, "USER.md");
-            if (!File.Exists(soulPath))
-                File.WriteAllText(soulPath, "# Agent Soul\n\nYou are a helpful AI assistant.\n");
-            if (!File.Exists(userPath))
-                File.WriteAllText(userPath, "# User Profile\n\nNo profile configured yet. Tell me about yourself.\n");
-        }
-        catch (Exception ex)
-        {
-            BestEffort.LogFailure(TryGetAppLogger(), ex, "creating default soul and user files");
-        }
-
         // Transcript store
         var transcriptsDir = Path.Combine(projectDir, "transcripts");
         services.AddSingleton(sp => new TranscriptStore(transcriptsDir, eagerFlush: true));
@@ -440,7 +476,8 @@ public partial class App : Application
         services.AddSingleton(sp => new AgentProfileManager(
             agentsDir,
             sp.GetRequiredService<SoulService>(),
-            sp.GetRequiredService<ILogger<AgentProfileManager>>()));
+            sp.GetRequiredService<ILogger<AgentProfileManager>>(),
+            sp.GetRequiredService<ChatClientFactory>()));
 
         // Token budget & Prompt builder for Context Runtime
         services.AddSingleton(sp => new TokenBudget(maxTokens: 8000, recentTurnWindow: 6));
@@ -453,7 +490,17 @@ public partial class App : Application
             sp.GetRequiredService<TokenBudget>(),
             sp.GetRequiredService<PromptBuilder>(),
             sp.GetRequiredService<ILogger<ContextManager>>(),
-            soulService: sp.GetRequiredService<SoulService>()));
+            soulService: sp.GetRequiredService<SoulService>(),
+            projectDir: projectDir));
+
+        services.AddSingleton(sp => new AutoDreamService(
+            sp.GetRequiredService<ILogger<AutoDreamService>>(),
+            sp.GetRequiredService<ILoggerFactory>(),
+            Path.Combine(projectDir, "memory"),
+            sp.GetRequiredService<IChatClient>(),
+            sp.GetRequiredService<TranscriptStore>(),
+            sp.GetRequiredService<SoulService>(),
+            sp.GetRequiredService<SoulExtractor>()));
 
         // MCP manager
         services.AddSingleton(sp => new McpManager(
@@ -548,6 +595,7 @@ public partial class App : Application
         StartNativeGateway(provider);
 
         StartDreamerBackground(provider, hermesHome, projectDir);
+        StartAutoDreamBackground(provider);
 
         return provider;
     }
@@ -638,6 +686,42 @@ public partial class App : Application
                 logger.LogError(ex, "Dreamer background start failed");
             else
                 BestEffort.LogFailure(null, ex, "starting Dreamer background loop");
+        }
+    }
+
+    /// <summary>
+    /// Starts AutoDream, the transcript consolidation loop that feeds soul mistakes,
+    /// habits, and user-profile updates back into the runtime soul context.
+    /// </summary>
+    private static void StartAutoDreamBackground(IServiceProvider provider)
+    {
+        var logger = provider.GetService<ILogger<App>>();
+
+        try
+        {
+            var autoDream = provider.GetRequiredService<AutoDreamService>();
+            var autoDreamCts = new System.Threading.CancellationTokenSource();
+            SetAutoDreamCts(autoDreamCts, logger, "starting AutoDream background loop");
+
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await autoDream.StartAsync(autoDreamCts.Token);
+                }
+                catch (OperationCanceledException)
+                {
+                    // Normal shutdown.
+                }
+                catch (Exception ex)
+                {
+                    BestEffort.LogFailure(logger, ex, "starting AutoDream background loop");
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            BestEffort.LogFailure(logger, ex, "initializing AutoDream background loop");
         }
     }
 

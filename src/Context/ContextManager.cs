@@ -22,6 +22,7 @@ public sealed class ContextManager
     private readonly PromptBuilder _promptBuilder;
     private readonly ILogger<ContextManager> _logger;
     private readonly SoulService? _soulService;
+    private readonly string? _projectDir;
 
     private readonly ConcurrentDictionary<string, SessionState> _sessionStates = new();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _sessionLocks = new();
@@ -35,7 +36,8 @@ public sealed class ContextManager
         TokenBudget budget,
         PromptBuilder promptBuilder,
         ILogger<ContextManager> logger,
-        SoulService? soulService = null)
+        SoulService? soulService = null,
+        string? projectDir = null)
     {
         _transcripts = transcripts;
         _chatClient = chatClient;
@@ -43,6 +45,7 @@ public sealed class ContextManager
         _promptBuilder = promptBuilder;
         _logger = logger;
         _soulService = soulService;
+        _projectDir = projectDir;
     }
 
     /// <summary>
@@ -150,7 +153,7 @@ public sealed class ContextManager
             {
                 try
                 {
-                    soulContext = await _soulService.AssembleSoulContextAsync();
+                    soulContext = await _soulService.AssembleSoulContextAsync(_projectDir);
                 }
                 catch (Exception ex)
                 {

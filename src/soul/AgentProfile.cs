@@ -1,5 +1,6 @@
 namespace Hermes.Agent.Soul;
 
+using Hermes.Agent.LLM;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
@@ -44,6 +45,7 @@ public sealed class AgentProfileManager
     private readonly string _profilesDir;
     private readonly SoulService _soulService;
     private readonly ILogger<AgentProfileManager> _logger;
+    private readonly ChatClientFactory? _chatClientFactory;
 
     private static readonly JsonSerializerOptions JsonOpts = new()
     {
@@ -51,11 +53,16 @@ public sealed class AgentProfileManager
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public AgentProfileManager(string profilesDir, SoulService soulService, ILogger<AgentProfileManager> logger)
+    public AgentProfileManager(
+        string profilesDir,
+        SoulService soulService,
+        ILogger<AgentProfileManager> logger,
+        ChatClientFactory? chatClientFactory = null)
     {
         _profilesDir = profilesDir;
         _soulService = soulService;
         _logger = logger;
+        _chatClientFactory = chatClientFactory;
         Directory.CreateDirectory(profilesDir);
     }
 
@@ -123,6 +130,28 @@ public sealed class AgentProfileManager
 
         // Apply soul content
         await _soulService.SaveFileAsync(SoulFileType.Soul, profile.SoulContent);
+
+        if (_chatClientFactory is not null &&
+            (!string.IsNullOrWhiteSpace(profile.PreferredProvider) || !string.IsNullOrWhiteSpace(profile.PreferredModel)))
+        {
+            var current = _chatClientFactory.CurrentConfig;
+            _chatClientFactory.SwitchProvider(new LlmConfig
+            {
+                Provider = string.IsNullOrWhiteSpace(profile.PreferredProvider) ? current.Provider : profile.PreferredProvider!,
+                Model = string.IsNullOrWhiteSpace(profile.PreferredModel) ? current.Model : profile.PreferredModel!,
+                BaseUrl = current.BaseUrl,
+                ApiKey = current.ApiKey,
+                AuthMode = current.AuthMode,
+                AuthHeader = current.AuthHeader,
+                AuthScheme = current.AuthScheme,
+                ApiKeyEnv = current.ApiKeyEnv,
+                AuthTokenEnv = current.AuthTokenEnv,
+                AuthTokenCommand = current.AuthTokenCommand,
+                Temperature = current.Temperature,
+                MaxTokens = current.MaxTokens
+            });
+        }
+
         _logger.LogInformation("Activated agent profile: {Name}", profile.Name);
     }
 
@@ -130,6 +159,12 @@ public sealed class AgentProfileManager
     public string? GetActiveProfileName()
     {
         return ListProfiles().FirstOrDefault(p => p.IsActive)?.Name;
+    }
+
+    /// <summary>Get the currently active profile, or null.</summary>
+    public AgentProfile? GetActiveProfile()
+    {
+        return ListProfiles().FirstOrDefault(p => p.IsActive);
     }
 
     private static string SanitizeName(string name)

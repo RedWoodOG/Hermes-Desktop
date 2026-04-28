@@ -188,6 +188,37 @@ public sealed class SoulService
         return result;
     }
 
+    /// <summary>
+    /// Return the human-readable runtime identity currently represented by SOUL.md.
+    /// The runtime truth is the file content; profiles and templates are labels only
+    /// when their saved content still matches that file exactly.
+    /// </summary>
+    public async Task<string> GetRuntimeSoulNameAsync(
+        SoulRegistry? registry = null,
+        AgentProfileManager? profileManager = null)
+    {
+        var soul = await LoadFileAsync(SoulFileType.Soul);
+        var normalizedSoul = NormalizeSoulContent(soul);
+
+        var activeProfile = profileManager?.GetActiveProfile();
+        if (activeProfile is not null &&
+            string.Equals(normalizedSoul, NormalizeSoulContent(activeProfile.SoulContent), StringComparison.Ordinal))
+        {
+            return activeProfile.Name;
+        }
+
+        if (registry is not null)
+        {
+            foreach (var template in registry.ListSouls())
+            {
+                if (string.Equals(normalizedSoul, NormalizeSoulContent(template.Content), StringComparison.Ordinal))
+                    return template.Name;
+            }
+        }
+
+        return string.IsNullOrWhiteSpace(soul) ? "Default" : "Custom";
+    }
+
     // ── Default templates ──
 
     private void EnsureDefaultTemplates()
@@ -233,6 +264,13 @@ public sealed class SoulService
     {
         if (text.Length <= maxChars) return text;
         return text[..maxChars] + "\n[...truncated]";
+    }
+
+    private static string NormalizeSoulContent(string? content)
+    {
+        return (content ?? "")
+            .Replace("\r\n", "\n", StringComparison.Ordinal)
+            .Trim();
     }
 
     private static string SanitizeDirName(string dir)
