@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Hermes Desktop Logo</title>
+  <desc id="desc">A gold angular Hermes emblem on a rounded dark square background.</desc>
+  <defs>
+    <radialGradient id="bg" cx="36%" cy="20%" r="82%">
+      <stop offset="0" stop-color="#34363A"/>
+      <stop offset="0.52" stop-color="#181A1D"/>
+      <stop offset="1" stop-color="#090D13"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="108" y1="112" x2="388" y2="426" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF176"/>
+      <stop offset="0.16" stop-color="#FFCA28"/>
+      <stop offset="0.48" stop-color="#E3A70B"/>
+      <stop offset="0.76" stop-color="#FFC929"/>
+      <stop offset="1" stop-color="#A66A00"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="100" y1="100" x2="410" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF7B0"/>
+      <stop offset="0.28" stop-color="#F0B20D"/>
+      <stop offset="0.72" stop-color="#FFD34A"/>
+      <stop offset="1" stop-color="#7A4A00"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="92" fill="url(#bg)"/>
+  <rect x="18" y="18" width="476" height="476" rx="90" fill="none" stroke="#FFFFFF" stroke-opacity="0.10" stroke-width="2"/>
+  <g>
+    <path d="M117 116 L207 148 C221 153 230 163 230 178 L230 257 L256 273 L282 257 L282 178 C282 163 291 153 305 148 L395 116 L402 154 C404 167 398 176 386 181 L315 209 L315 282 L256 318 L197 282 L197 209 L126 181 C114 176 108 167 110 154 Z" fill="url(#gold)" stroke="url(#edge)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M132 202 L195 229 L195 356 L250 337 L255 382 L139 429 Z" fill="url(#gold)" stroke="url(#edge)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M380 202 L317 229 L317 356 L262 337 L257 382 L373 429 Z" fill="url(#gold)" stroke="url(#edge)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M132 177 L194 203 L194 246 L148 230 Z" fill="url(#gold)" stroke="url(#edge)" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M380 177 L318 203 L318 246 L364 230 Z" fill="url(#gold)" stroke="url(#edge)" stroke-width="4" stroke-linejoin="round"/>
+  </g>
+  <g opacity="0.28">
+    <path d="M126 124 L208 154 C218 158 222 165 222 176" fill="none" stroke="#FFF4A0" stroke-width="5" stroke-linecap="round"/>
+    <path d="M386 124 L304 154 C294 158 290 165 290 176" fill="none" stroke="#FFF4A0" stroke-width="5" stroke-linecap="round"/>
+  </g>
+</svg>
