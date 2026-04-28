@@ -27,6 +27,8 @@ public class IChatClientBridgeTests
     private sealed class RecordingChatClient : IChatClient
     {
         public List<Message>? LastMessages { get; private set; }
+        public string? LastSystemPrompt { get; private set; }
+        public bool LastSystemPromptCaptured { get; private set; }
 
         public Task<string> CompleteAsync(IEnumerable<Message> messages, CancellationToken ct)
         {
@@ -59,6 +61,8 @@ public class IChatClientBridgeTests
             IEnumerable<ToolDefinition>? tools = null,
             [EnumeratorCancellation] CancellationToken ct = default)
         {
+            LastSystemPrompt = systemPrompt;
+            LastSystemPromptCaptured = true;
             LastMessages = messages.ToList();
             await Task.CompletedTask;
             yield break;
@@ -226,5 +230,130 @@ public class IChatClientBridgeTests
         StringAssert.Contains(observed[0].Content, "soul");
         StringAssert.Contains(observed[0].Content, "stray");
         AssertContractHolds(observed);
+    }
+
+    // ── systemPrompt parameter threading (AnthropicClient streaming) ──
+
+    [TestMethod]
+    public async Task StreamAsync_NonEmptySystem_PassesAsSystemPromptParameter()
+    {
+        // Anthropic streaming reads only the systemPrompt parameter to set
+        // its top-level "system" field; it drops role:"system" messages from
+        // the messages list. The bridge must thread rendered system content
+        // into systemPrompt or SystemContext is silently lost on Anthropic.
+        var client = new RecordingChatClient();
+        IChatClient ic = client;
+        var sys = new SystemContext { Soul = "soul", Wiki = "wiki" };
+        var conv = new[] { new Message { Role = "user", Content = "hi" } };
+
+        await foreach (var _ in ic.StreamAsync(sys, conv, null, default))
+        {
+            // drain
+        }
+
+        Assert.IsTrue(client.LastSystemPromptCaptured);
+        Assert.IsNotNull(
+            client.LastSystemPrompt,
+            "Bridge must pass rendered system content via systemPrompt parameter so AnthropicClient streaming can populate top-level system field.");
+        StringAssert.Contains(client.LastSystemPrompt!, "soul");
+        StringAssert.Contains(client.LastSystemPrompt!, "wiki");
+    }
+
+    [TestMethod]
+    public async Task StreamAsync_EmptySystem_PassesNullSystemPrompt()
+    {
+        var client = new RecordingChatClient();
+        IChatClient ic = client;
+        var conv = new[] { new Message { Role = "user", Content = "hi" } };
+
+        await foreach (var _ in ic.StreamAsync(SystemContext.Empty, conv, null, default))
+        {
+            // drain
+        }
+
+        Assert.IsTrue(client.LastSystemPromptCaptured);
+        Assert.IsNull(client.LastSystemPrompt);
+    }
+
+    // ── Bridge sanitization: dirty conversation passed directly ──
+
+    [TestMethod]
+    public async Task StreamAsync_DirtyConversationDirect_SystemMessagesHoisted()
+    {
+        // A caller skips FromLegacyMessages and feeds a conversation that
+        // happens to contain a role:"system" entry directly into the new
+        // overload. The bridge must hoist it into the system block rather
+        // than letting it slip through mid-list (where strict servers reject).
+        var client = new RecordingChatClient();
+        IChatClient ic = client;
+        var sys = new SystemContext { Soul = "soul" };
+        var dirty = new[]
+        {
+            new Message { Role = "user", Content = "hi" },
+            new Message { Role = "system", Content = "stray" }, // Qodo Bug 2
+            new Message { Role = "assistant", Content = "ok" }
+        };
+
+        await foreach (var _ in ic.StreamAsync(sys, dirty, null, default))
+        {
+            // drain
+        }
+
+        var observed = client.LastMessages!;
+        AssertContractHolds(observed);
+        Assert.AreEqual("system", observed[0].Role);
+        StringAssert.Contains(observed[0].Content, "soul");
+        StringAssert.Contains(observed[0].Content, "stray");
+        StringAssert.Contains(client.LastSystemPrompt!, "soul");
+        StringAssert.Contains(client.LastSystemPrompt!, "stray");
+        Assert.AreEqual(3, observed.Count);
+    }
+
+    [TestMethod]
+    public async Task CompleteWithToolsAsync_DirtyConversationDirect_SystemMessagesHoisted()
+    {
+        var client = new RecordingChatClient();
+        IChatClient ic = client;
+        var sys = new SystemContext { Persona = "persona" };
+        var dirty = new[]
+        {
+            new Message { Role = "user", Content = "first" },
+            new Message { Role = "system", Content = "mid-stray" }, // Qodo Bug 2
+            new Message { Role = "user", Content = "second" }
+        };
+
+        await ic.CompleteWithToolsAsync(sys, dirty, Array.Empty<ToolDefinition>(), default);
+
+        var observed = client.LastMessages!;
+        AssertContractHolds(observed);
+        Assert.AreEqual("system", observed[0].Role);
+        StringAssert.Contains(observed[0].Content, "persona");
+        StringAssert.Contains(observed[0].Content, "mid-stray");
+        Assert.AreEqual(3, observed.Count);
+    }
+
+    [TestMethod]
+    public async Task StreamAsync_OnlyStraySystemNoContext_StillCoalescedToLeading()
+    {
+        // SystemContext is empty but conversation contains a stray system
+        // message. The bridge should still hoist it.
+        var client = new RecordingChatClient();
+        IChatClient ic = client;
+        var dirty = new[]
+        {
+            new Message { Role = "user", Content = "hi" },
+            new Message { Role = "system", Content = "stray-only" }
+        };
+
+        await foreach (var _ in ic.StreamAsync(SystemContext.Empty, dirty, null, default))
+        {
+            // drain
+        }
+
+        var observed = client.LastMessages!;
+        AssertContractHolds(observed);
+        Assert.AreEqual("system", observed[0].Role);
+        StringAssert.Contains(observed[0].Content, "stray-only");
+        StringAssert.Contains(client.LastSystemPrompt!, "stray-only");
     }
 }
