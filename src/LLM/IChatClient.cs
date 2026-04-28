@@ -24,6 +24,60 @@ public interface IChatClient
         IEnumerable<Message> messages,
         IEnumerable<ToolDefinition>? tools = null,
         CancellationToken ct = default);
+
+    // ── SystemContext-aware overloads ──
+    //
+    // Default implementations bridge to the legacy methods by emitting a
+    // single coalesced leading system message. This is byte-equivalent to
+    // current behavior for AnthropicClient (its extractor finds the one
+    // coalesced system and routes it to Anthropic's `system` param) and a
+    // strict-spec fix for OpenAiClient (one leading system, none mid-list)
+    // which unblocks vLLM/Qwen, llama.cpp strict templates, TGI, and
+    // LMStudio strict-template models.
+    //
+    // Providers may override these for native rendering (e.g. Anthropic
+    // can later send each layer as a separate cache_control block to
+    // unlock prompt caching on stable layers).
+
+    /// <summary>
+    /// Completion with system context passed structurally. The conversation
+    /// list must not contain <c>role: "system"</c> entries; layered system
+    /// content goes in <paramref name="system"/>.
+    /// </summary>
+    Task<ChatResponse> CompleteWithToolsAsync(
+        SystemContext system,
+        IEnumerable<Message> conversation,
+        IEnumerable<ToolDefinition> tools,
+        CancellationToken ct)
+        => CompleteWithToolsAsync(BridgeToLegacy(system, conversation), tools, ct);
+
+    /// <summary>
+    /// Streaming with system context passed structurally. The conversation
+    /// list must not contain <c>role: "system"</c> entries; layered system
+    /// content goes in <paramref name="system"/>.
+    /// </summary>
+    IAsyncEnumerable<StreamEvent> StreamAsync(
+        SystemContext system,
+        IEnumerable<Message> conversation,
+        IEnumerable<ToolDefinition>? tools = null,
+        CancellationToken ct = default)
+        => StreamAsync(systemPrompt: null, BridgeToLegacy(system, conversation), tools, ct);
+
+    /// <summary>
+    /// Coalesces a SystemContext into a single leading system message and
+    /// prepends it to the conversation. Guarantees the resulting sequence
+    /// contains zero mid-list system messages — the load-bearing invariant
+    /// strict OpenAI-compatible servers depend on.
+    /// </summary>
+    private static IEnumerable<Message> BridgeToLegacy(
+        SystemContext system,
+        IEnumerable<Message> conversation)
+    {
+        if (!system.IsEmpty)
+            yield return new Message { Role = "system", Content = system.Render("\n\n") };
+        foreach (var m in conversation)
+            yield return m;
+    }
 }
 
 public sealed class LlmConfig

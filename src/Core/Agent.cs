@@ -707,7 +707,7 @@ public sealed class Agent : IAgent
             var messagesToSend = preparedContext ?? session.Messages;
 
             await foreach (var evt in WatchProviderStreamAsync(
-                _chatClient.StreamAsync(null, messagesToSend, null, ct), ct))
+                _chatClient.StreamAsync((string?)null, messagesToSend, null, ct), ct))
             {
                 if (evt is StreamEvent.TokenDelta td)
                     streamedResponse.Append(td.Text);
