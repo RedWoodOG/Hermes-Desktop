@@ -24,6 +24,7 @@ using Hermes.Agent.Gateway.Platforms;
 using Hermes.Agent.Dream;
 using Hermes.Agent.Dreamer;
 using HermesDesktop.Services;
+using HermesDesktop.Tools;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -791,6 +792,9 @@ public partial class App : Application
         // Shell execution tools
         RegisterAndTrack(agent, toolRegistry, new BashTool(executionConfig: BuildExecutionConfig()));
         RegisterAndTrack(agent, toolRegistry, new TerminalTool());
+
+        // Native Windows UI Automation for desktop apps without CLIs/APIs.
+        RegisterAndTrack(agent, toolRegistry, new WindowsAutomationTool());
 
         // Web tools — pull provider + API keys from HermesEnvironment so the user's
         // configured search provider in config.yaml is honored. Hardcoding "duckduckgo"

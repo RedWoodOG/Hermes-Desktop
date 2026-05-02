@@ -6,19 +6,20 @@ Native Windows desktop shell for `NousResearch/hermes-agent`, built with `WinUI 
 
 ## What It Is
 
-Hermes Desktop wraps an existing local Hermes install in a Windows-native workspace with:
+Hermes Desktop runs the Hermes agent core in-process inside a Windows-native workspace with:
 
 - a focused chat surface
 - a native navigation shell
 - quick access to logs, config, and workspace actions
-- a lightweight local sidecar that bridges the WinUI app to Hermes CLI
+- built-in tools for files, shell, web access, browser automation, and native Windows UI Automation
+- optional messenger gateway support for Telegram, Discord, and other configured platforms
 
 ## Requirements
 
 - Windows 10 or Windows 11
 - .NET 10 SDK
 - Visual Studio with WinUI / Windows App SDK tooling
-- An existing `hermes-agent` installation
+- Provider credentials in `%LOCALAPPDATA%\hermes\config.yaml`
 
 ## Run The App
 
@@ -53,8 +54,8 @@ If the build succeeds but the app window never appears:
 ## Project Layout
 
 - `Views/` WinUI pages
-- `Services/` Hermes environment, chat bridge, and sidecar launcher
-- `sidecar/` local Python HTTP bridge to Hermes CLI
+- `Services/` Hermes environment, chat bridge, runtime status, and diagnostics
+- `Tools/` desktop-only agent tools such as Windows UI Automation
 - `Strings/en-us/Resources.resw` localized UI copy
 
 ## Status
