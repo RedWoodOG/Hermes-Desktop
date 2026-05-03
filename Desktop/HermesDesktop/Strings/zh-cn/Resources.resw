@@ -567,6 +567,18 @@
   <data name="ChatPermissionModeNameBypass" xml:space="preserve">
     <value>绕过</value>
   </data>
+  <data name="ChatPermissionClearRememberedAction" xml:space="preserve">
+    <value>清除此工作区记住的工具权限</value>
+  </data>
+  <data name="ChatPermissionClearRememberedSuccess" xml:space="preserve">
+    <value>已清除此工作区记住的工具权限。</value>
+  </data>
+  <data name="ChatPermissionClearRememberedNoop" xml:space="preserve">
+    <value>没有可清除的工作区工具权限。</value>
+  </data>
+  <data name="ChatPermissionClearRememberedErrorFormat" xml:space="preserve">
+    <value>无法清除记住的工作区工具权限：{0}</value>
+  </data>
   <data name="DashOverviewKpiSessionsTitle.Text" xml:space="preserve">
     <value>会话</value>
   </data>
