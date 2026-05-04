@@ -42,18 +42,18 @@ public sealed class ChatPermissionResourceTests
 
     private static string FindRepoRoot()
     {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
+        var directory = AppContext.BaseDirectory;
+        while (!string.IsNullOrWhiteSpace(directory))
         {
-            var marker = Path.Combine(directory.FullName, "HermesDesktop.sln");
+            var marker = Path.Combine(directory, "HermesDesktop.sln");
             if (File.Exists(marker))
             {
-                return directory.FullName;
+                return directory;
             }
 
-            directory = directory.Parent;
+            directory = Directory.GetParent(directory)?.FullName;
         }
 
-        throw new DirectoryNotFoundException("Could not find HermesDesktop.sln from test output directory.");
+        throw new InvalidOperationException("Could not find HermesDesktop.sln from test output directory.");
     }
 }
