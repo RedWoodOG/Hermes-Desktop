@@ -180,7 +180,12 @@ public sealed class OpenAiClient : IChatClient
 
     private object BuildPayload(IEnumerable<Message> messages, object? tools, bool stream)
     {
-        var msgs = messages.Select(m =>
+        // Provider-boundary guardrail for strict OpenAI-compatible servers
+        // (vLLM/Qwen, llama.cpp strict templates, TGI): even legacy/direct
+        // callers must serialize at most one system message, and only at index 0.
+        var (_, normalizedMessages) = SystemContext.Empty.CoalesceWith(messages);
+
+        var msgs = normalizedMessages.Select(m =>
         {
             // Tool result message
             if (m.Role == "tool")
