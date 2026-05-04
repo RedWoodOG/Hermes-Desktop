@@ -18,6 +18,7 @@ jobs:
 
       - name: Run AI inference
         id: inference
+        continue-on-error: true
         uses: actions/ai-inference@v1
         with:
           prompt: |
@@ -27,9 +28,15 @@ jobs:
             Body: ${{ github.event.issue.body }}
 
       - name: Comment with AI summary
+        if: ${{ steps.inference.outputs.response != '' }}
         run: |
           gh issue comment $ISSUE_NUMBER --body "$RESPONSE"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           RESPONSE: ${{ steps.inference.outputs.response }}
+
+      - name: Skip summary when AI inference is unavailable
+        if: ${{ steps.inference.outputs.response == '' }}
+        run: |
+          echo "::notice::AI issue summary skipped because inference returned no response. The issue remains open and the workflow will not fail for model budget/API availability."
