@@ -245,7 +245,7 @@ public class OpenAiClientAuthTests
                 capturedRequest = request;
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = new StreamContent(new MemoryStream(Encoding.UTF8.GetBytes(sse)))
+                    Content = new SseTestContent(sse)
                 };
             }));
 
@@ -304,7 +304,7 @@ public class OpenAiClientAuthTests
                 capturedRequest = request;
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = new StreamContent(new MemoryStream(Encoding.UTF8.GetBytes(sse)))
+                    Content = new SseTestContent(sse)
                 };
             }));
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "shared-default-token");
@@ -363,7 +363,7 @@ public class OpenAiClientAuthTests
                 capturedRequest = request;
                 return new HttpResponseMessage(HttpStatusCode.OK)
                 {
-                    Content = new StreamContent(new MemoryStream(Encoding.UTF8.GetBytes(sse)))
+                    Content = new SseTestContent(sse)
                 };
             }));
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "shared-default-token");
@@ -456,6 +456,21 @@ public class OpenAiClientAuthTests
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             return Task.FromResult(responseFactory(request));
+        }
+    }
+
+    private sealed class SseTestContent(string payload) : HttpContent
+    {
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context)
+        {
+            var bytes = Encoding.UTF8.GetBytes(payload);
+            return stream.WriteAsync(bytes, 0, bytes.Length);
+        }
+
+        protected override bool TryComputeLength(out long length)
+        {
+            length = Encoding.UTF8.GetByteCount(payload);
+            return true;
         }
     }
 }
