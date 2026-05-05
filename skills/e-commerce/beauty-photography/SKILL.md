@@ -1,6 +1,6 @@
 ---
 name: beauty-photography-master
-description: Use this skill whenever the user uploads a perfume or beauty product photo and wants luxury advertising campaign images or short video ads. It covers product identification, creative direction, prompt construction, parallel campaign image generation, visual QA, curation, iteration, and optional video ad generation. Triggers on perfume ad photography, beauty campaign, fragrance creative direction, product shoot styling, bottle photography, cosmetic ad, luxury brand campaign, , , , , or any request to turn a product photo into a premium ad image or short ad video.
+description: Use this skill whenever the user uploads a perfume or beauty product photo and wants luxury advertising campaign images or short video ads. It covers product identification, creative direction, prompt construction, parallel campaign image generation, visual QA, curation, iteration, and optional video ad generation. Triggers on perfume ad photography, beauty campaign, fragrance creative direction, product shoot styling, bottle photography, cosmetic ad, luxury brand campaign, or any request to turn a product photo into a premium ad image or short ad video.
 ---
 
 # Beauty Photography Master

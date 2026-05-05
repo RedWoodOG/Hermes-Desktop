@@ -99,7 +99,7 @@
     },
     {
       "id": 3,
-      "prompt": ", ",
+      "prompt": "我有一张白色背景的迪奥真我香水瓶产品照，能帮我做几组高端广告图吗？",
       "expected_output": "Skill triggers on Chinese input. Full workflow executes. AskQuestion prompts display bilingual (Chinese + English). Output quality matches English-language runs.",
       "files": [],
       "assertions": [
