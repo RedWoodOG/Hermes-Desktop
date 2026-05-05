@@ -4,6 +4,14 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace HermesDesktop.Tests.Localization;
 
+internal sealed class SolutionRootNotFoundException : Exception
+{
+    public SolutionRootNotFoundException(string message)
+        : base(message)
+    {
+    }
+}
+
 [TestClass]
 public sealed class ChatPermissionResourceTests
 {
@@ -54,6 +62,6 @@ public sealed class ChatPermissionResourceTests
             directory = Directory.GetParent(directory)?.FullName;
         }
 
-        throw new InvalidOperationException("Could not find HermesDesktop.sln from test output directory.");
+        throw new SolutionRootNotFoundException("Could not find HermesDesktop.sln from test output directory.");
     }
 }
