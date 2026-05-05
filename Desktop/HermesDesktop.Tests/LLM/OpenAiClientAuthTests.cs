@@ -107,14 +107,14 @@ public class OpenAiClientAuthTests
             data: [DONE]
 
             """;
-        using var httpClient = new HttpClient(new CaptureHandler(request =>
-        {
-            capturedJson = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
-            return new HttpResponseMessage(HttpStatusCode.OK)
+            using var httpClient = new HttpClient(new CaptureHandler(request =>
             {
-                Content = new StreamContent(new MemoryStream(Encoding.UTF8.GetBytes(sse)))
-            };
-        }));
+                capturedJson = request.Content!.ReadAsStringAsync().GetAwaiter().GetResult();
+                return new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new SseTestContent(sse)
+                };
+            }));
 
         var client = new OpenAiClient(
             new LlmConfig
