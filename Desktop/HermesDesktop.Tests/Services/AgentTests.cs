@@ -1464,59 +1464,62 @@ public class AgentStreamChatTests
     }
 
     private sealed class StreamEmptyParams { }
+}
 
-    /// <summary>Stub IChatClient with configurable streaming behavior.</summary>
-    private sealed class StubStreamingChatClient : IChatClient
+/// <summary>
+/// Stub IChatClient with configurable streaming behavior. Lifted to namespace
+/// scope so the streaming and stream-fallback test classes can both use it.
+/// </summary>
+internal sealed class StubStreamingChatClient : IChatClient
+{
+    public IReadOnlyList<StreamEvent> StreamEvents { get; set; } = Array.Empty<StreamEvent>();
+    public TimeSpan DelayBeforeFirstEvent { get; set; } = TimeSpan.Zero;
+    public Exception? ThrowOnStream { get; set; }
+    /// <summary>If set, throws this exception after yielding the first N events.</summary>
+    public (int After, Exception Ex)? ThrowMidStream { get; set; }
+    public Func<IEnumerable<Message>, IEnumerable<ToolDefinition>, CancellationToken, Task<ChatResponse>>? OnCompleteWithTools { get; set; }
+
+    public Task<string> CompleteAsync(IEnumerable<Message> messages, CancellationToken ct)
+        => throw new NotImplementedException();
+
+    public Task<ChatResponse> CompleteWithToolsAsync(
+        IEnumerable<Message> messages,
+        IEnumerable<ToolDefinition> tools,
+        CancellationToken ct)
     {
-        public IReadOnlyList<StreamEvent> StreamEvents { get; set; } = Array.Empty<StreamEvent>();
-        public TimeSpan DelayBeforeFirstEvent { get; set; } = TimeSpan.Zero;
-        public Exception? ThrowOnStream { get; set; }
-        /// <summary>If set, throws this exception after yielding the first N events.</summary>
-        public (int After, Exception Ex)? ThrowMidStream { get; set; }
-        public Func<IEnumerable<Message>, IEnumerable<ToolDefinition>, CancellationToken, Task<ChatResponse>>? OnCompleteWithTools { get; set; }
+        if (OnCompleteWithTools is not null)
+            return OnCompleteWithTools(messages, tools, ct);
+        return Task.FromResult(new ChatResponse { Content = "", FinishReason = "stop" });
+    }
 
-        public Task<string> CompleteAsync(IEnumerable<Message> messages, CancellationToken ct)
-            => throw new NotImplementedException();
+    public IAsyncEnumerable<string> StreamAsync(IEnumerable<Message> messages, CancellationToken ct)
+        => throw new NotImplementedException();
 
-        public Task<ChatResponse> CompleteWithToolsAsync(
-            IEnumerable<Message> messages,
-            IEnumerable<ToolDefinition> tools,
-            CancellationToken ct)
-        {
-            if (OnCompleteWithTools is not null)
-                return OnCompleteWithTools(messages, tools, ct);
-            return Task.FromResult(new ChatResponse { Content = "", FinishReason = "stop" });
-        }
+    public async IAsyncEnumerable<StreamEvent> StreamAsync(
+        string? systemPrompt,
+        IEnumerable<Message> messages,
+        IEnumerable<ToolDefinition>? tools = null,
+        [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
 
-        public IAsyncEnumerable<string> StreamAsync(IEnumerable<Message> messages, CancellationToken ct)
-            => throw new NotImplementedException();
+        if (ThrowOnStream is not null)
+            throw ThrowOnStream;
 
-        public async IAsyncEnumerable<StreamEvent> StreamAsync(
-            string? systemPrompt,
-            IEnumerable<Message> messages,
-            IEnumerable<ToolDefinition>? tools = null,
-            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+        if (DelayBeforeFirstEvent > TimeSpan.Zero)
+            await Task.Delay(DelayBeforeFirstEvent, ct);
+
+        int yielded = 0;
+        foreach (var evt in StreamEvents)
         {
             ct.ThrowIfCancellationRequested();
-
-            if (ThrowOnStream is not null)
-                throw ThrowOnStream;
-
-            if (DelayBeforeFirstEvent > TimeSpan.Zero)
-                await Task.Delay(DelayBeforeFirstEvent, ct);
-
-            int yielded = 0;
-            foreach (var evt in StreamEvents)
-            {
-                ct.ThrowIfCancellationRequested();
-                if (ThrowMidStream is { } trip && yielded == trip.After)
-                    throw trip.Ex;
-                yield return evt;
-                yielded++;
-            }
-            if (ThrowMidStream is { } trailing && yielded == trailing.After)
-                throw trailing.Ex;
+            if (ThrowMidStream is { } trip && yielded == trip.After)
+                throw trip.Ex;
+            yield return evt;
+            yielded++;
         }
+        if (ThrowMidStream is { } trailing && yielded == trailing.After)
+            throw trailing.Ex;
     }
 }
 
@@ -1524,23 +1527,27 @@ public class AgentStreamChatTests
 /// Regression tests for issue #51 — mid-SSE HttpRequestException retry via
 /// ActivateFallback. Async iterators forbid yield-return inside catch, so
 /// WatchProviderStreamAsync uses an outer retry loop with a stream factory:
-/// on the primary's mid-stream HTTP fault, it disposes, swaps to the fallback
-/// client, and re-enters with a fresh enumerator.
+/// on the primary's HTTP fault before any tokens are emitted, it disposes,
+/// swaps to the fallback client, and re-enters with a fresh enumerator.
+///
+/// The retry only fires when (a) the turn is currently on the primary client
+/// and (b) zero tokens have been yielded so far. After tokens have been
+/// emitted, a fault surfaces as StreamError instead — restarting would
+/// replay the prompt against the fallback and concatenate two independent
+/// completions into the saved assistant message.
 /// </summary>
 [TestClass]
 public class AgentStreamFallbackTests
 {
     [TestMethod]
-    public async Task StreamChatAsync_MidStreamHttpFault_ResumesViaFallback()
+    public async Task StreamChatAsync_FaultBeforeAnyTokens_ResumesViaFallback()
     {
+        // Primary throws on the SSE handshake (After: 0 — before any
+        // TokenDelta). Fallback emits a clean response.
         var primary = new StubStreamingChatClient
         {
-            StreamEvents = new StreamEvent[]
-            {
-                new StreamEvent.TokenDelta("p1"),
-                new StreamEvent.TokenDelta("p2"),
-            },
-            ThrowMidStream = (After: 2, Ex: new HttpRequestException("primary down")),
+            StreamEvents = new StreamEvent[] { new StreamEvent.TokenDelta("never") },
+            ThrowMidStream = (After: 0, Ex: new HttpRequestException("primary down")),
         };
         var fallback = new StubStreamingChatClient
         {
@@ -1560,31 +1567,61 @@ public class AgentStreamFallbackTests
             events.Add(evt);
 
         var tokens = events.OfType<StreamEvent.TokenDelta>().Select(t => t.Text).ToList();
-        CollectionAssert.AreEqual(new[] { "p1", "p2", "f1", "f2" }, tokens);
+        CollectionAssert.AreEqual(new[] { "f1", "f2" }, tokens);
         Assert.IsFalse(events.OfType<StreamEvent.StreamError>().Any(),
-            "Mid-stream HTTP fault should be absorbed by fallback retry, not surfaced as StreamError.");
+            "Pre-token HTTP fault should be absorbed by fallback retry, not surfaced as StreamError.");
         Assert.IsTrue(events.OfType<StreamEvent.MessageComplete>().Any(),
             "MessageComplete from fallback should pass through.");
 
-        // Persisted assistant message reflects the union of primary + fallback tokens.
         var assistantMsg = session.Messages.SingleOrDefault(m => m.Role == "assistant");
         Assert.IsNotNull(assistantMsg);
-        Assert.AreEqual("p1p2f1f2", assistantMsg.Content);
+        Assert.AreEqual("f1f2", assistantMsg.Content);
     }
 
     [TestMethod]
-    public async Task StreamChatAsync_MidStreamHttpFault_NoFallback_SurfacesStreamError()
+    public async Task StreamChatAsync_FaultAfterTokens_SurfacesStreamError_NoRetry()
     {
-        // Without a fallback client, the same fault must still surface as a
-        // StreamError so callers can react — the new retry path must not
-        // swallow errors when there's nothing to retry against.
+        // The retry must NOT fire after tokens have already been emitted —
+        // restarting would re-send the original prompt and concatenate a
+        // second completion. Surface the fault instead.
         var primary = new StubStreamingChatClient
         {
             StreamEvents = new StreamEvent[]
             {
-                new StreamEvent.TokenDelta("only"),
+                new StreamEvent.TokenDelta("p1"),
+                new StreamEvent.TokenDelta("p2"),
             },
-            ThrowMidStream = (After: 1, Ex: new HttpRequestException("primary down")),
+            ThrowMidStream = (After: 2, Ex: new HttpRequestException("mid-stream fault")),
+        };
+        var fallback = new StubStreamingChatClient
+        {
+            StreamEvents = new StreamEvent[] { new StreamEvent.TokenDelta("should-not-appear") },
+        };
+
+        var agent = new Agent(primary, NullLogger<Agent>.Instance, fallbackChatClient: fallback);
+        var session = new Session { Id = "stream-mid-fault" };
+        var events = new List<StreamEvent>();
+        await foreach (var evt in agent.StreamChatAsync("hi", session, CancellationToken.None))
+            events.Add(evt);
+
+        var tokens = events.OfType<StreamEvent.TokenDelta>().Select(t => t.Text).ToList();
+        CollectionAssert.AreEqual(new[] { "p1", "p2" }, tokens);
+        Assert.AreEqual(1, events.OfType<StreamEvent.StreamError>().Count(),
+            "Fault after tokens have been emitted must surface as StreamError, not trigger a fallback retry.");
+        Assert.IsFalse(tokens.Contains("should-not-appear"),
+            "Fallback must not be invoked once primary has emitted tokens.");
+    }
+
+    [TestMethod]
+    public async Task StreamChatAsync_NoFallback_SurfacesStreamError()
+    {
+        // Without a fallback client, the fault must surface as a StreamError
+        // so callers can react — the retry path must not swallow errors when
+        // there's nothing to retry against.
+        var primary = new StubStreamingChatClient
+        {
+            StreamEvents = new StreamEvent[] { new StreamEvent.TokenDelta("only") },
+            ThrowMidStream = (After: 0, Ex: new HttpRequestException("primary down")),
         };
 
         var agent = new Agent(primary, NullLogger<Agent>.Instance);
@@ -1593,7 +1630,8 @@ public class AgentStreamFallbackTests
         await foreach (var evt in agent.StreamChatAsync("hi", session, CancellationToken.None))
             events.Add(evt);
 
-        Assert.IsTrue(events.OfType<StreamEvent.TokenDelta>().Any(t => t.Text == "only"));
+        Assert.IsFalse(events.OfType<StreamEvent.TokenDelta>().Any(),
+            "Pre-token fault with no fallback yields no tokens.");
         var error = events.OfType<StreamEvent.StreamError>().SingleOrDefault();
         Assert.IsNotNull(error, "HTTP fault with no fallback should yield a StreamError.");
     }
@@ -1605,8 +1643,8 @@ public class AgentStreamFallbackTests
         // error must surface rather than spinning forever.
         var primary = new StubStreamingChatClient
         {
-            StreamEvents = new StreamEvent[] { new StreamEvent.TokenDelta("p") },
-            ThrowMidStream = (After: 1, Ex: new HttpRequestException("primary down")),
+            StreamEvents = new StreamEvent[] { new StreamEvent.TokenDelta("never") },
+            ThrowMidStream = (After: 0, Ex: new HttpRequestException("primary down")),
         };
         var fallback = new StubStreamingChatClient
         {
@@ -1621,8 +1659,50 @@ public class AgentStreamFallbackTests
             events.Add(evt);
 
         var tokens = events.OfType<StreamEvent.TokenDelta>().Select(t => t.Text).ToList();
-        CollectionAssert.AreEqual(new[] { "p", "f" }, tokens);
+        CollectionAssert.AreEqual(new[] { "f" }, tokens);
         Assert.AreEqual(1, events.OfType<StreamEvent.StreamError>().Count(),
             "Second fault (on fallback) should surface as a StreamError.");
+    }
+
+    [TestMethod]
+    public async Task StreamChatAsync_AlreadyOnFallbackAtTurnStart_FaultSurfacesAsStreamError()
+    {
+        // If a prior non-streaming call already activated fallback (during
+        // the restoration cooldown), GetActiveChatClient returns the fallback
+        // client at turn start. A subsequent HttpRequestException must NOT
+        // attempt fallback again — there is no second fallback, and
+        // ActivateFallback would rethrow the raw exception out of the
+        // iterator. The fault must surface as a StreamError.
+        var primary = new StubStreamingChatClient();
+        var fallback = new StubStreamingChatClient
+        {
+            StreamEvents = new StreamEvent[] { new StreamEvent.TokenDelta("never") },
+            ThrowMidStream = (After: 0, Ex: new HttpRequestException("fallback down too")),
+        };
+
+        var agent = new Agent(primary, NullLogger<Agent>.Instance, fallbackChatClient: fallback);
+
+        // Force the agent into _usingFallback=true to simulate a prior
+        // non-streaming call having activated it. This is the only piece
+        // of internal state we need; the rest of the test exercises real
+        // public behavior.
+        var usingFallbackField = typeof(Agent).GetField(
+            "_usingFallback",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        usingFallbackField.SetValue(agent, true);
+        var activatedAtField = typeof(Agent).GetField(
+            "_fallbackActivatedAt",
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        activatedAtField.SetValue(agent, DateTime.UtcNow);
+
+        var session = new Session { Id = "stream-already-fallback" };
+        var events = new List<StreamEvent>();
+        // The crucial assertion is that this completes without a raw
+        // HttpRequestException escaping the async iterator.
+        await foreach (var evt in agent.StreamChatAsync("hi", session, CancellationToken.None))
+            events.Add(evt);
+
+        Assert.AreEqual(1, events.OfType<StreamEvent.StreamError>().Count(),
+            "Fault on a turn that started on fallback must surface as StreamError, not crash the iterator.");
     }
 }

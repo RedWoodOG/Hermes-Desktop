@@ -1040,11 +1040,25 @@ public sealed class Agent : IAgent
     {
         var client = GetActiveChatClient();
         var attemptedFallback = false;
+        var anyTokenYielded = false;
 
         // Outer loop re-enters with a fresh enumerator from the fallback client
         // when the primary faults mid-SSE. Async iterators forbid yield-return
         // inside catch, so the catch only flags the retry; the fallback
         // activation, enumerator disposal, and re-entry happen here.
+        //
+        // Two narrow conditions must hold to attempt fallback:
+        //   1. The current `client` IS the primary `_chatClient`. If the turn
+        //      already started on the fallback (e.g. a prior non-streaming
+        //      call activated it during the restoration cooldown), there is
+        //      no second fallback — ActivateFallback would rethrow and the
+        //      raw HttpRequestException would escape the iterator.
+        //   2. Zero tokens have been yielded yet. Once the consumer has seen
+        //      tokens from the primary, restarting with the fallback would
+        //      replay the prompt from scratch and concatenate two independent
+        //      completions into the saved assistant message — duplicating or
+        //      contradicting earlier output. Resilience without merge logic
+        //      means we only retry when nothing has been emitted.
         while (true)
         {
             using var watchdogCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
@@ -1091,7 +1105,10 @@ public sealed class Agent : IAgent
                     }
                     catch (HttpRequestException ex)
                     {
-                        if (_fallbackChatClient is not null && !attemptedFallback)
+                        if (_fallbackChatClient is not null
+                            && !attemptedFallback
+                            && ReferenceEquals(client, _chatClient)
+                            && !anyTokenYielded)
                         {
                             // Defer fallback activation until after the catch:
                             // ActivateFallback flips persistent state, and we
@@ -1132,7 +1149,10 @@ public sealed class Agent : IAgent
                     if (!hasNext)
                         yield break;
 
-                    yield return enumerator.Current;
+                    var current = enumerator.Current;
+                    if (current is StreamEvent.TokenDelta)
+                        anyTokenYielded = true;
+                    yield return current;
                 }
             }
             finally
