@@ -37,7 +37,7 @@
     <value>正在继续 Hermes 会话 {0}</value>
   </data>
   <data name="ChatInputBox.PlaceholderText" xml:space="preserve">
-    <value>请向 Hermes 下达任务。按 Enter 发送，Shift+Enter 换行。</value>
+    <value>请向 Hermes 下达任务。按 Ctrl+Enter 发送。</value>
   </data>
   <data name="ChatOpenCliButton.Content" xml:space="preserve">
     <value>打开终端聊天</value>
@@ -493,7 +493,7 @@
     <value>停止</value>
   </data>
   <data name="ChatPromptTextBox.PlaceholderText" xml:space="preserve">
-    <value>向 Hermes 发送消息…</value>
+    <value>向 Hermes 发送消息 — Enter 发送，Shift+Enter 换行。</value>
   </data>
   <data name="ChatPageSendButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>发送消息</value>
