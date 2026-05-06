@@ -735,13 +735,16 @@ public sealed class Agent : IAgent
             // INV-004/005: honor active provider (primary or fallback). Without
             // GetActiveChatClient() here, streaming would silently keep talking
             // to a primary provider that ChatAsync had already failed off of.
-            // Async-iterator constraints (no yield-return inside catch) prevent
-            // mid-stream HttpRequestException → ActivateFallback retry on the
-            // streaming SSE itself; that's a separate concern. This change
-            // matches the cooperative behavior of the rest of the loop.
-            var streamingClient = GetActiveChatClient();
+            // Mid-stream HttpRequestException → ActivateFallback retry on the
+            // streaming SSE itself is now handled inside WatchProviderStreamAsync,
+            // which takes a stream factory so it can re-enter with a fresh
+            // enumerator from the fallback client when the primary faults
+            // mid-SSE — async iterators still forbid yield-return inside catch,
+            // but the fallback decision is committed outside the catch and the
+            // outer retry loop builds a new enumerator before yielding again.
             await foreach (var evt in WatchProviderStreamAsync(
-                streamingClient.StreamAsync(streamSystemPrompt, streamCoalescedMessages, null, ct), ct))
+                activeClient => activeClient.StreamAsync(streamSystemPrompt, streamCoalescedMessages, null, ct),
+                ct))
             {
                 if (evt is StreamEvent.TokenDelta td)
                     streamedResponse.Append(td.Text);
@@ -1032,87 +1035,139 @@ public sealed class Agent : IAgent
     }
 
     private async IAsyncEnumerable<StreamEvent> WatchProviderStreamAsync(
-        IAsyncEnumerable<StreamEvent> stream,
+        Func<IChatClient, IAsyncEnumerable<StreamEvent>> streamFactory,
         [EnumeratorCancellation] CancellationToken ct)
     {
-        using var watchdogCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        var enumerator = stream.GetAsyncEnumerator(watchdogCts.Token);
+        var client = GetActiveChatClient();
+        var attemptedFallback = false;
+        var anyTokenYielded = false;
 
-        try
+        // Outer loop re-enters with a fresh enumerator from the fallback client
+        // when the primary faults mid-SSE. Async iterators forbid yield-return
+        // inside catch, so the catch only flags the retry; the fallback
+        // activation, enumerator disposal, and re-entry happen here.
+        //
+        // Two narrow conditions must hold to attempt fallback:
+        //   1. The current `client` IS the primary `_chatClient`. If the turn
+        //      already started on the fallback (e.g. a prior non-streaming
+        //      call activated it during the restoration cooldown), there is
+        //      no second fallback — ActivateFallback would rethrow and the
+        //      raw HttpRequestException would escape the iterator.
+        //   2. Zero tokens have been yielded yet. Once the consumer has seen
+        //      tokens from the primary, restarting with the fallback would
+        //      replay the prompt from scratch and concatenate two independent
+        //      completions into the saved assistant message — duplicating or
+        //      contradicting earlier output. Resilience without merge logic
+        //      means we only retry when nothing has been emitted.
+        while (true)
         {
-            while (true)
+            using var watchdogCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            var enumerator = streamFactory(client).GetAsyncEnumerator(watchdogCts.Token);
+            bool retry = false;
+
+            try
             {
-                var moveNextTask = enumerator.MoveNextAsync().AsTask();
-                var timeoutTask = Task.Delay(StreamWatchdogTimeout, ct);
-                var completed = await Task.WhenAny(moveNextTask, timeoutTask);
-
-                if (completed == timeoutTask)
+                while (true)
                 {
-                    if (ct.IsCancellationRequested)
-                        throw new OperationCanceledException(ct);
+                    var moveNextTask = enumerator.MoveNextAsync().AsTask();
+                    var timeoutTask = Task.Delay(StreamWatchdogTimeout, ct);
+                    var completed = await Task.WhenAny(moveNextTask, timeoutTask);
 
-                    await watchdogCts.CancelAsync();
-                    yield return new StreamEvent.StreamError(
-                        LlmProviderException.Timeout(new TimeoutException(
-                            $"Provider stream produced no events for {StreamWatchdogTimeout.TotalSeconds:0.#} seconds.")),
-                        ProviderErrorCode.ProviderTimeout);
-                    yield break;
+                    if (completed == timeoutTask)
+                    {
+                        if (ct.IsCancellationRequested)
+                            throw new OperationCanceledException(ct);
+
+                        await watchdogCts.CancelAsync();
+                        yield return new StreamEvent.StreamError(
+                            LlmProviderException.Timeout(new TimeoutException(
+                                $"Provider stream produced no events for {StreamWatchdogTimeout.TotalSeconds:0.#} seconds.")),
+                            ProviderErrorCode.ProviderTimeout);
+                        yield break;
+                    }
+
+                    bool hasNext = false;
+                    StreamEvent.StreamError? streamError = null;
+                    HttpRequestException? fallbackTrigger = null;
+                    try
+                    {
+                        hasNext = await moveNextTask;
+                    }
+                    catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                    {
+                        throw;
+                    }
+                    catch (OperationCanceledException ex)
+                    {
+                        streamError = new StreamEvent.StreamError(
+                            LlmProviderException.Timeout(ex),
+                            ProviderErrorCode.ProviderTimeout);
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        if (_fallbackChatClient is not null
+                            && !attemptedFallback
+                            && ReferenceEquals(client, _chatClient)
+                            && !anyTokenYielded)
+                        {
+                            // Defer fallback activation until after the catch:
+                            // ActivateFallback flips persistent state, and we
+                            // want to dispose the failed enumerator first.
+                            fallbackTrigger = ex;
+                        }
+                        else
+                        {
+                            var providerError = LlmProviderException.FromHttp(ex);
+                            streamError = new StreamEvent.StreamError(providerError, providerError.Code);
+                        }
+                    }
+                    catch (JsonException ex)
+                    {
+                        var providerError = LlmProviderException.StreamParse(ex);
+                        streamError = new StreamEvent.StreamError(providerError, providerError.Code);
+                    }
+                    catch (Exception ex)
+                    {
+                        var providerError = LlmProviderException.Transport(ex);
+                        streamError = new StreamEvent.StreamError(providerError, providerError.Code);
+                    }
+
+                    if (fallbackTrigger is not null)
+                    {
+                        client = ActivateFallback(fallbackTrigger);
+                        attemptedFallback = true;
+                        retry = true;
+                        break; // exit inner loop → finally disposes enumerator → outer loop rebuilds
+                    }
+
+                    if (streamError is not null)
+                    {
+                        yield return streamError;
+                        yield break;
+                    }
+
+                    if (!hasNext)
+                        yield break;
+
+                    var current = enumerator.Current;
+                    if (current is StreamEvent.TokenDelta)
+                        anyTokenYielded = true;
+                    yield return current;
                 }
-
-                bool hasNext = false;
-                StreamEvent.StreamError? streamError = null;
+            }
+            finally
+            {
                 try
                 {
-                    hasNext = await moveNextTask;
-                }
-                catch (OperationCanceledException) when (ct.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch (OperationCanceledException ex)
-                {
-                    streamError = new StreamEvent.StreamError(
-                        LlmProviderException.Timeout(ex),
-                        ProviderErrorCode.ProviderTimeout);
-                }
-                catch (HttpRequestException ex)
-                {
-                    var providerError = LlmProviderException.FromHttp(ex);
-                    streamError = new StreamEvent.StreamError(providerError, providerError.Code);
-                }
-                catch (JsonException ex)
-                {
-                    var providerError = LlmProviderException.StreamParse(ex);
-                    streamError = new StreamEvent.StreamError(providerError, providerError.Code);
+                    await enumerator.DisposeAsync();
                 }
                 catch (Exception ex)
                 {
-                    var providerError = LlmProviderException.Transport(ex);
-                    streamError = new StreamEvent.StreamError(providerError, providerError.Code);
+                    _logger.LogDebug(ex, "Provider stream enumerator disposal failed");
                 }
-
-                if (streamError is not null)
-                {
-                    yield return streamError;
-                    yield break;
-                }
-
-                if (!hasNext)
-                    yield break;
-
-                yield return enumerator.Current;
             }
-        }
-        finally
-        {
-            try
-            {
-                await enumerator.DisposeAsync();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "Provider stream enumerator disposal failed");
-            }
+
+            if (!retry) yield break;
         }
     }
 

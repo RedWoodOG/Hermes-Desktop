@@ -106,8 +106,10 @@ jobs:
               "HttpClient",
               "HttpResponseMessage",
               "HttpRequestMessage",
+              "HttpRequestException",
               "StringContent",
               "CancellationToken",
+              "CancellationTokenSource",
               "DateTime",
               "TimeSpan",
               "Guid",
@@ -116,6 +118,13 @@ jobs:
               "Directory",
               "Regex",
               "Uri",
+              "Exception",
+              "InvalidOperationException",
+              "NotImplementedException",
+              "ArgumentException",
+              "ArgumentNullException",
+              "TimeoutException",
+              "OperationCanceledException",
           }
 
           unresolved = sorted(
