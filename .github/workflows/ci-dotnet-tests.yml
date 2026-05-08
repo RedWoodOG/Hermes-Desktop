@@ -116,6 +116,10 @@ jobs:
               "Directory",
               "Regex",
               "Uri",
+              "InvalidOperationException",
+              "MemoryStream",
+              "StreamContent",
+              "HttpRequestException",
           }
 
           unresolved = sorted(

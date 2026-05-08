@@ -732,16 +732,13 @@ public sealed class Agent : IAgent
             // Anthropic gets its system via the dedicated parameter.
             var (streamSystemPrompt, streamCoalescedMessages) =
                 SystemContext.Empty.CoalesceWith(messagesToSend);
-            // INV-004/005: honor active provider (primary or fallback). Without
-            // GetActiveChatClient() here, streaming would silently keep talking
-            // to a primary provider that ChatAsync had already failed off of.
-            // Async-iterator constraints (no yield-return inside catch) prevent
-            // mid-stream HttpRequestException → ActivateFallback retry on the
-            // streaming SSE itself; that's a separate concern. This change
-            // matches the cooperative behavior of the rest of the loop.
-            var streamingClient = GetActiveChatClient();
-            await foreach (var evt in WatchProviderStreamAsync(
-                streamingClient.StreamAsync(streamSystemPrompt, streamCoalescedMessages, null, ct), ct))
+            // INV-004/005: honor active provider (primary or fallback), including
+            // mid-stream transport drops surfaced by WatchProviderStreamAsync as
+            // StreamError (HttpRequestException inner). A dedicated inner iterator
+            // avoids C# async-iterator limits (no yield inside catch) while still
+            // activating fallback and continuing the SSE from the backup client.
+            await foreach (var evt in StreamWithWatchdogAndMidstreamHttpFallbackAsync(
+                streamSystemPrompt, streamCoalescedMessages, ct))
             {
                 if (evt is StreamEvent.TokenDelta td)
                     streamedResponse.Append(td.Text);
@@ -1028,6 +1025,48 @@ public sealed class Agent : IAgent
             // already-cancelled `ct` (very common on the streaming path because
             // the UI cancels the moment the user clicks Stop).
             await FirePluginTurnEndAsync(message, streamedResponse.ToString(), session.Id, "stream");
+        }
+    }
+
+    /// <summary>
+    /// Runs the watchdog-wrapped provider stream, and on a primary-side
+    /// <see cref="HttpRequestException"/> (mid-SSE disconnect — reported as
+    /// <see cref="StreamEvent.StreamError"/> with an HTTP inner exception)
+    /// activates fallback once and re-streams from the backup client.
+    /// </summary>
+    private async IAsyncEnumerable<StreamEvent> StreamWithWatchdogAndMidstreamHttpFallbackAsync(
+        string? streamSystemPrompt,
+        IEnumerable<Message> streamCoalescedMessages,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        while (true)
+        {
+            var streamingClient = GetActiveChatClient();
+            var retryOnFallback = false;
+
+            await foreach (var evt in WatchProviderStreamAsync(
+                streamingClient.StreamAsync(streamSystemPrompt, streamCoalescedMessages, null, ct), ct))
+            {
+                if (evt is StreamEvent.StreamError err)
+                {
+                    if (_fallbackChatClient is not null
+                        && err.Error.InnerException is HttpRequestException httpEx
+                        && !_usingFallback)
+                    {
+                        _ = ActivateFallback(httpEx);
+                        retryOnFallback = true;
+                        break;
+                    }
+
+                    yield return err;
+                    yield break;
+                }
+
+                yield return evt;
+            }
+
+            if (!retryOnFallback)
+                break;
         }
     }
 

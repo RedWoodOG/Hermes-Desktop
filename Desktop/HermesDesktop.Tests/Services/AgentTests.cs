@@ -1352,6 +1352,37 @@ public class AgentStreamChatTests
         Assert.IsFalse(events.OfType<StreamEvent.TokenDelta>().Any(t => t.Text == "late"));
     }
 
+    [TestMethod]
+    public async Task StreamChatAsync_NoTools_MidStreamHttpFailure_ActivatesFallbackAndContinues()
+    {
+        var primary = new StubStreamingChatClient
+        {
+            StreamEvents = new StreamEvent[] { new StreamEvent.TokenDelta("pri") },
+            ThrowAfterNStreamEvents = 1,
+            MidStreamThrow = new HttpRequestException("mid-stream disconnect"),
+        };
+        var fallback = new StubStreamingChatClient
+        {
+            StreamEvents = new StreamEvent[] { new StreamEvent.TokenDelta("fallback") },
+        };
+
+        var agent = new Agent(primary, NullLogger<Agent>.Instance, fallbackChatClient: fallback);
+        var session = new Session { Id = "stream-mid-fallback" };
+        var tokens = new List<string>();
+
+        await foreach (var evt in agent.StreamChatAsync("hi", session, CancellationToken.None))
+        {
+            Assert.IsFalse(evt is StreamEvent.StreamError, "Consumer should not see StreamError when fallback recovers.");
+            if (evt is StreamEvent.TokenDelta td)
+                tokens.Add(td.Text);
+        }
+
+        CollectionAssert.AreEqual(new[] { "pri", "fallback" }, tokens);
+        var assistant = session.Messages.FirstOrDefault(m => m.Role == "assistant");
+        Assert.IsNotNull(assistant);
+        Assert.AreEqual("prifallback", assistant.Content);
+    }
+
     // ── With registered tools — tool loop path ──
 
     [TestMethod]
@@ -1470,6 +1501,10 @@ public class AgentStreamChatTests
         public IReadOnlyList<StreamEvent> StreamEvents { get; set; } = Array.Empty<StreamEvent>();
         public TimeSpan DelayBeforeFirstEvent { get; set; } = TimeSpan.Zero;
         public Exception? ThrowOnStream { get; set; }
+        /// <summary>When set with <see cref="ThrowAfterNStreamEvents"/> ≥ 0, throw after that many stream events are yielded (mid-enumeration).</summary>
+        public Exception? MidStreamThrow { get; set; }
+        /// <summary>Throw <see cref="MidStreamThrow"/> once this many <see cref="StreamEvents"/> items have been yielded (-1 = disabled).</summary>
+        public int ThrowAfterNStreamEvents { get; set; } = -1;
         public Func<IEnumerable<Message>, IEnumerable<ToolDefinition>, CancellationToken, Task<ChatResponse>>? OnCompleteWithTools { get; set; }
 
         public Task<string> CompleteAsync(IEnumerable<Message> messages, CancellationToken ct)
@@ -1502,10 +1537,14 @@ public class AgentStreamChatTests
             if (DelayBeforeFirstEvent > TimeSpan.Zero)
                 await Task.Delay(DelayBeforeFirstEvent, ct);
 
+            var emitted = 0;
             foreach (var evt in StreamEvents)
             {
                 ct.ThrowIfCancellationRequested();
                 yield return evt;
+                emitted++;
+                if (MidStreamThrow is not null && ThrowAfterNStreamEvents >= 0 && emitted == ThrowAfterNStreamEvents)
+                    throw MidStreamThrow;
             }
         }
     }
