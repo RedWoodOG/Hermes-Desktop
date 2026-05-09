@@ -12,6 +12,10 @@ public sealed class McpManager : IAsyncDisposable
     private readonly Dictionary<string, McpServerConnection> _connections = new();
     private readonly Dictionary<string, McpToolWrapper> _tools = new();
     private readonly List<McpServerConfig> _configs = new();
+    private static readonly JsonSerializerOptions McpConfigJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
     
     public IReadOnlyDictionary<string, McpServerConnection> Connections => _connections;
     public IReadOnlyDictionary<string, McpToolWrapper> Tools => _tools;
@@ -35,7 +39,7 @@ public sealed class McpManager : IAsyncDisposable
         }
         
         var json = await File.ReadAllTextAsync(configPath, ct);
-        var config = JsonSerializer.Deserialize<McpConfigFile>(json);
+        var config = JsonSerializer.Deserialize<McpConfigFile>(json, McpConfigJsonOptions);
         
         if (config?.McpServers is null) return;
         
