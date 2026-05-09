@@ -94,6 +94,7 @@ static async Task<int> InvokeChatAsync(
     services.AddSingleton<IChatClient>(new OpenAiClient(config, new HttpClient()));
     services.AddSingleton<IAgent, Agent>();
     services.AddSingleton<ITool, TerminalTool>();
+    services.AddSingleton<ITool, PlanningTool>();
 
     using var serviceProvider = services.BuildServiceProvider();
     var agent = serviceProvider.GetRequiredService<IAgent>();

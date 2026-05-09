@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Hermes.Agent.Commands;
 using Hermes.Agent.Core;
 using Hermes.Agent.LLM;
 using Hermes.Agent.Permissions;
@@ -348,6 +349,7 @@ public sealed partial class ChatPage : Page
         dotTimer.Tick += (_, _) =>
         {
             dotCount = (dotCount + 1) % 4;
+            assistantItem?.FlushStreaming();
             var line = assistantItem is null
                 ? ResourceLoader.GetString("ChatThinkingLineThinking")
                 : ResourceLoader.GetString("ChatThinkingLineReasoning");
@@ -363,18 +365,24 @@ public sealed partial class ChatPage : Page
             var hasContent = false;
             var streamFailed = false;
 
-            // Stream structured events (tokens + thinking)
-            await foreach (var evt in _chatService.StreamStructuredAsync(prompt, CancellationToken.None))
+            // Stream typed runtime events (tokens + thinking + tool status + errors)
+            await foreach (var evt in _chatService.StreamRuntimeAsync(prompt, CancellationToken.None))
             {
-                switch (evt.Type)
+                switch (evt)
                 {
-                    case ChatStreamEventType.Thinking:
+                    case ChatRuntimeEvent.ThinkingDelta thinking:
                         if (assistantItem is not null)
-                            assistantItem.AppendThinking(evt.Text);
-                        thinkingBuffer.Append(evt.Text);
+                            assistantItem.AppendThinking(thinking.Text);
+                        thinkingBuffer.Append(thinking.Text);
                         break;
 
-                    case ChatStreamEventType.Token:
+                    case ChatRuntimeEvent.ToolStatus toolStatus:
+                        if (assistantItem is not null)
+                            assistantItem.AppendThinking(toolStatus.Text);
+                        thinkingBuffer.Append(toolStatus.Text);
+                        break;
+
+                    case ChatRuntimeEvent.TokenDelta token:
                         if (!hasContent)
                         {
                             hasContent = true;
@@ -392,14 +400,14 @@ public sealed partial class ChatPage : Page
 
                             ShowThinking(false);
                         }
-                        assistantItem!.AppendToken(evt.Text);
+                        assistantItem!.AppendToken(token.Text);
                         break;
 
-                    case ChatStreamEventType.Error:
+                    case ChatRuntimeEvent.Error error:
                         streamFailed = true;
                         ShowThinking(false);
                         ApplyConnectionState(RuntimeConnectionState.Error);
-                        ShowChatError(evt.Text);
+                        ShowChatError(error.Detail.Message);
                         break;
                 }
             }
@@ -456,47 +464,19 @@ public sealed partial class ChatPage : Page
 
     private async Task HandleSlashCommandAsync(string input)
     {
-        var parts = input.TrimStart('/').Split(' ', 2);
-        var command = parts[0].ToLowerInvariant();
-        var args = parts.Length > 1 ? parts[1] : "";
-
-        if (command is "help" or "skills")
-        {
-            var skillManager = App.Services.GetRequiredService<SkillManager>();
-            var skills = skillManager.ListSkills();
-            var lines = new System.Text.StringBuilder();
-            lines.AppendLine("Available slash commands:");
-            lines.AppendLine("  /help, /skills  - Show this help");
-            lines.AppendLine("  /new            - Start a new chat");
-            lines.AppendLine();
-            if (skills.Count > 0)
-            {
-                lines.AppendLine("Installed skills:");
-                foreach (var s in skills)
-                    lines.AppendLine($"  /{s.Name}  - {s.Description}");
-            }
-            else
-            {
-                lines.AppendLine("No custom skills installed. Add .md files to your skills directory.");
-            }
-            AppendSystemMessage(lines.ToString());
+        var registry = BuildSlashCommandRegistry();
+        if (await registry.TryExecuteAsync(input, this, CancellationToken.None))
             return;
-        }
-
-        if (command == "new")
-        {
-            NewChat_Click(this, new RoutedEventArgs());
-            return;
-        }
 
         // Try to invoke as a skill
+        var parsed = CommandRegistry<ChatPage>.Parse(input);
         try
         {
             var invoker = App.Services.GetRequiredService<SkillInvoker>();
             SetBusy(true);
             ShowThinking(true, ResourceLoader.GetString("ChatThinkingRunningSkill"));
 
-            var response = await invoker.InvokeAsync(command, args, CancellationToken.None);
+            var response = await invoker.InvokeAsync(parsed.Name, parsed.Arguments, CancellationToken.None);
             ShowThinking(false);
 
             if (!string.IsNullOrWhiteSpace(response))
@@ -506,7 +486,7 @@ public sealed partial class ChatPage : Page
         }
         catch (SkillNotFoundException)
         {
-            AppendSystemMessage($"Unknown command: /{command}. Type /help for available commands.");
+            AppendSystemMessage($"Unknown command: /{parsed.Name}. Type /help for available commands.");
         }
         catch (Exception ex)
         {
@@ -518,6 +498,49 @@ public sealed partial class ChatPage : Page
             SetBusy(false);
             PromptTextBox.Focus(FocusState.Programmatic);
         }
+    }
+
+    private CommandRegistry<ChatPage> BuildSlashCommandRegistry()
+    {
+        return new CommandRegistry<ChatPage>()
+            .Register(new RegisteredCommand<ChatPage>(
+                "help",
+                "Show commands and installed skills",
+                static async (page, _, _) => await page.ShowSlashHelpAsync(),
+                usage: "/help",
+                aliases: ["skills"]))
+            .Register(new RegisteredCommand<ChatPage>(
+                "new",
+                "Start a new chat",
+                static (page, _, _) =>
+                {
+                    page.NewChat_Click(page, new RoutedEventArgs());
+                    return Task.CompletedTask;
+                },
+                usage: "/new"));
+    }
+
+    private Task ShowSlashHelpAsync()
+    {
+        var registry = BuildSlashCommandRegistry();
+        var skillManager = App.Services.GetRequiredService<SkillManager>();
+        var skills = skillManager.ListSkills();
+        var lines = new System.Text.StringBuilder();
+        lines.AppendLine(registry.FormatHelp());
+        lines.AppendLine();
+        if (skills.Count > 0)
+        {
+            lines.AppendLine("Installed skills:");
+            foreach (var s in skills)
+                lines.AppendLine($"  /{s.Name}  - {s.Description}");
+        }
+        else
+        {
+            lines.AppendLine("No custom skills installed. Add .md files to your skills directory.");
+        }
+
+        AppendSystemMessage(lines.ToString());
+        return Task.CompletedTask;
     }
 
     // ── Stop Generation ──
