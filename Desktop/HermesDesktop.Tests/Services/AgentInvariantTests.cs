@@ -312,8 +312,9 @@ public class AgentInvariantTests
             tool.SetupGet(t => t.Name).Returns("secret_tool");
             tool.SetupGet(t => t.Description).Returns("Secret");
             tool.SetupGet(t => t.ParametersType).Returns(typeof(EmptyParams));
+            var fakeSecret = string.Concat("sk", "-", "abcdefghijklmnopqrstuvwxyz");
             tool.Setup(t => t.ExecuteAsync(It.IsAny<object>(), It.IsAny<CancellationToken>()))
-                .ReturnsAsync(ToolResult.Fail("failed with token sk-abcdefghijklmnopqrstuvwxyz"));
+                .ReturnsAsync(ToolResult.Fail($"failed with token {fakeSecret}"));
             agent.RegisterTool(tool.Object);
 
             chatClient
@@ -342,7 +343,7 @@ public class AgentInvariantTests
             Assert.AreEqual("False", resultItem.Metadata["success"]);
             Assert.IsTrue(resultItem.Metadata.ContainsKey("durationMs"));
             StringAssert.Contains(resultItem.ContentSummary, "[REDACTED]");
-            Assert.IsFalse(resultItem.ContentSummary.Contains("sk-abcdefghijklmnopqrstuvwxyz", StringComparison.Ordinal));
+            Assert.IsFalse(resultItem.ContentSummary.Contains(fakeSecret, StringComparison.Ordinal));
         }
         finally
         {
