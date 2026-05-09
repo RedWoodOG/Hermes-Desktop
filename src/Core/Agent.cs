@@ -8,6 +8,7 @@ using Hermes.Agent.Soul;
 using Hermes.Agent.Transcript;
 using Hermes.Agent.Memory;
 using Hermes.Agent.Context;
+using Hermes.Agent.Tools;
 using Microsoft.Extensions.Logging;
 using System.Net.Http;
 using System.Runtime.CompilerServices;
@@ -18,10 +19,13 @@ public sealed class Agent : IAgent
     private readonly IChatClient _chatClient;
     private readonly ILogger<Agent> _logger;
     private readonly Dictionary<string, ITool> _tools = new();
+    private readonly LargeToolOutputRouter _largeOutputRouter = new();
+    private readonly PostEditDiagnosticsHook _postEditDiagnosticsHook;
 
     // Optional subsystem dependencies — Agent works without any of these
     private readonly PermissionManager? _permissions;
     private readonly TranscriptStore? _transcripts;
+    private readonly TimelineStore? _timeline;
     private readonly MemoryManager? _memories;
     private readonly ContextManager? _contextManager;
     private readonly SoulService? _soulService;
@@ -93,23 +97,30 @@ public sealed class Agent : IAgent
         ILogger<Agent> logger,
         PermissionManager? permissions = null,
         TranscriptStore? transcripts = null,
+        TimelineStore? timeline = null,
         MemoryManager? memories = null,
         ContextManager? contextManager = null,
         SoulService? soulService = null,
         PluginManager? pluginManager = null,
         IChatClient? fallbackChatClient = null,
-        CredentialPool? credentialPool = null)
+        CredentialPool? credentialPool = null,
+        IPostEditDiagnosticsProvider? postEditDiagnosticsProvider = null,
+        PostEditDiagnosticsOptions? postEditDiagnosticsOptions = null)
     {
         _chatClient = chatClient;
         _logger = logger;
         _permissions = permissions;
         _transcripts = transcripts;
+        _timeline = timeline;
         _memories = memories;
         _contextManager = contextManager;
         _soulService = soulService;
         _pluginManager = pluginManager;
         _fallbackChatClient = fallbackChatClient;
         _credentialPool = credentialPool;
+        _postEditDiagnosticsHook = new PostEditDiagnosticsHook(
+            postEditDiagnosticsProvider,
+            postEditDiagnosticsOptions);
     }
 
     /// <summary>
@@ -330,6 +341,8 @@ public sealed class Agent : IAgent
             // Record the assistant message with its tool call requests
             await AgentSessionWriter.AppendAssistantToolRequestMessageAsync(
                 session, response.Content ?? "", normalizedToolCalls, _transcripts, ct);
+            foreach (var toolCall in normalizedToolCalls)
+                await AppendTimelineToolRequestAsync(session, toolCall, ct);
 
             // Execute tool calls — parallel when safe, sequential otherwise
             var toolCallsList = normalizedToolCalls;
@@ -359,6 +372,7 @@ public sealed class Agent : IAgent
                     var resultContent = result.Content;
                     if (SecretScanner.ContainsSecrets(resultContent))
                         resultContent = SecretScanner.RedactSecrets(resultContent);
+                    await AppendTimelineToolResultAsync(session, toolCall, result, resultContent, durationMs, ct);
 
                     var toolResultMsg = new Message
                     {
@@ -411,6 +425,7 @@ public sealed class Agent : IAgent
                             session.AddMessage(denialMsg);
                             if (_transcripts is not null)
                                 await _transcripts.SaveMessageAsync(session.Id, denialMsg, ct);
+                            await AppendTimelineToolDeniedAsync(session, toolCall, denialMsg.Content, ct);
                             continue;
                         }
 
@@ -461,6 +476,7 @@ public sealed class Agent : IAgent
                                 session.AddMessage(askMsg);
                                 if (_transcripts is not null)
                                     await _transcripts.SaveMessageAsync(session.Id, askMsg, ct);
+                                await AppendTimelineToolDeniedAsync(session, toolCall, askMsg.Content, ct);
                                 continue;
                             }
                             // User approved — fall through to execute the tool
@@ -482,11 +498,13 @@ public sealed class Agent : IAgent
                 };
                 ActivityLog.Add(activityEntry);
                 ActivityEntryAdded?.Invoke(activityEntry);
+                await AppendTimelineToolRunningAsync(session, toolCall, ct);
 
                 _logger.LogInformation("Executing tool {ToolName} (call {CallId})", toolCall.Name, toolCall.Id);
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 var result = await ExecuteToolCallAsync(toolCall, ct);
                 sw.Stop();
+                result = await AppendPostEditDiagnosticsAsync(toolCall, result, ct);
 
                 // ── Activity tracking: AFTER execution ──
                 activityEntry.DurationMs = sw.ElapsedMilliseconds;
@@ -532,6 +550,7 @@ public sealed class Agent : IAgent
                     _logger.LogWarning("Secrets detected in tool result from {ToolName}, redacting", toolCall.Name);
                     resultContent = SecretScanner.RedactSecrets(resultContent);
                 }
+                await AppendTimelineToolResultAsync(session, toolCall, result, resultContent, sw.ElapsedMilliseconds, ct);
 
                 var toolResultMsg = new Message
                 {
@@ -828,6 +847,8 @@ public sealed class Agent : IAgent
             session.AddMessage(assistantToolMsg);
             if (_transcripts is not null)
                 await _transcripts.SaveMessageAsync(session.Id, assistantToolMsg, ct);
+            foreach (var toolCall in normalizedStreamToolCalls)
+                await AppendTimelineToolRequestAsync(session, toolCall, ct);
 
             // Execute each tool call
             foreach (var toolCall in normalizedStreamToolCalls)
@@ -865,6 +886,7 @@ public sealed class Agent : IAgent
                             session.AddMessage(denialMsg);
                             if (_transcripts is not null)
                                 await _transcripts.SaveMessageAsync(session.Id, denialMsg, ct);
+                            await AppendTimelineToolDeniedAsync(session, toolCall, denialMsg.Content, ct);
                             continue;
                         }
 
@@ -910,6 +932,7 @@ public sealed class Agent : IAgent
                                 session.AddMessage(askMsg);
                                 if (_transcripts is not null)
                                     await _transcripts.SaveMessageAsync(session.Id, askMsg, ct);
+                                await AppendTimelineToolDeniedAsync(session, toolCall, askMsg.Content, ct);
                                 continue;
                             }
                         }
@@ -933,11 +956,13 @@ public sealed class Agent : IAgent
                 };
                 ActivityLog.Add(activityEntry);
                 ActivityEntryAdded?.Invoke(activityEntry);
+                await AppendTimelineToolRunningAsync(session, toolCall, ct);
 
                 _logger.LogInformation("Executing tool {ToolName} (call {CallId})", toolCall.Name, toolCall.Id);
                 var sw = System.Diagnostics.Stopwatch.StartNew();
                 var result = await ExecuteToolCallAsync(toolCall, ct);
                 sw.Stop();
+                result = await AppendPostEditDiagnosticsAsync(toolCall, result, ct);
 
                 // ── Activity tracking: AFTER execution ──
                 activityEntry.DurationMs = sw.ElapsedMilliseconds;
@@ -982,6 +1007,7 @@ public sealed class Agent : IAgent
                     _logger.LogWarning("Secrets detected in tool result from {ToolName}, redacting", toolCall.Name);
                     resultContent = SecretScanner.RedactSecrets(resultContent);
                 }
+                await AppendTimelineToolResultAsync(session, toolCall, result, resultContent, sw.ElapsedMilliseconds, ct);
 
                 var toolResultMsg = new Message
                 {
@@ -1251,6 +1277,108 @@ public sealed class Agent : IAgent
         return results.ToList();
     }
 
+    private async Task AppendTimelineToolRequestAsync(Session session, ToolCall toolCall, CancellationToken ct)
+    {
+        await AppendTimelineToolItemAsync(
+            session,
+            toolCall,
+            TurnItemKind.ToolCall,
+            TurnItemStatus.Pending,
+            toolCall.Arguments,
+            durationMs: null,
+            metadata: new Dictionary<string, string> { ["phase"] = "requested" },
+            ct);
+    }
+
+    private async Task AppendTimelineToolRunningAsync(Session session, ToolCall toolCall, CancellationToken ct)
+    {
+        await AppendTimelineToolItemAsync(
+            session,
+            toolCall,
+            TurnItemKind.ToolCall,
+            TurnItemStatus.Running,
+            toolCall.Arguments,
+            durationMs: null,
+            metadata: new Dictionary<string, string> { ["phase"] = "running" },
+            ct);
+    }
+
+    private async Task AppendTimelineToolDeniedAsync(Session session, ToolCall toolCall, string reason, CancellationToken ct)
+    {
+        await AppendTimelineToolItemAsync(
+            session,
+            toolCall,
+            TurnItemKind.ToolResult,
+            TurnItemStatus.Failed,
+            reason,
+            durationMs: null,
+            metadata: new Dictionary<string, string> { ["phase"] = "denied" },
+            ct);
+    }
+
+    private async Task AppendTimelineToolResultAsync(
+        Session session,
+        ToolCall toolCall,
+        ToolResult result,
+        string redactedContent,
+        long durationMs,
+        CancellationToken ct)
+    {
+        await AppendTimelineToolItemAsync(
+            session,
+            toolCall,
+            TurnItemKind.ToolResult,
+            result.Success ? TurnItemStatus.Completed : TurnItemStatus.Failed,
+            redactedContent,
+            durationMs,
+            new Dictionary<string, string>
+            {
+                ["phase"] = "completed",
+                ["success"] = result.Success.ToString()
+            },
+            ct);
+    }
+
+    private async Task AppendTimelineToolItemAsync(
+        Session session,
+        ToolCall toolCall,
+        TurnItemKind kind,
+        TurnItemStatus status,
+        string contentSummary,
+        long? durationMs,
+        IReadOnlyDictionary<string, string> metadata,
+        CancellationToken ct)
+    {
+        if (_timeline is null)
+            return;
+
+        try
+        {
+            var turn = await _timeline.LoadLatestTurnForThreadAsync(session.Id, ct);
+            if (turn is null || turn.Status != TurnStatus.InProgress)
+                return;
+
+            var itemMetadata = new Dictionary<string, string>(metadata);
+            if (durationMs.HasValue)
+                itemMetadata["durationMs"] = durationMs.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+            await _timeline.AppendItemAsync(
+                turn.ThreadId,
+                turn.TurnId,
+                kind,
+                status,
+                contentSummary,
+                toolCallId: toolCall.Id,
+                toolName: toolCall.Name,
+                metadata: itemMetadata,
+                ct: ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Failed to append timeline item for tool {ToolName} ({ToolCallId})", toolCall.Name, toolCall.Id);
+        }
+    }
+
     private async Task<ToolResult> ExecuteToolCallAsync(ToolCall toolCall, CancellationToken ct)
     {
         if (!_tools.TryGetValue(toolCall.Name, out var tool))
@@ -1263,13 +1391,31 @@ public sealed class Agent : IAgent
         {
             var parameters = JsonSerializer.Deserialize(toolCall.Arguments, tool.ParametersType, ToolArgJsonOptions)
                 ?? throw new JsonException($"Failed to deserialize arguments for {toolCall.Name}");
-            return await tool.ExecuteAsync(parameters, ct);
+            var result = await tool.ExecuteAsync(parameters, ct);
+            return _largeOutputRouter.Route(toolCall.Name, result);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Tool {ToolName} failed", toolCall.Name);
             return ToolResult.Fail($"Tool execution failed: {ex.Message}", ex);
         }
+    }
+
+    private async Task<ToolResult> AppendPostEditDiagnosticsAsync(
+        ToolCall toolCall,
+        ToolResult result,
+        CancellationToken ct)
+    {
+        var diagnosticsReport = await _postEditDiagnosticsHook.BuildReportAsync(toolCall, result, ct);
+        if (string.IsNullOrWhiteSpace(diagnosticsReport))
+            return result;
+
+        return new ToolResult
+        {
+            Success = result.Success,
+            Content = $"{result.Content}\n\n{diagnosticsReport}",
+            Error = result.Error
+        };
     }
 
     private static JsonElement BuildParameterSchema(ITool tool)

@@ -3,6 +3,9 @@ namespace Hermes.Agent.Tools;
 using Hermes.Agent.Core;
 using Microsoft.Playwright;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 
 // ══════════════════════════════════════════════
@@ -16,7 +19,7 @@ using System.Text.RegularExpressions;
 
 /// <summary>
 /// Browser automation via Playwright accessibility tree.
-/// Actions: navigate, click, type, scroll, press, js, snapshot, close.
+/// Actions: navigate, click, type, scroll, press, js, snapshot, browser_state, close.
 /// Returns page content as structured text, not screenshots.
 /// </summary>
 public sealed class BrowserTool : ITool, IAsyncDisposable
@@ -27,7 +30,7 @@ public sealed class BrowserTool : ITool, IAsyncDisposable
     private readonly SemaphoreSlim _lock = new(1, 1);
 
     public string Name => "browser";
-    public string Description => "Browse the web. Actions: navigate(url), click(selector), type(selector,text), scroll(direction), press(key), js(expression), snapshot, close.";
+    public string Description => "Browse the web. Actions: navigate(url), click(selector), type(selector,text), scroll(direction), press(key), js(expression), snapshot, browser_state/state, close.";
     public Type ParametersType => typeof(BrowserParameters);
 
     // SSRF protection
@@ -56,8 +59,9 @@ public sealed class BrowserTool : ITool, IAsyncDisposable
                 "press" => await PressAsync(p),
                 "js" or "evaluate" => await EvaluateAsync(p),
                 "snapshot" => await SnapshotAsync(),
+                "browser_state" or "state" => await BrowserStateAsync(),
                 "close" => await CloseAsync(),
-                _ => ToolResult.Fail("Unknown action. Use: navigate, click, type, scroll, press, js, snapshot, close")
+                _ => ToolResult.Fail("Unknown action. Use: navigate, click, type, scroll, press, js, snapshot, browser_state/state, close")
             };
         }
         catch (PlaywrightException ex)
@@ -210,6 +214,219 @@ public sealed class BrowserTool : ITool, IAsyncDisposable
         return ToolResult.Ok(output);
     }
 
+    private async Task<ToolResult> BrowserStateAsync()
+    {
+        if (_page is null) return ToolResult.Fail("No page open. Use navigate first.");
+
+        var title = await _page.TitleAsync();
+        var url = _page.Url;
+        var json = await _page.EvaluateAsync<string>(BrowserStateScript);
+        var domState = JsonSerializer.Deserialize<BrowserStateDomSnapshot>(json, JsonOptions)
+            ?? new BrowserStateDomSnapshot();
+
+        var viewport = domState.Viewport ?? new BrowserViewport(0, 0);
+        var scroll = domState.Scroll ?? new BrowserScrollPosition(0, 0, 0, 0);
+        var state = new BrowserStateSnapshot(
+            Url: url,
+            Title: title,
+            Viewport: viewport,
+            Scroll: scroll,
+            ClickableRefs: domState.ClickableRefs ?? [],
+            InputRefs: domState.InputRefs ?? []);
+
+        return ToolResult.Ok(FormatBrowserState(state));
+    }
+
+    public static string FormatBrowserState(BrowserStateSnapshot state)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("{");
+        AppendProperty(sb, "url", state.Url, trailingComma: true, indent: 2);
+        AppendProperty(sb, "title", state.Title, trailingComma: true, indent: 2);
+        sb.AppendLine($"  viewport: {{ width: {state.Viewport.Width}, height: {state.Viewport.Height} }},");
+        sb.AppendLine($"  scroll: {{ x: {state.Scroll.X}, y: {state.Scroll.Y}, maxX: {state.Scroll.MaxX}, maxY: {state.Scroll.MaxY} }},");
+
+        sb.AppendLine("  clickable_refs: [");
+        AppendRefs(sb, state.ClickableRefs);
+        sb.AppendLine("  ],");
+
+        sb.AppendLine("  input_refs: [");
+        AppendRefs(sb, state.InputRefs);
+        sb.AppendLine("  ]");
+        sb.AppendLine("}");
+
+        return sb.ToString();
+    }
+
+    private static void AppendRefs(StringBuilder sb, IReadOnlyList<BrowserElementRef> refs)
+    {
+        if (refs.Count == 0)
+        {
+            sb.AppendLine("    // none");
+            return;
+        }
+
+        for (var i = 0; i < refs.Count; i++)
+        {
+            var item = refs[i];
+            sb.Append("    { ");
+            AppendInlineProperty(sb, "ref", item.Ref);
+            AppendOptionalInlineProperty(sb, "role", item.Role);
+            AppendOptionalInlineProperty(sb, "tag", item.Tag);
+            AppendOptionalInlineProperty(sb, "type", item.Type);
+            AppendOptionalInlineProperty(sb, "name", item.Name);
+            AppendOptionalInlineProperty(sb, "placeholder", item.Placeholder);
+            AppendOptionalInlineProperty(sb, "text", item.Text);
+            AppendOptionalInlineProperty(sb, "value", item.Value);
+            sb.Append(" }");
+            if (i < refs.Count - 1)
+                sb.Append(',');
+            sb.AppendLine();
+        }
+    }
+
+    private static void AppendProperty(StringBuilder sb, string name, string value, bool trailingComma, int indent)
+    {
+        sb.Append(' ', indent);
+        sb.Append(name);
+        sb.Append(": ");
+        AppendQuoted(sb, value);
+        if (trailingComma)
+            sb.Append(',');
+        sb.AppendLine();
+    }
+
+    private static void AppendInlineProperty(StringBuilder sb, string name, string value)
+    {
+        sb.Append(name);
+        sb.Append(": ");
+        AppendQuoted(sb, value);
+    }
+
+    private static void AppendOptionalInlineProperty(StringBuilder sb, string name, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return;
+
+        sb.Append(", ");
+        AppendInlineProperty(sb, name, value);
+    }
+
+    private static void AppendQuoted(StringBuilder sb, string? value)
+    {
+        sb.Append(JsonSerializer.Serialize(Compact(value ?? ""), QuoteOptions));
+    }
+
+    private static string Compact(string value)
+    {
+        var compact = Regex.Replace(value, @"\s+", " ").Trim();
+        return compact.Length <= 160 ? compact : compact[..157] + "...";
+    }
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        NumberHandling = JsonNumberHandling.AllowReadingFromString
+    };
+
+    private static readonly JsonSerializerOptions QuoteOptions = new()
+    {
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
+    private const string BrowserStateScript =
+        """
+        () => {
+          const compact = (value, max = 120) => String(value || '').replace(/\s+/g, ' ').trim().slice(0, max);
+          const escapeAttr = value => String(value || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+          const cssEscape = value => {
+            if (window.CSS && CSS.escape) return CSS.escape(String(value));
+            return String(value).replace(/[^a-zA-Z0-9_-]/g, match => `\\${match}`);
+          };
+          const isVisible = el => {
+            const rect = el.getBoundingClientRect();
+            const style = window.getComputedStyle(el);
+            return rect.width > 0 &&
+              rect.height > 0 &&
+              rect.bottom >= 0 &&
+              rect.right >= 0 &&
+              rect.top <= window.innerHeight &&
+              rect.left <= window.innerWidth &&
+              style.visibility !== 'hidden' &&
+              style.display !== 'none' &&
+              style.pointerEvents !== 'none';
+          };
+          const selectorFor = el => {
+            const tag = el.tagName.toLowerCase();
+            if (el.id) return `#${cssEscape(el.id)}`;
+            for (const attr of ['data-testid', 'data-test', 'name', 'aria-label', 'placeholder', 'title']) {
+              const value = el.getAttribute(attr);
+              if (value) return `${tag}[${attr}="${escapeAttr(value)}"]`;
+            }
+
+            const parts = [];
+            let node = el;
+            while (node && node.nodeType === Node.ELEMENT_NODE && parts.length < 5) {
+              const nodeTag = node.tagName.toLowerCase();
+              if (node.id) {
+                parts.unshift(`#${cssEscape(node.id)}`);
+                break;
+              }
+
+              let part = nodeTag;
+              const parent = node.parentElement;
+              if (parent) {
+                const sameTag = Array.from(parent.children).filter(child => child.tagName === node.tagName);
+                if (sameTag.length > 1) {
+                  part += `:nth-of-type(${sameTag.indexOf(node) + 1})`;
+                }
+              }
+              parts.unshift(part);
+              node = parent;
+            }
+
+            return parts.join(' > ');
+          };
+          const describe = el => ({
+            ref: selectorFor(el),
+            role: compact(el.getAttribute('role')),
+            tag: el.tagName.toLowerCase(),
+            type: compact(el.getAttribute('type')),
+            name: compact(el.getAttribute('name')),
+            placeholder: compact(el.getAttribute('placeholder')),
+            text: compact(el.innerText || el.getAttribute('aria-label') || el.getAttribute('title') || el.value || el.textContent),
+            value: compact(el.matches('input, textarea, select, [contenteditable="true"]') ? (el.value || el.innerText) : '')
+          });
+          const uniqueVisible = selector => {
+            const seen = new Set();
+            return Array.from(document.querySelectorAll(selector))
+              .filter(isVisible)
+              .map(describe)
+              .filter(item => {
+                if (!item.ref || seen.has(item.ref)) return false;
+                seen.add(item.ref);
+                return true;
+              })
+              .slice(0, 50);
+          };
+
+          return JSON.stringify({
+            viewport: {
+              width: Math.round(window.innerWidth),
+              height: Math.round(window.innerHeight)
+            },
+            scroll: {
+              x: Math.round(window.scrollX),
+              y: Math.round(window.scrollY),
+              maxX: Math.max(0, Math.round(document.documentElement.scrollWidth - window.innerWidth)),
+              maxY: Math.max(0, Math.round(document.documentElement.scrollHeight - window.innerHeight))
+            },
+            clickableRefs: uniqueVisible('a[href], button, [role="button"], [role="link"], input[type="button"], input[type="submit"], input[type="reset"], summary, [onclick], [tabindex]:not([tabindex="-1"])'),
+            inputRefs: uniqueVisible('input:not([type="hidden"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="image"]), textarea, select, [contenteditable="true"], [role="textbox"], [role="combobox"], [role="searchbox"], [role="spinbutton"]')
+          });
+        }
+        """;
+
     private static void RenderAccessibilityNode(
         AccessibilitySnapshotResult node, StringBuilder sb, int depth)
     {
@@ -269,6 +486,36 @@ public sealed class AccessibilitySnapshotResult
     public string? Name { get; set; }
     public string? Value { get; set; }
     public IReadOnlyList<AccessibilitySnapshotResult>? Children { get; set; }
+}
+
+public sealed record BrowserStateSnapshot(
+    string Url,
+    string Title,
+    BrowserViewport Viewport,
+    BrowserScrollPosition Scroll,
+    IReadOnlyList<BrowserElementRef> ClickableRefs,
+    IReadOnlyList<BrowserElementRef> InputRefs);
+
+public sealed record BrowserViewport(int Width, int Height);
+
+public sealed record BrowserScrollPosition(int X, int Y, int MaxX, int MaxY);
+
+public sealed record BrowserElementRef(
+    string Ref,
+    string? Role = null,
+    string? Tag = null,
+    string? Type = null,
+    string? Name = null,
+    string? Placeholder = null,
+    string? Text = null,
+    string? Value = null);
+
+public sealed class BrowserStateDomSnapshot
+{
+    public BrowserViewport? Viewport { get; set; }
+    public BrowserScrollPosition? Scroll { get; set; }
+    public IReadOnlyList<BrowserElementRef>? ClickableRefs { get; set; }
+    public IReadOnlyList<BrowserElementRef>? InputRefs { get; set; }
 }
 
 public sealed class BrowserParameters

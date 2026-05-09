@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Hermes.Agent.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 
@@ -51,6 +52,8 @@ public sealed class ToolCallInfo : INotifyPropertyChanged
 public sealed class ChatMessageItem : INotifyPropertyChanged
 {
     private string _content;
+    private readonly StreamingTextAccumulator _contentAccumulator = new();
+    private readonly StreamingTextAccumulator _thinkingAccumulator = new();
     private readonly System.Text.StringBuilder _thinkingBuilder = new();
     private string _thinkingContent = "";
     private bool _isStreaming;
@@ -85,7 +88,12 @@ public sealed class ChatMessageItem : INotifyPropertyChanged
     public string Content
     {
         get => _content;
-        set { _content = value; OnPropertyChanged(); }
+        set
+        {
+            _contentAccumulator.Clear();
+            _content = value;
+            OnPropertyChanged();
+        }
     }
 
     /// <summary>Reasoning/thinking content from reasoning models (collapsible in UI).</summary>
@@ -101,7 +109,13 @@ public sealed class ChatMessageItem : INotifyPropertyChanged
     public bool IsStreaming
     {
         get => _isStreaming;
-        set { _isStreaming = value; OnPropertyChanged(); }
+        set
+        {
+            if (_isStreaming == value) return;
+            if (!value) FlushStreaming();
+            _isStreaming = value;
+            OnPropertyChanged();
+        }
     }
 
     public ChatMessageType MessageType
@@ -116,16 +130,43 @@ public sealed class ChatMessageItem : INotifyPropertyChanged
 
     public void AppendToken(string token)
     {
-        _content += token;
+        _contentAccumulator.Append(token);
+        var flushed = _contentAccumulator.FlushIfDue();
+        if (flushed.Length == 0) return;
+
+        _content += flushed;
         OnPropertyChanged(nameof(Content));
     }
 
     public void AppendThinking(string token)
     {
-        _thinkingBuilder.Append(token);
+        _thinkingAccumulator.Append(token);
+        var flushed = _thinkingAccumulator.FlushIfDue();
+        if (flushed.Length == 0) return;
+
+        _thinkingBuilder.Append(flushed);
         _thinkingContent = _thinkingBuilder.ToString();
         OnPropertyChanged(nameof(ThinkingContent));
         OnPropertyChanged(nameof(HasThinking));
+    }
+
+    public void FlushStreaming()
+    {
+        var content = _contentAccumulator.Flush();
+        if (content.Length > 0)
+        {
+            _content += content;
+            OnPropertyChanged(nameof(Content));
+        }
+
+        var thinking = _thinkingAccumulator.Flush();
+        if (thinking.Length > 0)
+        {
+            _thinkingBuilder.Append(thinking);
+            _thinkingContent = _thinkingBuilder.ToString();
+            OnPropertyChanged(nameof(ThinkingContent));
+            OnPropertyChanged(nameof(HasThinking));
+        }
     }
 
     // ── INotifyPropertyChanged ──

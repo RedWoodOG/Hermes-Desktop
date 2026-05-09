@@ -376,6 +376,7 @@ public partial class App : Application
         // Transcript store
         var transcriptsDir = Path.Combine(projectDir, "transcripts");
         services.AddSingleton(sp => new TranscriptStore(transcriptsDir, eagerFlush: true));
+        services.AddSingleton(sp => new TimelineStore(Path.Combine(projectDir, "timeline")));
 
         // Memory manager
         var memoryDir = Path.Combine(projectDir, "memory");
@@ -537,6 +538,7 @@ public partial class App : Application
                 sp.GetRequiredService<ILogger<Agent>>(),
                 permissions: sp.GetRequiredService<PermissionManager>(),
                 transcripts: sp.GetRequiredService<TranscriptStore>(),
+                timeline: sp.GetRequiredService<TimelineStore>(),
                 memories: sp.GetRequiredService<MemoryManager>(),
                 contextManager: sp.GetRequiredService<ContextManager>(),
                 soulService: sp.GetRequiredService<SoulService>(),
@@ -812,6 +814,7 @@ public partial class App : Application
 
         // Task management
         RegisterAndTrack(agent, toolRegistry, new TodoWriteTool());
+        RegisterAndTrack(agent, toolRegistry, new PlanningTool());
         RegisterAndTrack(agent, toolRegistry, new ScheduleCronTool());
 
         // LSP tool (optional config)
