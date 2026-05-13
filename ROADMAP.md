@@ -1,6 +1,6 @@
 # Hermes Desktop Roadmap
 
-> Last updated: 2026-04-27 | Current version: v2.5.0
+> Last updated: 2026-05-08 | Shipped product version: see root `readme.md` changelog and `Desktop/HermesDesktop/HermesDesktop.csproj` `<Version>` (tag `v*` on `main` drives portable release).
 
 This roadmap closes competitive gaps against Superset, Nimbalyst, Codex, Cursor, Claude Code, and Capy while preserving Hermes's unique strengths: native Windows UI, runtime model swapping, soul/identity system, and native messaging.
 
@@ -18,28 +18,36 @@ This roadmap closes competitive gaps against Superset, Nimbalyst, Codex, Cursor,
 | File traceability | Manual `git diff` in worktrees | Nimbalyst inline diff review | Behind |
 | IDE integration | Standalone only | Cursor/Codex live in editor | Behind |
 | Cloud execution | Interface only (Docker/SSH/Modal/Daytona stubs) | Devin cloud-first, Superset worktrees | Behind |
-| MCP ecosystem | Loads config, never registers tools | OpenCode/Superset first-class MCP | Behind |
+| MCP ecosystem | Host bootstrap registers MCP tools (`McpBootstrap`, app startup); discovery/OAuth/SSE UX still thin vs upstream v0.13 | OpenCode/Superset first-class MCP | Behind (depth, not ùzero MCPù) |
 | Auto-updates | None | All competitors have this | Behind |
-| Streaming reliability | Hangs on some providers (Issue #26) | Claude Code/Codex robust | Behind |
+| Streaming reliability | Watchdog + structured errors + mid-stream fallback (SSE); still provider-dependent | Claude Code/Codex robust | Par / Behind (provider edge cases) |
 | Mobile monitoring | Telegram/Discord bots only | Nimbalyst iOS app | Behind |
+
+---
+
+## Planning artifacts (options + gates)
+
+- **[docs/upstream-tracking.md](docs/upstream-tracking.md)** ó outcome-based upstream reference (not parity checklist).
+- **[docs/roadmap-trust-boundaries.md](docs/roadmap-trust-boundaries.md)** ó trust boundaries and pre-build security gates per roadmap bundle.
+- **[docs/roadmap-decisions.md](docs/roadmap-decisions.md)** ó record selected bundles, scores, and vertical-slice Definition of Done.
 
 ---
 
 ## Milestones
 
-### v2.5.0 ‚Äî Reliability & Foundation (2 weeks)
+### v2.5.0 ù Reliability & Foundation (2 weeks)
 
 **Theme**: Fix what breaks, ship what users expect.
 
 | Item | Files | Owner | Status |
 |------|-------|-------|--------|
-| Streaming watchdog ó 30s timeout with `StreamEvent.Error` yield | `src/Core/Agent.cs`, `src/LLM/AnthropicClient.cs`, `OpenAiClient.cs` | Codex | Done |
-| Transport-layer error surfacing ó HTTP, timeout, JSON parse errors | `src/LLM/*Client.cs` | Codex | Done |
-| Chat error banner ó Retry / Switch Model actions | `Desktop/HermesDesktop/Views/ChatPage.xaml.cs` | Codex | Done |
-| Structured error codes ó ProviderTimeout, ProviderAuth, RateLimit, StreamParseError | `src/Core/Agent.cs` | Codex | Done |
-| Auto-updater ‚Äî GitHub Releases check, portable zip download, SHA256 verify | `Desktop/HermesDesktop/Services/UpdateService.cs` (new) | ‚Äî | Planned |
-| MSIX update channel wiring | `Desktop/HermesDesktop/packaging/` | ‚Äî | Planned |
-| Settings: "Check for updates" button + "Auto-update" toggle | `Desktop/HermesDesktop/Views/SettingsPage.xaml` | ‚Äî | Planned |
+| Streaming watchdog ù 30s timeout with `StreamEvent.Error` yield | `src/Core/Agent.cs`, `src/LLM/AnthropicClient.cs`, `OpenAiClient.cs` | Codex | Done |
+| Transport-layer error surfacing ù HTTP, timeout, JSON parse errors | `src/LLM/*Client.cs` | Codex | Done |
+| Chat error banner ù Retry / Switch Model actions | `Desktop/HermesDesktop/Views/ChatPage.xaml.cs` | Codex | Done |
+| Structured error codes ù ProviderTimeout, ProviderAuth, RateLimit, StreamParseError | `src/Core/Agent.cs` | Codex | Done |
+| Auto-updater ù GitHub Releases check, portable zip download, SHA256 verify | `Desktop/HermesDesktop/Services/UpdateService.cs` (new) | ù | Planned |
+| MSIX update channel wiring | `Desktop/HermesDesktop/packaging/` | ù | Planned |
+| Settings: "Check for updates" button + "Auto-update" toggle | `Desktop/HermesDesktop/Views/SettingsPage.xaml` | ù | Planned |
 
 **Acceptance**:
 - Network disconnect mid-stream -> visible error within 35s, not a hang.
@@ -48,20 +56,20 @@ This roadmap closes competitive gaps against Superset, Nimbalyst, Codex, Cursor,
 
 ---
 
-### v2.6.0 ‚Äî Session Orchestration (2 weeks)
+### v2.6.0 ù Session Orchestration (2 weeks)
 
 **Theme**: Go from chat list to workspace.
 
 | Item | Files | Owner | Status |
 |------|-------|-------|--------|
-| Task Board page ‚Äî Kanban: Backlog / Running / Review / Done | `Desktop/HermesDesktop/Views/TaskBoardPage.xaml` (new) | ‚Äî | Planned |
-| AgentTaskItem model ‚Äî TaskId, Title, Status, Tags, Project, CostTokens | `Desktop/HermesDesktop/Models/AgentTaskItem.cs` (new) | ‚Äî | Planned |
-| AgentService events ‚Äî AgentTaskStatusChanged on spawn/complete/failure | `src/agents/AgentService.cs` | ‚Äî | Planned |
-| SessionTagStore ‚Äî SQLite `agent_tasks` table with FTS5 | `Desktop/HermesDesktop/Services/SessionTagStore.cs` (new) | ‚Äî | Planned |
-| Drag-and-drop + filter bar (project, tag, date, status) | `TaskBoardPage.xaml` | ‚Äî | Planned |
-| Changes Review panel ‚Äî file tree, inline diff, Apply/Discard | `Desktop/HermesDesktop/Views/Panels/ChangesPanel.xaml` (new) | ‚Äî | Planned |
-| DiffRenderer ‚Äî unified diff parser + syntax highlight | `Desktop/HermesDesktop/Helpers/DiffRenderer.cs` (new) | ‚Äî | Planned |
-| Track ReadFiles/WrittenFiles/DeletedFiles per AgentContext | `src/agents/AgentService.cs` | ‚Äî | Planned |
+| Task Board page ù Kanban: Backlog / Running / Review / Done | `Desktop/HermesDesktop/Views/TaskBoardPage.xaml` (new) | ù | Planned |
+| AgentTaskItem model ù TaskId, Title, Status, Tags, Project, CostTokens | `Desktop/HermesDesktop/Models/AgentTaskItem.cs` (new) | ù | Planned |
+| AgentService events ù AgentTaskStatusChanged on spawn/complete/failure | `src/agents/AgentService.cs` | ù | Planned |
+| SessionTagStore ù SQLite `agent_tasks` table with FTS5 | `Desktop/HermesDesktop/Services/SessionTagStore.cs` (new) | ù | Planned |
+| Drag-and-drop + filter bar (project, tag, date, status) | `TaskBoardPage.xaml` | ù | Planned |
+| Changes Review panel ù file tree, inline diff, Apply/Discard | `Desktop/HermesDesktop/Views/Panels/ChangesPanel.xaml` (new) | ù | Planned |
+| DiffRenderer ù unified diff parser + syntax highlight | `Desktop/HermesDesktop/Helpers/DiffRenderer.cs` (new) | ù | Planned |
+| Track ReadFiles/WrittenFiles/DeletedFiles per AgentContext | `src/agents/AgentService.cs` | ù | Planned |
 
 **Acceptance**:
 - Spawn 3 background agents -> all appear in Running column with live cost counters.
@@ -70,19 +78,19 @@ This roadmap closes competitive gaps against Superset, Nimbalyst, Codex, Cursor,
 
 ---
 
-### v2.7.0 ‚Äî IDE Bridge (2 weeks)
+### v2.7.0 ù IDE Bridge (2 weeks)
 
 **Theme**: Bring Hermes into the editor.
 
 | Item | Files | Owner | Status |
 |------|-------|-------|--------|
-| VS Code extension scaffold | `extensions/vscode/` (new) | ‚Äî | Planned |
-| Sidebar tree view ‚Äî Hermes Sessions with live status | `extensions/vscode/src/SessionProvider.ts` | ‚Äî | Planned |
-| Command palette ‚Äî "Send selection to agent", "Review pending changes" | `extensions/vscode/package.json` | ‚Äî | Planned |
-| Webview chat panel | `extensions/vscode/src/ChatPanel.ts` | ‚Äî | Planned |
-| HermesApiServer ‚Äî localhost HTTP + WebSocket API | `Desktop/HermesDesktop/Services/HermesApiServer.cs` (new) | ‚Äî | Planned |
-| API endpoints: GET /api/sessions, POST /api/sessions/{id}/chat, GET /api/sessions/{id}/changes | `HermesApiServer.cs` | ‚Äî | Planned |
-| Security: 127.0.0.1 binding, Bearer token from `.api-token` | `HermesApiServer.cs` | ‚Äî | Planned |
+| VS Code extension scaffold | `extensions/vscode/` (new) | ù | Planned |
+| Sidebar tree view ù Hermes Sessions with live status | `extensions/vscode/src/SessionProvider.ts` | ù | Planned |
+| Command palette ù "Send selection to agent", "Review pending changes" | `extensions/vscode/package.json` | ù | Planned |
+| Webview chat panel | `extensions/vscode/src/ChatPanel.ts` | ù | Planned |
+| HermesApiServer ù localhost HTTP + WebSocket API | `Desktop/HermesDesktop/Services/HermesApiServer.cs` (new) | ù | Planned |
+| API endpoints: GET /api/sessions, POST /api/sessions/{id}/chat, GET /api/sessions/{id}/changes | `HermesApiServer.cs` | ù | Planned |
+| Security: 127.0.0.1 binding, Bearer token from `.api-token` | `HermesApiServer.cs` | ù | Planned |
 
 **Acceptance**:
 - Open VS Code -> Hermes sidebar shows active sessions.
@@ -91,22 +99,22 @@ This roadmap closes competitive gaps against Superset, Nimbalyst, Codex, Cursor,
 
 ---
 
-### v2.8.0 ‚Äî Cloud & MCP (2 weeks)
+### v2.8.0 ù Cloud & MCP (2 weeks)
 
 **Theme**: Extend reach without leaving local-first.
 
 | Item | Files | Owner | Status |
 |------|-------|-------|--------|
-| DockerBackend ‚Äî Docker.DotNet, pull, exec, capture, cleanup | `src/execution/DockerBackend.cs` | ‚Äî | Planned |
-| SshBackend ‚Äî SSH.NET connect, exec, capture | `src/execution/SshBackend.cs` | ‚Äî | Planned |
-| DaytonaBackend ‚Äî REST API implementation | `src/execution/DaytonaBackend.cs` | ‚Äî | Planned |
-| BashTool routing ‚Äî ExecutionBackendFactory.Create per config | `src/Tools/BashTool.cs` | ‚Äî | Planned |
-| Settings: "Execution Environment" dropdown + per-tool override | `Desktop/HermesDesktop/Views/SettingsPage.xaml` | ‚Äî | Planned |
-| Permission gate on first Docker/SSH use | `Desktop/HermesDesktop/Services/PermissionDialogService.cs` | ‚Äî | Planned |
-| MCP auto-discovery ‚Äî `~/.config/mcp/settings.json`, `%LOCALAPPDATA%\hermes\mcp.json` | `Desktop/HermesDesktop/Services/McpDiscoveryService.cs` (new) | ‚Äî | Planned |
-| Settings: MCP server list with toggles + test connection | `SettingsPage.xaml` | ‚Äî | Planned |
-| Wire McpManager into App.xaml.cs tool registration | `Desktop/HermesDesktop/App.xaml.cs` | ‚Äî | Planned |
-| Ship pre-configured MCP servers: filesystem, fetch, git, playwright | `Desktop/HermesDesktop/Services/McpDiscoveryService.cs` | ‚Äî | Planned |
+| DockerBackend ù Docker.DotNet, pull, exec, capture, cleanup | `src/execution/DockerBackend.cs` | ù | Planned |
+| SshBackend ù SSH.NET connect, exec, capture | `src/execution/SshBackend.cs` | ù | Planned |
+| DaytonaBackend ù REST API implementation | `src/execution/DaytonaBackend.cs` | ù | Planned |
+| BashTool routing ù ExecutionBackendFactory.Create per config | `src/Tools/BashTool.cs` | ù | Planned |
+| Settings: "Execution Environment" dropdown + per-tool override | `Desktop/HermesDesktop/Views/SettingsPage.xaml` | ù | Planned |
+| Permission gate on first Docker/SSH use | `Desktop/HermesDesktop/Services/PermissionDialogService.cs` | ù | Planned |
+| MCP auto-discovery ù `~/.config/mcp/settings.json`, `%LOCALAPPDATA%\hermes\mcp.json` | `Desktop/HermesDesktop/Services/McpDiscoveryService.cs` (new) | ù | Planned |
+| Settings: MCP server list with toggles + test connection | `SettingsPage.xaml` | ù | Planned |
+| Wire McpManager into App.xaml.cs tool registration | `Desktop/HermesDesktop/App.xaml.cs` | ù | Planned |
+| Ship pre-configured MCP servers: filesystem, fetch, git, playwright | `Desktop/HermesDesktop/Services/McpDiscoveryService.cs` | ù | Planned |
 
 **Acceptance**:
 - Set backend to Docker -> bash tool runs in `ubuntu:24.04` container.
@@ -115,20 +123,20 @@ This roadmap closes competitive gaps against Superset, Nimbalyst, Codex, Cursor,
 
 ---
 
-### v2.9.0 ‚Äî Memory & Monitoring (2 weeks)
+### v2.9.0 ù Memory & Monitoring (2 weeks)
 
 **Theme**: Smarter context, broader reach.
 
 | Item | Files | Owner | Status |
 |------|-------|-------|--------|
-| Telegram `/status` command ‚Äî running agents, tokens today, last error | `src/gateway/platforms/TelegramAdapter.cs` | ‚Äî | Planned |
-| StatusBroadcaster ‚Äî push updates to gateways every 60s | `Desktop/HermesDesktop/Services/StatusBroadcaster.cs` (new) | ‚Äî | Planned |
-| Local web dashboard ‚Äî `localhost:PORT/dashboard`, mobile-responsive | `Desktop/HermesDesktop/Services/HermesApiServer.cs` | ‚Äî | Planned |
-| VectorStore ‚Äî SQLite + `sqlite-vec` for local embeddings | `src/memory/VectorStore.cs` (new) | ‚Äî | Planned |
-| Semantic compaction ‚Äî store embeddings of dropped messages | `src/Context/ContextManager.cs` | ‚Äî | Planned |
-| Context injection ‚Äî query vector store by similarity, inject as system notes | `src/Context/PromptBuilder.cs` | ‚Äî | Planned |
-| Settings: "Semantic compaction" toggle + embedding model selector | `SettingsPage.xaml` | ‚Äî | Planned |
-| Fallback to keyword search if Ollama unavailable | `src/Context/ContextManager.cs` | ‚Äî | Planned |
+| Telegram `/status` command ù running agents, tokens today, last error | `src/gateway/platforms/TelegramAdapter.cs` | ù | Planned |
+| StatusBroadcaster ù push updates to gateways every 60s | `Desktop/HermesDesktop/Services/StatusBroadcaster.cs` (new) | ù | Planned |
+| Local web dashboard ù `localhost:PORT/dashboard`, mobile-responsive | `Desktop/HermesDesktop/Services/HermesApiServer.cs` | ù | Planned |
+| VectorStore ù SQLite + `sqlite-vec` for local embeddings | `src/memory/VectorStore.cs` (new) | ù | Planned |
+| Semantic compaction ù store embeddings of dropped messages | `src/Context/ContextManager.cs` | ù | Planned |
+| Context injection ù query vector store by similarity, inject as system notes | `src/Context/PromptBuilder.cs` | ù | Planned |
+| Settings: "Semantic compaction" toggle + embedding model selector | `SettingsPage.xaml` | ù | Planned |
+| Fallback to keyword search if Ollama unavailable | `src/Context/ContextManager.cs` | ù | Planned |
 
 **Acceptance**:
 - Send `/status` to Telegram -> "3 agents running, 12.4k tokens today".
@@ -137,16 +145,16 @@ This roadmap closes competitive gaps against Superset, Nimbalyst, Codex, Cursor,
 
 ---
 
-### v2.10.0 ‚Äî Polish (1 week)
+### v2.10.0 ù Polish (1 week)
 
 **Theme**: Finish the experience.
 
 | Item | Files | Owner | Status |
 |------|-------|-------|--------|
-| Diagnostics page ‚Äî provider health, recent errors, system info, "Copy diagnostics" | `Desktop/HermesDesktop/Views/DiagnosticsPage.xaml` (new) | ‚Äî | Planned |
-| Startup health check toast ‚Äî malformed API key, connectivity failure | `Desktop/HermesDesktop/Services/StartupDiagnostics.cs` | ‚Äî | Planned |
-| Settings search ‚Äî AutoSuggestBox filtering by label/description | `Desktop/HermesDesktop/Views/SettingsPage.xaml` | ‚Äî | Planned |
-| Command palette ‚Äî `Ctrl+Shift+P` overlay: Switch model, Clear permissions, Open diagnostics, Check for updates | `Desktop/HermesDesktop/MainWindow.xaml.cs` | ‚Äî | Planned |
+| Diagnostics page ù provider health, recent errors, system info, "Copy diagnostics" | `Desktop/HermesDesktop/Views/DiagnosticsPage.xaml` (new) | ù | Planned |
+| Startup health check toast ù malformed API key, connectivity failure | `Desktop/HermesDesktop/Services/StartupDiagnostics.cs` | ù | Planned |
+| Settings search ù AutoSuggestBox filtering by label/description | `Desktop/HermesDesktop/Views/SettingsPage.xaml` | ù | Planned |
+| Command palette ù `Ctrl+Shift+P` overlay: Switch model, Clear permissions, Open diagnostics, Check for updates | `Desktop/HermesDesktop/MainWindow.xaml.cs` | ù | Planned |
 
 **Acceptance**:
 - Open Diagnostics -> green/red provider status, last 20 errors, copy-to-clipboard.
@@ -159,7 +167,7 @@ This roadmap closes competitive gaps against Superset, Nimbalyst, Codex, Cursor,
 
 1. **Local-first always**: All features work offline. No cloud dependency for core functionality.
 2. **Additive only**: Every new feature is toggleable in Settings. Users who prefer v2.4.0 can disable new panels.
-3. **Git for state**: Session history, task board, file changes ‚Äî all in SQLite with atomic writes (existing pattern).
+3. **Git for state**: Session history, task board, file changes ù all in SQLite with atomic writes (existing pattern).
 4. **No Electron**: VS Code extension talks to native Hermes via WebSocket. Hermes stays WinUI 3.
 5. **Test coverage**: Every new service gets unit tests. Every UI page gets a smoke test for "loads without crash."
 
