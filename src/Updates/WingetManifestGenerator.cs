@@ -48,8 +48,8 @@ public static class WingetManifestGenerator
     /// </summary>
     public static string Render(string template, IReadOnlyDictionary<string, string> values)
     {
-        if (template is null) throw new ArgumentNullException(nameof(template));
-        if (values is null) throw new ArgumentNullException(nameof(values));
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(values);
 
         foreach (var key in RequiredKeys)
         {
