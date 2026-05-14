@@ -20,6 +20,7 @@ internal sealed class HermesChatService : IDisposable
     private readonly Agent _agent;
     private readonly IChatClient _chatClient;
     private readonly TranscriptStore _transcriptStore;
+    private readonly TimelineStore? _timelineStore;
     private readonly PermissionManager _permissionManager;
     private readonly WorkspacePermissionRuleStore _permissionRuleStore;
     private readonly ILogger<HermesChatService> _logger;
@@ -34,11 +35,13 @@ internal sealed class HermesChatService : IDisposable
         TranscriptStore transcriptStore,
         PermissionManager permissionManager,
         WorkspacePermissionRuleStore permissionRuleStore,
-        ILogger<HermesChatService> logger)
+        ILogger<HermesChatService> logger,
+        TimelineStore? timelineStore = null)
     {
         _agent = agent;
         _chatClient = chatClient;
         _transcriptStore = transcriptStore;
+        _timelineStore = timelineStore;
         _permissionManager = permissionManager;
         _permissionRuleStore = permissionRuleStore;
         _logger = logger;
@@ -73,6 +76,7 @@ internal sealed class HermesChatService : IDisposable
     {
         EnsureSession();
         var messageCountBefore = _currentSession!.Messages.Count;
+        var turn = await StartTimelineTurnAsync(message, ct);
 
         try
         {
@@ -80,6 +84,7 @@ internal sealed class HermesChatService : IDisposable
 
             // Persist all new messages (user + tool calls + assistant)
             await PersistNewMessagesAsync(messageCountBefore);
+            await CompleteTimelineTurnAsync(turn, response, TurnStatus.Completed, null);
 
             _logger.LogInformation("Chat reply for session {SessionId}: {Length} chars", _currentSession.Id, response.Length);
             return new HermesChatReply(response, _currentSession.Id);
@@ -87,12 +92,14 @@ internal sealed class HermesChatService : IDisposable
         catch (OperationCanceledException)
         {
             await PersistNewMessagesAsync(messageCountBefore);
+            await CompleteTimelineTurnAsync(turn, null, TurnStatus.Canceled, null);
             throw;
         }
         catch (Exception ex)
         {
             // Persist whatever was added before the failure (at minimum the user message)
             await PersistNewMessagesAsync(messageCountBefore);
+            await CompleteTimelineTurnAsync(turn, null, TurnStatus.Failed, ex.Message);
             _logger.LogWarning(ex, "Chat send failed for session {SessionId}", _currentSession.Id);
             throw;
         }
@@ -108,7 +115,7 @@ internal sealed class HermesChatService : IDisposable
 
     // ── Stream (structured events: tokens + thinking) ──
 
-    public async IAsyncEnumerable<ChatStreamEvent> StreamStructuredAsync(
+    public async IAsyncEnumerable<ChatRuntimeEvent> StreamRuntimeAsync(
         string message,
         [EnumeratorCancellation] CancellationToken ct)
     {
@@ -117,15 +124,78 @@ internal sealed class HermesChatService : IDisposable
         _streamCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 
         var fullResponse = new System.Text.StringBuilder();
+        var turn = await StartTimelineTurnAsync(message, ct);
+        var turnStatus = TurnStatus.Completed;
+        string? turnError = null;
+        await using var stream = _agent.StreamChatAsync(message, _currentSession!, _streamCts.Token)
+            .GetAsyncEnumerator(_streamCts.Token);
         try
         {
-            await foreach (var evt in _agent.StreamChatAsync(message, _currentSession!, _streamCts.Token))
+            while (true)
             {
-                var projected = ChatStreamProjection.Project(evt);
-                if (projected.AccumulatedText is not null)
-                    fullResponse.Append(projected.AccumulatedText);
-                if (projected.Envelope is { } envelope)
-                    yield return ChatStreamEventMapper.ToChatStreamEvent(envelope);
+                Hermes.Agent.LLM.StreamEvent evt;
+                try
+                {
+                    if (!await stream.MoveNextAsync())
+                        break;
+
+                    evt = stream.Current;
+                }
+                catch (OperationCanceledException)
+                {
+                    turnStatus = TurnStatus.Canceled;
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    turnStatus = TurnStatus.Failed;
+                    turnError = ex.Message;
+                    throw;
+                }
+
+                switch (evt)
+                {
+                    case Hermes.Agent.LLM.StreamEvent.TokenDelta td:
+                        // Tool-calling status messages (e.g. "[Calling tool: bash]") are
+                        // informational — show in UI but don't accumulate into the saved response
+                        if (td.Text.StartsWith("\n[Calling tool:") && td.Text.TrimEnd().EndsWith("]"))
+                        {
+                            yield return new ChatRuntimeEvent.ToolStatus(td.Text.Trim());
+                        }
+                        else
+                        {
+                            fullResponse.Append(td.Text);
+                            yield return new ChatRuntimeEvent.TokenDelta(td.Text);
+                        }
+                        break;
+
+                    case Hermes.Agent.LLM.StreamEvent.ThinkingDelta tk:
+                        yield return new ChatRuntimeEvent.ThinkingDelta(tk.Text);
+                        break;
+
+                    case Hermes.Agent.LLM.StreamEvent.StreamError err:
+                        turnStatus = TurnStatus.Failed;
+                        turnError = err.Error.Message;
+                        await AppendTimelineItemAsync(
+                            turn,
+                            TurnItemKind.Error,
+                            TurnItemStatus.Failed,
+                            err.Error.Message,
+                            role: null,
+                            metadata: new Dictionary<string, string> { ["code"] = err.Code.ToString() });
+                        yield return new ChatRuntimeEvent.Error(new ChatRuntimeError(
+                            err.Error.Message,
+                            Code: err.Code.ToString(),
+                            Retryable: err.Code is not ProviderErrorCode.ProviderAuth,
+                            SuggestedAction: err.Code switch
+                            {
+                                ProviderErrorCode.ProviderAuth => "Open Settings and check the provider API key.",
+                                ProviderErrorCode.RateLimit => "Retry later or switch models.",
+                                ProviderErrorCode.ProviderTimeout => "Retry or switch providers.",
+                                _ => "Retry the request."
+                            }));
+                        break;
+                }
             }
         }
         finally
@@ -139,6 +209,35 @@ internal sealed class HermesChatService : IDisposable
                 var assistantMsg = new Message { Role = "assistant", Content = fullResponse.ToString() };
                 _currentSession.AddMessage(assistantMsg);
                 await _transcriptStore.SaveMessageAsync(_currentSession.Id, assistantMsg, CancellationToken.None);
+            }
+
+            await CompleteTimelineTurnAsync(turn, fullResponse.ToString(), turnStatus, turnError);
+        }
+
+        if (_currentSession is not null)
+            yield return new ChatRuntimeEvent.Completed(_currentSession.Id);
+    }
+
+    public async IAsyncEnumerable<ChatStreamEvent> StreamStructuredAsync(
+        string message,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        await foreach (var evt in StreamRuntimeAsync(message, ct))
+        {
+            switch (evt)
+            {
+                case ChatRuntimeEvent.TokenDelta token:
+                    yield return new ChatStreamEvent(ChatStreamEventType.Token, token.Text);
+                    break;
+                case ChatRuntimeEvent.ThinkingDelta thinking:
+                    yield return new ChatStreamEvent(ChatStreamEventType.Thinking, thinking.Text);
+                    break;
+                case ChatRuntimeEvent.ToolStatus toolStatus:
+                    yield return new ChatStreamEvent(ChatStreamEventType.Thinking, toolStatus.Text);
+                    break;
+                case ChatRuntimeEvent.Error error:
+                    yield return new ChatStreamEvent(ChatStreamEventType.Error, error.Detail.Message);
+                    break;
             }
         }
     }
@@ -188,6 +287,7 @@ internal sealed class HermesChatService : IDisposable
         foreach (var msg in messages)
             _currentSession.AddMessage(msg);
 
+        await UpsertTimelineThreadAsync(ct);
         _logger.LogInformation("Loaded session {SessionId} with {Count} messages", sessionId, messages.Count);
     }
 
@@ -218,6 +318,131 @@ internal sealed class HermesChatService : IDisposable
     // ── Tool Registration ──
 
     public void RegisterTool(ITool tool) => _agent.RegisterTool(tool);
+
+    private async Task UpsertTimelineThreadAsync(CancellationToken ct)
+    {
+        if (_timelineStore is null || _currentSession is null)
+            return;
+
+        try
+        {
+            var firstUserMessage = _currentSession.Messages.FirstOrDefault(message => message.Role == "user")?.Content;
+            await _timelineStore.GetOrCreateThreadAsync(
+                _currentSession.Id,
+                _currentSession.Platform ?? "desktop",
+                workspaceRoot: null,
+                provider: null,
+                model: null,
+                title: firstUserMessage,
+                ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Failed to upsert timeline thread for session {SessionId}", _currentSession?.Id);
+        }
+    }
+
+    private async Task<TurnRecord?> StartTimelineTurnAsync(string message, CancellationToken ct)
+    {
+        if (_timelineStore is null || _currentSession is null)
+            return null;
+
+        try
+        {
+            var turn = await _timelineStore.StartTurnAsync(
+                _currentSession.Id,
+                _currentSession.Platform ?? "desktop",
+                message,
+                workspaceRoot: null,
+                provider: null,
+                model: null,
+                ct);
+
+            await _timelineStore.AppendItemAsync(
+                turn.ThreadId,
+                turn.TurnId,
+                TurnItemKind.UserMessage,
+                TurnItemStatus.Completed,
+                message,
+                role: "user",
+                messageIndex: _currentSession.Messages.Count,
+                ct: ct);
+
+            return turn;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Failed to start timeline turn for session {SessionId}", _currentSession?.Id);
+            return null;
+        }
+    }
+
+    private async Task AppendTimelineItemAsync(
+        TurnRecord? turn,
+        TurnItemKind kind,
+        TurnItemStatus status,
+        string contentSummary,
+        string? role,
+        IReadOnlyDictionary<string, string>? metadata = null)
+    {
+        if (_timelineStore is null || turn is null)
+            return;
+
+        try
+        {
+            await _timelineStore.AppendItemAsync(
+                turn.ThreadId,
+                turn.TurnId,
+                kind,
+                status,
+                contentSummary,
+                role: role,
+                metadata: metadata,
+                ct: CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to append timeline item for turn {TurnId}", turn.TurnId);
+        }
+    }
+
+    private async Task CompleteTimelineTurnAsync(
+        TurnRecord? turn,
+        string? assistantResponse,
+        TurnStatus status,
+        string? error)
+    {
+        if (_timelineStore is null || turn is null)
+            return;
+
+        try
+        {
+            if (!string.IsNullOrEmpty(assistantResponse))
+            {
+                var itemStatus = status switch
+                {
+                    TurnStatus.Completed => TurnItemStatus.Completed,
+                    TurnStatus.Canceled => TurnItemStatus.Canceled,
+                    _ => TurnItemStatus.Failed
+                };
+
+                await _timelineStore.AppendItemAsync(
+                    turn.ThreadId,
+                    turn.TurnId,
+                    TurnItemKind.AssistantMessage,
+                    itemStatus,
+                    assistantResponse,
+                    role: "assistant",
+                    ct: CancellationToken.None);
+            }
+
+            await _timelineStore.CompleteTurnAsync(turn.ThreadId, turn.TurnId, status, error, CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to complete timeline turn {TurnId}", turn.TurnId);
+        }
+    }
 
     // ── Dispose ──
 

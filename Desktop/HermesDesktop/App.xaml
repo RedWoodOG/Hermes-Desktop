@@ -44,6 +44,115 @@
             <SolidColorBrush x:Key="ConnectionOnlineBrush" Color="#49C27D" />
             <SolidColorBrush x:Key="ConnectionOfflineBrush" Color="#FF8A65" />
 
+            <!-- Focus visuals (global override): gold ring with dark inner contrast.
+                 Affects every focusable control via WinUI's standard FocusVisual template. -->
+            <SolidColorBrush x:Key="SystemControlFocusVisualPrimaryBrush" Color="#FFD700" />
+            <SolidColorBrush x:Key="SystemControlFocusVisualSecondaryBrush" Color="#0F1318" />
+
+            <!-- Foundation v1: semantic tokens (Phase 1) -->
+            <!-- Text-on-accent (dark text used on gradient buttons / gold surfaces) -->
+            <SolidColorBrush x:Key="AppOnAccentTextBrush" Color="#16110D" />
+
+            <!-- Status brushes (success / warning / error). ConnectionOnlineBrush already serves green. -->
+            <SolidColorBrush x:Key="StatusSuccessBrush" Color="#49C27D" />
+            <SolidColorBrush x:Key="StatusWarningBrush" Color="#E8B339" />
+            <SolidColorBrush x:Key="StatusErrorBrush" Color="#FF6B6B" />
+            <SolidColorBrush x:Key="StatusInfoBrush" Color="#818CF8" />
+
+            <!-- Buddy stat colors (INT / ENR / CRE / FRN) -->
+            <SolidColorBrush x:Key="BuddyStatIntBrush" Color="#508CC8" />
+            <SolidColorBrush x:Key="BuddyStatEnrBrush" Color="#6BCB77" />
+            <SolidColorBrush x:Key="BuddyStatCreBrush" Color="#C88C50" />
+            <SolidColorBrush x:Key="BuddyStatFrnBrush" Color="#A064B4" />
+            <SolidColorBrush x:Key="ProgressTrackBrush" Color="#2A2520" />
+
+            <!-- Memory-type semantic brushes (match MemoryPage.xaml.cs GetTypeColor) -->
+            <SolidColorBrush x:Key="MemoryTypeUserBrush" Color="#508CC8" />
+            <SolidColorBrush x:Key="MemoryTypeFeedbackBrush" Color="#C88C50" />
+            <SolidColorBrush x:Key="MemoryTypeProjectBrush" Color="#64B464" />
+            <SolidColorBrush x:Key="MemoryTypeReferenceBrush" Color="#A064B4" />
+
+            <!-- Spacing scale (Thickness presets — uniform padding/margin) -->
+            <Thickness x:Key="SpacingCompact">8</Thickness>
+            <Thickness x:Key="SpacingNormal">12</Thickness>
+            <Thickness x:Key="SpacingSpacious">16</Thickness>
+            <Thickness x:Key="SpacingHero">24</Thickness>
+            <!-- Asymmetric button paddings (X,Y) -->
+            <Thickness x:Key="ButtonPaddingCompact">12,6</Thickness>
+            <Thickness x:Key="ButtonPaddingNormal">16,8</Thickness>
+            <Thickness x:Key="ButtonPaddingSpacious">20,10</Thickness>
+
+            <!-- Button styles -->
+            <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource AppAccentGradientBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource AppAccentDarkBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource AppOnAccentTextBrush}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Padding" Value="{StaticResource ButtonPaddingNormal}" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+            </Style>
+            <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="{StaticResource AppInsetBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource AppStrokeBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource AppTextPrimaryBrush}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Padding" Value="{StaticResource ButtonPaddingNormal}" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+            </Style>
+            <Style x:Key="TertiaryButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderBrush" Value="{StaticResource AppSubtleStrokeBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource AppTextSecondaryBrush}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Padding" Value="{StaticResource ButtonPaddingNormal}" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+            </Style>
+            <Style x:Key="DangerButtonStyle" TargetType="Button">
+                <Setter Property="Background" Value="#3A1A1A" />
+                <Setter Property="BorderBrush" Value="{StaticResource StatusErrorBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource StatusErrorBrush}" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Padding" Value="{StaticResource ButtonPaddingNormal}" />
+                <Setter Property="CornerRadius" Value="8" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+            </Style>
+
+            <!-- Input styles -->
+            <Style x:Key="AppTextBoxStyle" TargetType="TextBox">
+                <Setter Property="Background" Value="{StaticResource AppInsetBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource AppStrokeBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource AppTextPrimaryBrush}" />
+                <Setter Property="Padding" Value="10,8" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+            </Style>
+            <Style x:Key="AppPasswordBoxStyle" TargetType="PasswordBox">
+                <Setter Property="Background" Value="{StaticResource AppInsetBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource AppStrokeBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource AppTextPrimaryBrush}" />
+                <Setter Property="Padding" Value="10,8" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+            </Style>
+            <Style x:Key="AppComboBoxStyle" TargetType="ComboBox">
+                <Setter Property="Background" Value="{StaticResource AppInsetBrush}" />
+                <Setter Property="BorderBrush" Value="{StaticResource AppStrokeBrush}" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Foreground" Value="{StaticResource AppTextPrimaryBrush}" />
+                <Setter Property="Padding" Value="10,6" />
+                <Setter Property="CornerRadius" Value="6" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+            </Style>
+
             <Style x:Key="SurfaceCardStyle" TargetType="Border">
                 <Setter Property="Background" Value="{StaticResource AppSurfaceBrush}" />
                 <Setter Property="BorderBrush" Value="{StaticResource AppSubtleStrokeBrush}" />
@@ -51,6 +160,13 @@
                 <Setter Property="CornerRadius" Value="12" />
                 <Setter Property="Padding" Value="18" />
             </Style>
+            <!-- Subtle ambient gradient — used as ThinkingIndicator backdrop and other "alive" surfaces. -->
+            <LinearGradientBrush x:Key="AppAmbientAccentBrush" StartPoint="0,0" EndPoint="1,0">
+                <GradientStop Color="#001F1A0A" Offset="0.0" />
+                <GradientStop Color="#33332A0F" Offset="0.5" />
+                <GradientStop Color="#001F1A0A" Offset="1.0" />
+            </LinearGradientBrush>
+
             <Style x:Key="InsetCardStyle" TargetType="Border">
                 <Setter Property="Background" Value="{StaticResource AppInsetBrush}" />
                 <Setter Property="BorderBrush" Value="{StaticResource AppStrokeBrush}" />
@@ -90,6 +206,14 @@
                 <Setter Property="FontSize" Value="22" />
                 <Setter Property="FontWeight" Value="SemiBold" />
                 <Setter Property="TextWrapping" Value="Wrap" />
+            </Style>
+
+            <!-- Phase 3: ProgressBar polish (rounded, accent-colored track) -->
+            <Style x:Key="AppProgressBarStyle" TargetType="ProgressBar">
+                <Setter Property="Foreground" Value="{StaticResource AppAccentBrush}" />
+                <Setter Property="Background" Value="{StaticResource ProgressTrackBrush}" />
+                <Setter Property="Height" Value="6" />
+                <Setter Property="CornerRadius" Value="3" />
             </Style>
         </ResourceDictionary>
     </Application.Resources>

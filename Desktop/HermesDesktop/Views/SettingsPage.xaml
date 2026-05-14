@@ -84,12 +84,9 @@
                         <!-- Save + Edit raw -->
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button x:Name="SaveUserProfileBtn" x:Uid="SettingsSaveUserProfileBtn" Click="SaveUserProfile_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="20,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}" Padding="20,8"/>
                             <Button x:Uid="SettingsEditUserMdBtn" Click="EditUserMd_Click"
-                                    Background="{StaticResource AppInsetBrush}"
-                                    BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White" Padding="12,6"/>
+                                    Style="{StaticResource SecondaryButtonStyle}" Padding="12,6"/>
                             <TextBlock x:Name="UserProfileSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
@@ -250,9 +247,7 @@
                         <!-- Save -->
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button x:Name="SaveModelBtn" x:Uid="SettingsSaveModelBtn" Click="SaveModelConfig_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="20,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}" Padding="20,8"/>
                             <TextBlock x:Name="ModelSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
@@ -459,9 +454,7 @@
                         <!-- Save -->
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button x:Uid="SettingsSaveAgentBtn" Click="SaveAgentConfig_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="20,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}" Padding="20,8"/>
                             <TextBlock x:Name="AgentSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
@@ -702,9 +695,7 @@
                         <!-- Save All Platforms -->
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button x:Uid="SettingsSaveAllPlatformsBtn" Click="SavePlatformConfig_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="20,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}" Padding="20,8"/>
                             <TextBlock x:Name="PlatformSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
@@ -778,9 +769,7 @@
 
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button x:Uid="SettingsSaveMemoryBtn" Click="SaveMemoryConfig_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="20,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}" Padding="20,8"/>
                             <TextBlock x:Name="MemorySaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
@@ -858,12 +847,9 @@
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button x:Uid="SettingsSaveDreamerBtn" Click="SaveDreamerConfig_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="20,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}" Padding="20,8"/>
                             <Button x:Uid="SettingsOpenDreamerRoomBtn" Click="OpenDreamerRoom_Click"
-                                    Background="{StaticResource AppInsetBrush}"
-                                    BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White" Padding="12,6"/>
+                                    Style="{StaticResource SecondaryButtonStyle}" Padding="12,6"/>
                             <TextBlock x:Name="DreamerSaveStatus" x:Uid="SettingsDreamerSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"
                                        AutomationProperties.LiveSetting="Polite"/>
@@ -918,9 +904,7 @@
 
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button x:Uid="SettingsSaveDisplayBtn" Click="SaveDisplayConfig_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="20,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}" Padding="20,8"/>
                             <TextBlock x:Name="DisplaySaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
@@ -1005,9 +989,7 @@
                         <!-- Save -->
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button x:Uid="SettingsSaveExecutionBtn" Click="SaveExecutionConfig_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="20,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}" Padding="20,8"/>
                             <TextBlock x:Name="ExecutionSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
@@ -1050,9 +1032,7 @@
                         <!-- Save -->
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button x:Uid="SettingsSavePluginBtn" Click="SavePluginConfig_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="20,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}" Padding="20,8"/>
                             <TextBlock x:Name="PluginSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
@@ -1119,9 +1099,7 @@
                         <!-- Save -->
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button x:Uid="SettingsSaveSearchBtn" Click="SaveSearchConfig_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="20,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}" Padding="20,8"/>
                             <TextBlock x:Name="SearchSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>

@@ -57,17 +57,11 @@
                     <StackPanel x:Name="AdapterStatusPanel" Orientation="Horizontal" Spacing="16" />
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <Button x:Name="NativeGatewayToggleButton" Click="NativeGatewayToggle_Click"
-                                Background="{StaticResource AppAccentGradientBrush}"
-                                BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                Foreground="#16110D" Padding="16,8" />
+                                Style="{StaticResource PrimaryButtonStyle}" />
                         <Button Content="Restart Gateway" Click="RestartNativeGateway_Click"
-                                Background="{StaticResource AppInsetBrush}"
-                                BorderBrush="{StaticResource AppStrokeBrush}"
-                                Foreground="White" Padding="16,8" />
+                                Style="{StaticResource SecondaryButtonStyle}" />
                         <Button x:Name="GatewayRefreshButton" Content="Refresh" Click="GatewayRefresh_Click"
-                                Background="{StaticResource AppInsetBrush}"
-                                BorderBrush="{StaticResource AppStrokeBrush}"
-                                Foreground="White" Padding="16,8" />
+                                Style="{StaticResource SecondaryButtonStyle}" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -86,25 +80,19 @@
                                Foreground="{StaticResource AppTextSecondaryBrush}" />
                     <StackPanel Orientation="Horizontal" Spacing="12">
                         <Button x:Name="GatewayToggleButton" Click="GatewayToggle_Click"
-                                Background="{StaticResource AppInsetBrush}"
-                                BorderBrush="{StaticResource AppStrokeBrush}"
-                                Foreground="White" Padding="16,8" />
+                                Style="{StaticResource SecondaryButtonStyle}" />
                         <Button
                             x:Uid="IntegrationsOpenLogsButton"
                             AccessKey="G"
                             AutomationProperties.AutomationId="IntegrationsOpenLogsButton"
-                            Background="{StaticResource AppInsetBrush}"
-                            BorderBrush="{StaticResource AppStrokeBrush}"
-                            Click="OpenLogs_Click"
-                            Foreground="White" />
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Click="OpenLogs_Click" />
                         <Button
                             x:Uid="IntegrationsOpenConfigButton"
                             AccessKey="C"
                             AutomationProperties.AutomationId="IntegrationsOpenConfigButton"
-                            Background="{StaticResource AppInsetBrush}"
-                            BorderBrush="{StaticResource AppStrokeBrush}"
-                            Click="OpenConfig_Click"
-                            Foreground="White" />
+                            Style="{StaticResource SecondaryButtonStyle}"
+                            Click="OpenConfig_Click" />
                     </StackPanel>
                 </StackPanel>
             </Border>
@@ -149,15 +137,11 @@
                             <TextBlock Text="BOT TOKEN" Style="{StaticResource LabelTextStyle}"/>
                             <PasswordBox x:Name="TelegramTokenBox"
                                          PlaceholderText="Paste your Telegram bot token"
-                                         Background="{StaticResource AppInsetBrush}"
-                                         BorderBrush="{StaticResource AppStrokeBrush}"
-                                         Foreground="White"/>
+                                         Style="{StaticResource AppPasswordBoxStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button Content="Save" Click="SaveTelegram_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="16,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}"/>
                             <TextBlock x:Name="TelegramSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
@@ -186,15 +170,11 @@
                             <TextBlock Text="BOT TOKEN" Style="{StaticResource LabelTextStyle}"/>
                             <PasswordBox x:Name="DiscordTokenBox"
                                          PlaceholderText="Paste your Discord bot token"
-                                         Background="{StaticResource AppInsetBrush}"
-                                         BorderBrush="{StaticResource AppStrokeBrush}"
-                                         Foreground="White"/>
+                                         Style="{StaticResource AppPasswordBoxStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button Content="Save" Click="SaveDiscord_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="16,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}"/>
                             <TextBlock x:Name="DiscordSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
@@ -229,23 +209,17 @@
                             <TextBlock Text="BOT TOKEN (xoxb-)" Style="{StaticResource LabelTextStyle}"/>
                             <PasswordBox x:Name="SlackBotTokenBox"
                                          PlaceholderText="xoxb-..."
-                                         Background="{StaticResource AppInsetBrush}"
-                                         BorderBrush="{StaticResource AppStrokeBrush}"
-                                         Foreground="White"/>
+                                         Style="{StaticResource AppPasswordBoxStyle}"/>
                         </StackPanel>
                         <StackPanel Spacing="4">
                             <TextBlock Text="APP TOKEN (xapp-)" Style="{StaticResource LabelTextStyle}"/>
                             <PasswordBox x:Name="SlackAppTokenBox"
                                          PlaceholderText="xapp-..."
-                                         Background="{StaticResource AppInsetBrush}"
-                                         BorderBrush="{StaticResource AppStrokeBrush}"
-                                         Foreground="White"/>
+                                         Style="{StaticResource AppPasswordBoxStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button Content="Save" Click="SaveSlack_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="16,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}"/>
                             <TextBlock x:Name="SlackSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
@@ -305,23 +279,17 @@
                             <TextBlock Text="ACCESS TOKEN" Style="{StaticResource LabelTextStyle}"/>
                             <PasswordBox x:Name="MatrixTokenBox"
                                          PlaceholderText="Matrix access token"
-                                         Background="{StaticResource AppInsetBrush}"
-                                         BorderBrush="{StaticResource AppStrokeBrush}"
-                                         Foreground="White"/>
+                                         Style="{StaticResource AppPasswordBoxStyle}"/>
                         </StackPanel>
                         <StackPanel Spacing="4">
                             <TextBlock Text="HOMESERVER URL" Style="{StaticResource LabelTextStyle}"/>
                             <TextBox x:Name="MatrixHomeserverBox"
                                      PlaceholderText="https://matrix.example.org"
-                                     Background="{StaticResource AppInsetBrush}"
-                                     BorderBrush="{StaticResource AppStrokeBrush}"
-                                     Foreground="White"/>
+                                     Style="{StaticResource AppTextBoxStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button Content="Save" Click="SaveMatrix_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="16,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}"/>
                             <TextBlock x:Name="MatrixSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
@@ -352,23 +320,17 @@
                             <TextBlock Text="PORT (default 8644)" Style="{StaticResource LabelTextStyle}"/>
                             <TextBox x:Name="WebhookPortBox"
                                      PlaceholderText="8644"
-                                     Background="{StaticResource AppInsetBrush}"
-                                     BorderBrush="{StaticResource AppStrokeBrush}"
-                                     Foreground="White"/>
+                                     Style="{StaticResource AppTextBoxStyle}"/>
                         </StackPanel>
                         <StackPanel Spacing="4">
                             <TextBlock Text="HMAC SECRET (optional)" Style="{StaticResource LabelTextStyle}"/>
                             <PasswordBox x:Name="WebhookSecretBox"
                                          PlaceholderText="Webhook secret"
-                                         Background="{StaticResource AppInsetBrush}"
-                                         BorderBrush="{StaticResource AppStrokeBrush}"
-                                         Foreground="White"/>
+                                         Style="{StaticResource AppPasswordBoxStyle}"/>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <Button Content="Save" Click="SaveWebhook_Click"
-                                    Background="{StaticResource AppAccentGradientBrush}"
-                                    BorderBrush="{StaticResource AppAccentDarkBrush}"
-                                    Foreground="#16110D" Padding="16,8"/>
+                                    Style="{StaticResource PrimaryButtonStyle}"/>
                             <TextBlock x:Name="WebhookSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>

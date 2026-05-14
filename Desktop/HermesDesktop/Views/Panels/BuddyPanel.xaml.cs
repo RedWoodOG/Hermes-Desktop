@@ -34,7 +34,7 @@ public sealed partial class BuddyPanel : UserControl
             EmptyState.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
             BuddyContent.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
 
-            AsciiArtText.Text = BuddyRenderer.RenderAscii(buddy);
+            MiniAvatar.SetBuddy(buddy);
             BuddyNameText.Text = buddy.Name ?? "Unnamed";
             SpeciesText.Text = buddy.Species;
             RarityText.Text = buddy.Rarity;

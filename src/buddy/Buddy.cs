@@ -22,6 +22,7 @@ public sealed class Buddy
     public required string Hat { get; init; }
     public required bool IsShiny { get; init; }
     public required BuddyStats Stats { get; init; }
+    public string Palette { get; init; } = BuddyPalettes.Gold;
     
     // Soul (AI-generated, persisted)
     public string? Name { get; set; }
@@ -75,6 +76,21 @@ public static class BuddyHats
     public static readonly string[] None = { "" };
     public static readonly string[] Common = { "cap", "beanie", "bow" };
     public static readonly string[] Rare = { "crown", "wizard", "halo", "headphones" };
+}
+
+public static class BuddyPalettes
+{
+    public const string Gold = "gold";
+    public const string Tide = "tide";
+    public const string Moss = "moss";
+    public const string Ember = "ember";
+    public const string Violet = "violet";
+    public const string Mono = "mono";
+
+    public static readonly string[] All = { Gold, Tide, Moss, Ember, Violet, Mono };
+
+    public static string Normalize(string? palette) =>
+        All.FirstOrDefault(p => string.Equals(p, palette?.Trim(), StringComparison.OrdinalIgnoreCase)) ?? Gold;
 }
 
 // =============================================
@@ -141,7 +157,8 @@ public sealed class BuddyGenerator
                 Eyes = forcedEyes,
                 Hat = forcedHat,
                 IsShiny = forcedIsShiny,
-                Stats = forcedStats
+                Stats = forcedStats,
+                Palette = SelectFrom(BuddyPalettes.All)
             };
         }
 
@@ -190,7 +207,8 @@ public sealed class BuddyGenerator
             Eyes = eyes,
             Hat = hat,
             IsShiny = isShiny,
-            Stats = stats
+            Stats = stats,
+            Palette = SelectFrom(BuddyPalettes.All)
         };
     }
     
@@ -550,10 +568,19 @@ public sealed class BuddyService
         new BuddyGenerator(userId, speciesKey).Generate();
 
     public Task<Buddy> GetBuddyAsync(string userId, CancellationToken ct) =>
-        GetBuddyAsync(userId, chosenSpecies: null, ct);
+        GetBuddyAsync(userId, chosenSpecies: null, chosenEyes: null, chosenHat: null, chosenPalette: null, ct);
+
+    public Task<Buddy> GetBuddyAsync(string userId, string? chosenSpecies, CancellationToken ct) =>
+        GetBuddyAsync(userId, chosenSpecies, chosenEyes: null, chosenHat: null, chosenPalette: null, ct);
 
     /// <param name="chosenSpecies">Optional species from <see cref="BuddySpecies"/> pools; null uses full deterministic roll.</param>
-    public async Task<Buddy> GetBuddyAsync(string userId, string? chosenSpecies, CancellationToken ct)
+    public async Task<Buddy> GetBuddyAsync(
+        string userId,
+        string? chosenSpecies,
+        string? chosenEyes,
+        string? chosenHat,
+        string? chosenPalette,
+        CancellationToken ct)
     {
         if (_buddy != null)
             return _buddy;
@@ -563,7 +590,7 @@ public sealed class BuddyService
         if (_buddy == null)
         {
             var generator = new BuddyGenerator(userId, chosenSpecies);
-            _buddy = generator.Generate();
+            _buddy = ApplyAvatarChoices(generator.Generate(), chosenEyes, chosenHat, chosenPalette);
 
             var soulGen = new BuddySoulGenerator(_chatClient);
             BuddySoulResult soul;
@@ -583,6 +610,23 @@ public sealed class BuddyService
         }
 
         return _buddy;
+    }
+
+    public async Task<Buddy> UpdateAvatarAsync(
+        string userId,
+        string? chosenEyes,
+        string? chosenHat,
+        string? chosenPalette,
+        CancellationToken ct)
+    {
+        var buddy = _buddy ?? await LoadBuddyAsync(userId, ct);
+        if (buddy is null)
+            return await GetBuddyAsync(userId, ct);
+
+        buddy = ApplyAvatarChoices(buddy, chosenEyes, chosenHat, chosenPalette);
+        await SaveBuddyAsync(userId, buddy, ct);
+        _buddy = buddy;
+        return buddy;
     }
 
     /// <summary>Re-run the naming / personality prompt for the current buddy and save.</summary>
@@ -625,7 +669,7 @@ public sealed class BuddyService
         var generator = new BuddyGenerator(effectiveUserId, stored.ChosenSpecies);
         var bones = generator.Generate();
 
-        return new Buddy
+        var restored = new Buddy
         {
             Species = bones.Species,
             Rarity = bones.Rarity,
@@ -633,10 +677,17 @@ public sealed class BuddyService
             Hat = bones.Hat,
             IsShiny = bones.IsShiny,
             Stats = bones.Stats,
+            Palette = bones.Palette,
             Name = stored.Name,
             Personality = stored.Personality,
             HatchedAt = stored.HatchedAt
         };
+
+        return ApplyAvatarChoices(
+            restored,
+            stored.ChosenEyes,
+            stored.ChosenHat,
+            stored.ChosenPalette);
     }
 
     private async Task SaveBuddyAsync(string userId, Buddy buddy, CancellationToken ct)
@@ -645,6 +696,9 @@ public sealed class BuddyService
         {
             UserId = userId,
             ChosenSpecies = buddy.Species,
+            ChosenEyes = buddy.Eyes,
+            ChosenHat = buddy.Hat,
+            ChosenPalette = buddy.Palette,
             Name = buddy.Name,
             Personality = buddy.Personality,
             HatchedAt = buddy.HatchedAt
@@ -657,6 +711,34 @@ public sealed class BuddyService
 
         Directory.CreateDirectory(Path.GetDirectoryName(_configPath)!);
         await File.WriteAllTextAsync(_configPath, json, ct);
+    }
+
+    private static Buddy ApplyAvatarChoices(
+        Buddy buddy,
+        string? chosenEyes,
+        string? chosenHat,
+        string? chosenPalette)
+    {
+        var eyes = BuddyEyes.All.FirstOrDefault(e =>
+            string.Equals(e, chosenEyes?.Trim(), StringComparison.OrdinalIgnoreCase)) ?? buddy.Eyes;
+        var hats = BuddyHats.None.Concat(BuddyHats.Common).Concat(BuddyHats.Rare).ToArray();
+        var hat = hats.FirstOrDefault(h =>
+            string.Equals(h, chosenHat?.Trim(), StringComparison.OrdinalIgnoreCase)) ?? buddy.Hat;
+        var palette = BuddyPalettes.Normalize(chosenPalette ?? buddy.Palette);
+
+        return new Buddy
+        {
+            Species = buddy.Species,
+            Rarity = buddy.Rarity,
+            Eyes = eyes,
+            Hat = hat,
+            IsShiny = buddy.IsShiny,
+            Stats = buddy.Stats,
+            Palette = palette,
+            Name = buddy.Name,
+            Personality = buddy.Personality,
+            HatchedAt = buddy.HatchedAt
+        };
     }
     
     public string RenderBuddy()
@@ -693,6 +775,9 @@ public sealed class StoredBuddy
 
     /// <summary>Canonical species key when the user picked a companion shape (optional for legacy files).</summary>
     public string? ChosenSpecies { get; set; }
+    public string? ChosenEyes { get; set; }
+    public string? ChosenHat { get; set; }
+    public string? ChosenPalette { get; set; }
 
     public string? Name { get; set; }
     public string? Personality { get; set; }

@@ -97,6 +97,20 @@ Hermes.CS is a C# port of NousResearch/hermes-agent (Python) with native Windows
 - Added MCP docs and tests for schema-backed tools / argument passthrough
 - See `docs/releases/v2.5.1.md` and root `readme.md` changelog
 
+## Hermes Desktop v2.5.7 (2026-05-09)
+
+- Replaced Buddy ASCII presentation with a local WinUI vector avatar on the Buddy page and side panel
+- Added Buddy crafting controls for species, palette, eyes, and accessory with live preview
+- Persisted crafted Buddy visual traits without rerolling stats, rarity, or identity
+- Added Buddy art-direction research notes and crafting persistence test coverage
+- See `docs/releases/v2.5.7.md` and root `readme.md` changelog
+
+## Hermes Desktop v2.5.6 (2026-05-09)
+
+- Reference-runtime improvements: planning tool, command registry, streaming accumulator, structured runtime events, browser state reporting, large-output routing, post-edit diagnostics, and durable timeline/tool lifecycle records
+- MCP config compatibility: case-insensitive `mcp.json` deserialization accepts standard camelCase `mcpServers`
+- See `docs/releases/v2.5.6.md` and root `readme.md` changelog
+
 ## Key Files
 - `readme.md` -- project README
 

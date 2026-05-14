@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Hermes.Agent.Commands;
 using Hermes.Agent.Core;
 using Hermes.Agent.LLM;
 using Hermes.Agent.Permissions;
@@ -353,6 +354,7 @@ public sealed partial class ChatPage : Page
         dotTimer.Tick += (_, _) =>
         {
             dotCount = (dotCount + 1) % 4;
+            assistantItem?.FlushStreaming();
             var line = assistantItem is null
                 ? ResourceLoader.GetString("ChatThinkingLineThinking")
                 : ResourceLoader.GetString("ChatThinkingLineReasoning");
@@ -368,18 +370,27 @@ public sealed partial class ChatPage : Page
             var hasContent = false;
             var streamFailed = false;
 
-            // Stream structured events (tokens, thinking, tool progress, usage, errors)
-            await foreach (var evt in _chatService.StreamStructuredAsync(prompt, CancellationToken.None))
+            // Stream typed runtime events (tokens + thinking + tool status + errors).
+            // TODO(E.1/E.3 follow-up): ChatRuntimeEvent does not yet carry Tool* / Usage variants
+            // from Hermes.Agent.LLM.StreamEvent — wire those through HermesChatService when
+            // the usage footer is reactivated.
+            await foreach (var evt in _chatService.StreamRuntimeAsync(prompt, CancellationToken.None))
             {
-                switch (evt.Type)
+                switch (evt)
                 {
-                    case ChatStreamEventType.Thinking:
+                    case ChatRuntimeEvent.ThinkingDelta thinking:
                         if (assistantItem is not null)
-                            assistantItem.AppendThinking(evt.Text);
-                        thinkingBuffer.Append(evt.Text);
+                            assistantItem.AppendThinking(thinking.Text);
+                        thinkingBuffer.Append(thinking.Text);
                         break;
 
-                    case ChatStreamEventType.Token:
+                    case ChatRuntimeEvent.ToolStatus toolStatus:
+                        if (assistantItem is not null)
+                            assistantItem.AppendThinking(toolStatus.Text);
+                        thinkingBuffer.Append(toolStatus.Text);
+                        break;
+
+                    case ChatRuntimeEvent.TokenDelta token:
                         if (!hasContent)
                         {
                             hasContent = true;
@@ -397,38 +408,14 @@ public sealed partial class ChatPage : Page
 
                             ShowThinking(false);
                         }
-                        assistantItem!.AppendToken(evt.Text);
+                        assistantItem!.AppendToken(token.Text);
                         break;
 
-                    case ChatStreamEventType.ToolStart:
-                        // Replace the thinking spinner copy with the active tool name
-                        // until the next token arrives. Falls back to a generic label.
-                        if (!hasContent)
-                        {
-                            var label = string.IsNullOrEmpty(evt.ToolName)
-                                ? ResourceLoader.GetString("ChatThinkingShort")
-                                : string.Format(
-                                    System.Globalization.CultureInfo.CurrentCulture,
-                                    ResourceLoader.GetString("ChatThinkingToolFormat"),
-                                    evt.ToolName);
-                            ShowThinking(true, label);
-                        }
-                        break;
-
-                    case ChatStreamEventType.ToolDelta:
-                    case ChatStreamEventType.ToolComplete:
-                        // Reserved for the Inspector / Replay panels — no chat-row UI today.
-                        break;
-
-                    case ChatStreamEventType.Usage:
-                        OnUsageReceived(evt.Usage);
-                        break;
-
-                    case ChatStreamEventType.Error:
+                    case ChatRuntimeEvent.Error error:
                         streamFailed = true;
                         ShowThinking(false);
                         ApplyConnectionState(RuntimeConnectionState.Error);
-                        ShowChatError(evt.Text);
+                        ShowChatError(error.Detail.Message);
                         break;
                 }
             }
@@ -483,6 +470,9 @@ public sealed partial class ChatPage : Page
 
     // ── Slash Commands (registry-driven; full handler list lives in ChatPage.SlashPalette.cs) ──
 
+    // Delegates to DispatchSlashCommandAsync in ChatPage.SlashPalette.cs (Bundle E.2),
+    // which handles the full 10 local + 5 agent-bound registry and falls back to
+    // SkillInvoker via TryInvokeAsSkillAsync for user-installed skill names.
     private Task HandleSlashCommandAsync(string input) => DispatchSlashCommandAsync(input);
 
     // ── Stop Generation ──
@@ -576,7 +566,7 @@ public sealed partial class ChatPage : Page
         flyout.Items.Add(new MenuFlyoutSeparator());
         var clearRememberedItem = new MenuFlyoutItem
         {
-            Text = ResourceLoader.GetString("ChatPermissionClearRemembered")
+            Text = ResourceLoader.GetString("ChatPermissionClearRememberedAction")
         };
         clearRememberedItem.Click += async (_, _) => await ClearRememberedPermissionsAsync();
         flyout.Items.Add(clearRememberedItem);
@@ -607,12 +597,15 @@ public sealed partial class ChatPage : Page
         try
         {
             _chatService.ClearRememberedWorkspacePermissions();
-            AppendSystemMessage(ResourceLoader.GetString("ChatPermissionRememberedCleared"));
+            AppendSystemMessage(ResourceLoader.GetString("ChatPermissionClearRememberedSuccess"));
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed clearing remembered workspace permissions.");
-            AppendSystemMessage(ResourceLoader.GetString("ChatPermissionRememberedClearFailed"));
+            AppendSystemMessage(string.Format(
+                CultureInfo.CurrentCulture,
+                ResourceLoader.GetString("ChatPermissionClearRememberedErrorFormat"),
+                ex.Message));
             await Task.CompletedTask;
         }
     }

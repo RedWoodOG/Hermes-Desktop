@@ -36,7 +36,7 @@
                     <StackPanel Spacing="4">
                         <TextBlock x:Uid="DashOverviewKpiToolsTitle" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                         <TextBlock x:Name="ToolCountText" Text="0" FontSize="28" FontWeight="Bold"
-                                   Foreground="#6BCB77"/>
+                                   Foreground="{StaticResource StatusSuccessBrush}"/>
                         <TextBlock x:Uid="DashOverviewKpiToolsSub" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
                     </StackPanel>
                 </Border>
@@ -46,7 +46,7 @@
                     <StackPanel Spacing="4">
                         <TextBlock x:Uid="DashOverviewKpiSkillsTitle" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                         <TextBlock x:Name="SkillCountText" Text="0" FontSize="28" FontWeight="Bold"
-                                   Foreground="#818CF8"/>
+                                   Foreground="{StaticResource StatusInfoBrush}"/>
                         <TextBlock x:Uid="DashOverviewKpiSkillsSub" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
                     </StackPanel>
                 </Border>
@@ -56,7 +56,7 @@
                     <StackPanel Spacing="4">
                         <TextBlock x:Uid="DashOverviewKpiLlmTitle" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Ellipse x:Name="LlmStatusDot" Width="10" Height="10" Fill="#6BCB77" VerticalAlignment="Center"/>
+                            <Ellipse x:Name="LlmStatusDot" Width="10" Height="10" Fill="{StaticResource StatusSuccessBrush}" VerticalAlignment="Center"/>
                             <TextBlock x:Name="LlmStatusText" x:Uid="DashOverviewLlmStatusInitial" FontSize="20" FontWeight="Bold"/>
                         </StackPanel>
                         <TextBlock x:Name="LlmModelText" Text="" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}" Opacity="0.6"/>
@@ -144,8 +144,7 @@
                         </StackPanel>
 
                         <Button x:Uid="DashTestConnectionButton" Click="TestConnection_Click"
-                                Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D"
-                                Padding="16,8" FontSize="12"/>
+                                Style="{StaticResource PrimaryButtonStyle}" FontSize="12"/>
                         <TextBlock x:Name="TestConnectionResult" FontSize="11" TextWrapping="Wrap"
                                    Foreground="{StaticResource AppTextSecondaryBrush}"/>
                     </StackPanel>
@@ -165,7 +164,7 @@
                         <StackPanel Orientation="Horizontal" Spacing="12">
                             <TextBlock x:Uid="DashRecentActivityTitle" FontSize="16" FontWeight="SemiBold"/>
                             <Button x:Uid="DashOpenChatButton" Click="LaunchHermesChat_Click" FontSize="11" Padding="10,4"
-                                    Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D" VerticalAlignment="Center"/>
+                                    Style="{StaticResource PrimaryButtonStyle}" VerticalAlignment="Center"/>
                         </StackPanel>
                         <ListView x:Name="RecentSessionsList" Background="Transparent" SelectionMode="None" MaxHeight="250">
                             <ListView.ItemTemplate>
@@ -183,7 +182,9 @@
                             </ListView.ItemTemplate>
                         </ListView>
                         <TextBlock x:Name="NoSessionsText" x:Uid="DashNoSessionsText"
-                                   FontSize="12" Opacity="0.5" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                                   FontSize="13" Foreground="{StaticResource AppTextSecondaryBrush}"
+                                   HorizontalAlignment="Center" TextAlignment="Center"
+                                   Margin="0,24,0,16" Opacity="0.7"/>
                     </StackPanel>
                 </Border>
 
@@ -216,9 +217,9 @@
 
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <Button x:Uid="DashOpenLogsSmallButton" Click="OpenLogs_Click" FontSize="11" Padding="10,4"
-                                    Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                                    Style="{StaticResource SecondaryButtonStyle}"/>
                             <Button x:Uid="DashOpenConfigSmallButton" Click="OpenConfig_Click" FontSize="11" Padding="10,4"
-                                    Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                                    Style="{StaticResource SecondaryButtonStyle}"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -246,14 +247,14 @@
                         <StackPanel Grid.Column="1" Spacing="2">
                             <TextBlock x:Uid="DashInsightsToolCalls" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <TextBlock x:Name="InsightsToolCallsText" Text="0" FontSize="22" FontWeight="Bold"
-                                       Foreground="#6BCB77"/>
+                                       Foreground="{StaticResource StatusSuccessBrush}"/>
                         </StackPanel>
 
                         <!-- Avg Response Time -->
                         <StackPanel Grid.Column="2" Spacing="2">
                             <TextBlock x:Uid="DashInsightsEstCost" FontSize="11" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <TextBlock x:Name="InsightsCostText" Text="$0.00" FontSize="22" FontWeight="Bold"
-                                       Foreground="#818CF8"/>
+                                       Foreground="{StaticResource StatusInfoBrush}"/>
                         </StackPanel>
                     </Grid>
 

@@ -171,4 +171,64 @@ public class BuddyServiceTests
             }
         }
     }
+
+    [TestMethod]
+    public async Task BuddyService_PersistsAvatarCrafting_WithoutRerollingStats()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "hermes-buddy-craft-" + Guid.NewGuid().ToString("n"));
+        var path = Path.Combine(dir, "buddy.json");
+        Directory.CreateDirectory(dir);
+        try
+        {
+            var chat = new BuddyTestChatClient("NAME: Prism\nPERSONALITY: Bright and observant.");
+            var svc1 = new BuddyService(path, chat);
+            var buddy = await svc1.GetBuddyAsync(
+                "craft-user",
+                "Cat",
+                "sparkly",
+                "headphones",
+                BuddyPalettes.Tide,
+                CancellationToken.None);
+
+            Assert.AreEqual("Cat", buddy.Species);
+            Assert.AreEqual("sparkly", buddy.Eyes);
+            Assert.AreEqual("headphones", buddy.Hat);
+            Assert.AreEqual(BuddyPalettes.Tide, buddy.Palette);
+
+            var originalTotal = buddy.Stats.Total;
+            var updated = await svc1.UpdateAvatarAsync(
+                "craft-user",
+                "sleepy",
+                "crown",
+                BuddyPalettes.Ember,
+                CancellationToken.None);
+
+            Assert.AreEqual("Cat", updated.Species);
+            Assert.AreEqual(originalTotal, updated.Stats.Total);
+            Assert.AreEqual("sleepy", updated.Eyes);
+            Assert.AreEqual("crown", updated.Hat);
+            Assert.AreEqual(BuddyPalettes.Ember, updated.Palette);
+
+            var svc2 = new BuddyService(path, chat);
+            var reloaded = await svc2.GetBuddyAsync("other-user", CancellationToken.None);
+            Assert.AreEqual("Cat", reloaded.Species);
+            Assert.AreEqual(originalTotal, reloaded.Stats.Total);
+            Assert.AreEqual("sleepy", reloaded.Eyes);
+            Assert.AreEqual("crown", reloaded.Hat);
+            Assert.AreEqual(BuddyPalettes.Ember, reloaded.Palette);
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+                if (Directory.Exists(dir))
+                    Directory.Delete(dir, recursive: true);
+            }
+            catch
+            {
+            }
+        }
+    }
 }

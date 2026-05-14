@@ -622,7 +622,7 @@
     <value>Stop</value>
   </data>
   <data name="ChatPromptTextBox.PlaceholderText" xml:space="preserve">
-    <value>Message Hermes...</value>
+    <value>Message Hermes — Enter to send, Shift+Enter for a new line.</value>
   </data>
   <data name="ChatPageSendButton.[using:Microsoft.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
     <value>Send message</value>

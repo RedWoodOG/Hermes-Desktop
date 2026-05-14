@@ -39,7 +39,7 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                <Button x:Uid="ChatNewChatButton" Click="NewChat_Click" Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppSubtleStrokeBrush}" Foreground="White" />
+                <Button x:Uid="ChatNewChatButton" Click="NewChat_Click" Style="{StaticResource SecondaryButtonStyle}" />
             </StackPanel>
         </Grid>
 
@@ -123,9 +123,9 @@
                     </ListView.ItemTemplate>
                 </ListView>
 
-                <!-- Thinking indicator — uses Opacity to avoid layout shift -->
+                <!-- Thinking indicator — uses Opacity to avoid layout shift; ambient gradient hints at activity -->
                 <Border Grid.Row="2" x:Name="ThinkingIndicator" Opacity="0"
-                        Padding="18,8" Background="Transparent" Height="36">
+                        Padding="18,8" Background="{StaticResource AppAmbientAccentBrush}" Height="36">
                     <Grid>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <ProgressRing x:Name="ThinkingRing" IsActive="False" Width="16" Height="16"
@@ -136,8 +136,7 @@
                         </StackPanel>
                         <Button x:Name="StopButton" x:Uid="ChatStopButton" Click="StopGeneration_Click"
                                 HorizontalAlignment="Right" VerticalAlignment="Center"
-                                Background="{StaticResource AppInsetBrush}" Foreground="White"
-                                BorderBrush="{StaticResource AppSubtleStrokeBrush}"
+                                Style="{StaticResource SecondaryButtonStyle}"
                                 Padding="12,4" FontSize="12" CornerRadius="6"/>
                     </Grid>
                 </Border>
@@ -283,7 +282,7 @@
                         </StackPanel>
                         <TextBlock Grid.Column="2" x:Uid="ChatPageDisclaimer"
                                    FontSize="10" Foreground="{StaticResource AppTextSecondaryBrush}"
-                                   Opacity="0.4" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                                   Opacity="0.65" HorizontalAlignment="Right" VerticalAlignment="Center" />
                     </Grid>
                 </StackPanel>
             </Grid>

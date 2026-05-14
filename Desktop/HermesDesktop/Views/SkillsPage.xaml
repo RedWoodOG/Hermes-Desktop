@@ -27,7 +27,7 @@
                 <TextBlock Text="Skills" Style="{StaticResource PageEyebrowTextStyle}"/>
                 <StackPanel Orientation="Horizontal" Spacing="12">
                     <TextBlock Text="Skill Library" FontSize="22" FontWeight="SemiBold"/>
-                    <Border Background="#3A3A00" CornerRadius="8" Padding="10,4" VerticalAlignment="Center">
+                    <Border Background="{StaticResource AppOutlineBrush}" CornerRadius="8" Padding="10,4" VerticalAlignment="Center">
                         <TextBlock x:Name="SkillCountBadge" Text="0 skills" FontSize="12"
                                    Foreground="{StaticResource AppAccentTextBrush}"/>
                     </Border>
@@ -42,7 +42,7 @@
                            VerticalAlignment="Center"/>
                 <ComboBox x:Name="SortSelector" SelectedIndex="0" SelectionChanged="SortSelector_SelectionChanged"
                           FontSize="12" MinWidth="120"
-                          Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}">
+                          Style="{StaticResource AppComboBoxStyle}">
                     <ComboBoxItem Content="Name (A-Z)" Tag="NameAsc"/>
                     <ComboBoxItem Content="Name (Z-A)" Tag="NameDesc"/>
                     <ComboBoxItem Content="Category" Tag="Category"/>
@@ -58,7 +58,7 @@
             </Grid.RowDefinitions>
             <TextBox x:Name="SearchBox" PlaceholderText="&#xE721; Search skills by name, description, category, or tools..."
                      FontSize="13" Margin="0,0,0,10" TextChanged="SearchBox_TextChanged"
-                     Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"/>
+                     Style="{StaticResource AppTextBoxStyle}"/>
             <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
                 <StackPanel x:Name="CategoryChips" Orientation="Horizontal" Spacing="6"/>
             </ScrollViewer>
@@ -182,7 +182,7 @@
                         <!-- Metadata chips -->
                         <StackPanel x:Name="PreviewChips" Grid.Row="2" Orientation="Horizontal" Spacing="8"
                                     Margin="0,0,0,16" Visibility="Collapsed">
-                            <Border Background="#3A3A00" CornerRadius="4" Padding="8,4">
+                            <Border Background="{StaticResource AppOutlineBrush}" CornerRadius="4" Padding="8,4">
                                 <TextBlock x:Name="PreviewCategoryChip" FontSize="11"
                                            Foreground="{StaticResource AppAccentTextBrush}"/>
                             </Border>

@@ -58,13 +58,12 @@
                                    FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                         <TextBox x:Name="SoulEditor" AcceptsReturn="True" TextWrapping="Wrap"
                                  MinHeight="300" MaxHeight="500" FontSize="12" FontFamily="Consolas"
-                                 Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"/>
+                                 Style="{StaticResource AppTextBoxStyle}"/>
                         <StackPanel Orientation="Horizontal" Spacing="8">
-                            <Button Content="Save Soul" Click="SaveSoul_Click" FontSize="12" Padding="16,8"
-                                    Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D"/>
-                            <Button Content="Reset to Default" Click="ResetSoul_Click" FontSize="12" Padding="16,8"
-                                    Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}"
-                                    BorderBrush="{StaticResource AppStrokeBrush}"/>
+                            <Button Content="Save Soul" Click="SaveSoul_Click" FontSize="12"
+                                    Style="{StaticResource PrimaryButtonStyle}"/>
+                            <Button Content="Reset to Default" Click="ResetSoul_Click" FontSize="12"
+                                    Style="{StaticResource TertiaryButtonStyle}"/>
                         </StackPanel>
                     </StackPanel>
                 </Border>
@@ -79,16 +78,16 @@
                                        FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}"/>
                             <TextBox x:Name="UserEditor" AcceptsReturn="True" TextWrapping="Wrap"
                                      MinHeight="180" MaxHeight="300" FontSize="12" FontFamily="Consolas"
-                                     Background="{StaticResource AppInsetBrush}" BorderBrush="{StaticResource AppStrokeBrush}"/>
-                            <Button Content="Save Profile" Click="SaveUser_Click" FontSize="12" Padding="16,8"
-                                    Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D"/>
+                                     Style="{StaticResource AppTextBoxStyle}"/>
+                            <Button Content="Save Profile" Click="SaveUser_Click" FontSize="12"
+                                    Style="{StaticResource PrimaryButtonStyle}"/>
                         </StackPanel>
                     </Border>
 
                     <!-- Learned journals -->
                     <Border Style="{StaticResource SurfaceCardStyle}">
                         <StackPanel Spacing="8">
-                            <TextBlock Text="Learned from Mistakes" FontSize="14" FontWeight="SemiBold" Foreground="#FF6B6B"/>
+                            <TextBlock Text="Learned from Mistakes" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource StatusErrorBrush}"/>
                             <ListView x:Name="MistakesList" Background="Transparent" SelectionMode="None" MaxHeight="120">
                                 <ListView.ItemTemplate>
                                     <DataTemplate>
@@ -104,7 +103,7 @@
 
                     <Border Style="{StaticResource SurfaceCardStyle}">
                         <StackPanel Spacing="8">
-                            <TextBlock Text="Good Habits" FontSize="14" FontWeight="SemiBold" Foreground="#6BCB77"/>
+                            <TextBlock Text="Good Habits" FontSize="14" FontWeight="SemiBold" Foreground="{StaticResource StatusSuccessBrush}"/>
                             <ListView x:Name="HabitsList" Background="Transparent" SelectionMode="None" MaxHeight="120">
                                 <ListView.ItemTemplate>
                                     <DataTemplate>
@@ -144,7 +143,7 @@
                                                Foreground="{StaticResource AppAccentTextBrush}"/>
                                     <TextBlock Text="{Binding Description}" FontSize="12" TextWrapping="Wrap"
                                                Foreground="{StaticResource AppTextSecondaryBrush}" MaxLines="2"/>
-                                    <Border Background="#3A3A00" CornerRadius="4" Padding="8,2" Margin="0,4,0,0"
+                                    <Border Background="{StaticResource AppOutlineBrush}" CornerRadius="4" Padding="8,2" Margin="0,4,0,0"
                                             HorizontalAlignment="Left">
                                         <TextBlock Text="{Binding Category}" FontSize="10"
                                                    Foreground="{StaticResource AppAccentTextBrush}"/>
@@ -168,12 +167,11 @@
                     </ScrollViewer>
                     <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="12" Margin="0,12,0,0">
                         <Button x:Name="ApplySoulBtn" Content="Apply This Soul" Click="ApplySoul_Click"
-                                FontSize="13" Padding="20,10" IsEnabled="False"
-                                Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D"/>
+                                FontSize="13" Padding="{StaticResource ButtonPaddingSpacious}" IsEnabled="False"
+                                Style="{StaticResource PrimaryButtonStyle}"/>
                         <Button x:Name="CustomizeSoulBtn" Content="Copy to Editor" Click="CustomizeSoul_Click"
-                                FontSize="13" Padding="20,10" IsEnabled="False"
-                                Background="Transparent" Foreground="{StaticResource AppTextSecondaryBrush}"
-                                BorderBrush="{StaticResource AppStrokeBrush}"/>
+                                FontSize="13" Padding="{StaticResource ButtonPaddingSpacious}" IsEnabled="False"
+                                Style="{StaticResource TertiaryButtonStyle}"/>
                     </StackPanel>
                 </Grid>
             </Border>
@@ -194,8 +192,9 @@
                     <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,8">
                         <TextBlock Text="Saved Agents" FontSize="16" FontWeight="SemiBold"
                                    Foreground="{StaticResource AppAccentTextBrush}"/>
-                        <Button Content="+ New Agent" Click="NewAgent_Click" FontSize="12" Padding="12,6"
-                                Background="{StaticResource AppAccentGradientBrush}" Foreground="#16110D"
+                        <Button Content="+ New Agent" Click="NewAgent_Click" FontSize="12"
+                                Padding="{StaticResource ButtonPaddingCompact}"
+                                Style="{StaticResource PrimaryButtonStyle}"
                                 VerticalAlignment="Center"/>
                     </StackPanel>
 
@@ -207,7 +206,7 @@
                                         <StackPanel Orientation="Horizontal" Spacing="8">
                                             <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"
                                                        Foreground="{StaticResource AppAccentTextBrush}"/>
-                                            <Border Background="#3A3A00" CornerRadius="4" Padding="6,1"
+                                            <Border Background="{StaticResource AppOutlineBrush}" CornerRadius="4" Padding="6,1"
                                                     Visibility="{Binding ActiveVisibility}">
                                                 <TextBlock Text="active" FontSize="9" Foreground="{StaticResource AppAccentTextBrush}"/>
                                             </Border>
@@ -218,11 +217,12 @@
                                     <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                                         <Button Content="Activate" Tag="{Binding Name}" Click="ActivateAgent_Click"
                                                 FontSize="11" Padding="10,4"
-                                                Background="Transparent" Foreground="{StaticResource AppAccentTextBrush}"
-                                                BorderBrush="{StaticResource AppStrokeBrush}"/>
+                                                Style="{StaticResource TertiaryButtonStyle}"
+                                                Foreground="{StaticResource AppAccentTextBrush}"/>
                                         <Button Content="Delete" Tag="{Binding Name}" Click="DeleteAgent_Click"
                                                 FontSize="11" Padding="10,4"
-                                                Background="Transparent" Foreground="#FF6B6B" BorderBrush="Transparent"/>
+                                                Background="Transparent" BorderThickness="0"
+                                                Foreground="{StaticResource StatusErrorBrush}"/>
                                     </StackPanel>
                                 </Grid>
                             </DataTemplate>
