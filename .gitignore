@@ -20,6 +20,13 @@ Desktop/HermesDesktop/packaging/dev-msix.pfx
 # Claude Code local settings (machine-specific paths and permissions)
 .claude/settings.local.json
 
+# Cursor IDE local state (machine-specific paths + transcript refs)
+# These contain absolute user paths like C:\Users\<name>\... and must not be committed.
+.cursor/hooks/state/
+
+# VS Code workspace settings — machine-specific launch/tasks configuration.
+.vscode/
+
 # OS
 Thumbs.db
 .DS_Store
