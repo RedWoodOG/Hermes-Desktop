@@ -36,13 +36,15 @@ public sealed class HttpSseMcpTransport : IMcpTransport
         _config = config;
         _httpClient = new HttpClient(handler ?? new HttpClientHandler())
         {
-            // 10-minute envelope for long-running MCP tools that respond on the
-            // POST response body (vs. via SSE). Per-call timeouts are still
-            // enforced via the SSE wait CTS below (30s for the round-trip).
-            // Restored from a regression introduced during the MCP host port —
-            // the original value here was always 10 minutes (commit 72bfd60),
-            // and Codex flagged that reducing it to 2 minutes broke heavy tools.
-            Timeout = TimeSpan.FromMinutes(10)
+            // A finite global timeout cannot bound a long-lived SSE GET that is
+            // designed to stream events for the entire session. With the prior
+            // 10-minute value the SSE channel was being torn down on a wall-clock
+            // schedule, dropping notifications/tools mid-session (Qodo Reliability
+            // finding). The shared HttpClient is therefore unbounded; every
+            // request that needs a timeout enforces its own via a linked
+            // CancellationTokenSource (see SendRequestAsync for the POST path
+            // and the SSE wait CTS for response delivery).
+            Timeout = Timeout.InfiniteTimeSpan
         };
         
         // Set headers
@@ -82,32 +84,44 @@ public sealed class HttpSseMcpTransport : IMcpTransport
         await SendRequestAsync("initialize", initParams, ct);
     }
 
+    /// <summary>
+    /// Per-request POST timeout — heavy MCP tools that return their result inline
+    /// on the POST response (as opposed to via the SSE channel) can take a long
+    /// time, so we use a generous envelope here rather than the prior 2-minute
+    /// HttpClient-wide timeout that previously broke them.
+    /// </summary>
+    private static readonly TimeSpan PostRequestTimeout = TimeSpan.FromMinutes(10);
+
     public async Task<JsonElement> SendRequestAsync(string method, JsonElement? parameters = null, CancellationToken ct = default)
     {
         var id = Interlocked.Increment(ref _requestId).ToString();
         var tcs = new TaskCompletionSource<JsonElement>();
-        
+
         lock (_lock)
         {
             _pendingRequests[id] = tcs;
         }
-        
+
         var request = new JsonRpcRequest
         {
             Id = id,
             Method = method,
             Params = parameters
         };
-        
+
         var json = JsonSerializer.Serialize(request, JsonOptions);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
-        
+
         try
         {
-            var response = await _httpClient.PostAsync(_config.Url, content, ct);
+            // Per-request timeout (HttpClient.Timeout is intentionally infinite for SSE).
+            using var postTimeoutCts = new CancellationTokenSource(PostRequestTimeout);
+            using var postLinkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, postTimeoutCts.Token);
+
+            var response = await _httpClient.PostAsync(_config.Url, content, postLinkedCts.Token);
             response.EnsureSuccessStatusCode();
-            
-            var responseBody = await response.Content.ReadAsStringAsync(ct);
+
+            var responseBody = await response.Content.ReadAsStringAsync(postLinkedCts.Token);
             var doc = JsonDocument.Parse(responseBody);
             var root = doc.RootElement;
             
