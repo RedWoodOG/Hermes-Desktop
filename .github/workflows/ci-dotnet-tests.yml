@@ -127,6 +127,7 @@ jobs:
               "OperationCanceledException",
               "MemoryStream",
               "StreamContent",
+              "Version",
           }
 
           unresolved = sorted(
