@@ -19,7 +19,6 @@ public sealed class McpManager : IAsyncDisposable
         PropertyNameCaseInsensitive = true
     };
 
-
     public IReadOnlyDictionary<string, McpServerConnection> Connections => _connections;
     public IReadOnlyDictionary<string, McpToolWrapper> Tools => _tools;
     public int ServerCount => _connections.Count;
