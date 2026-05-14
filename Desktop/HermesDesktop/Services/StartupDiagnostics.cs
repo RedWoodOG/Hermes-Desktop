@@ -75,9 +75,9 @@ internal static class StartupDiagnostics
     {
         try
         {
-            string logsDir = Path.Combine(HermesEnvironment.HermesHomePath, "hermes-cs", "logs");
+            string logsDir = HermesEnvironment.DesktopCsLogsDirectory;
             Directory.CreateDirectory(logsDir);
-            return Path.Combine(logsDir, "desktop-startup.log");
+            return HermesEnvironment.DesktopStartupLogPath;
         }
         catch (Exception ex)
         {

@@ -36,7 +36,7 @@ public sealed class HttpSseMcpTransport : IMcpTransport
         _config = config;
         _httpClient = new HttpClient(handler ?? new HttpClientHandler())
         {
-            Timeout = TimeSpan.FromMinutes(10)
+            Timeout = TimeSpan.FromMinutes(2)
         };
         
         // Set headers

@@ -121,30 +121,11 @@ internal sealed class HermesChatService : IDisposable
         {
             await foreach (var evt in _agent.StreamChatAsync(message, _currentSession!, _streamCts.Token))
             {
-                switch (evt)
-                {
-                    case Hermes.Agent.LLM.StreamEvent.TokenDelta td:
-                        // Tool-calling status messages (e.g. "[Calling tool: bash]") are
-                        // informational — show in UI but don't accumulate into the saved response
-                        if (td.Text.StartsWith("\n[Calling tool:") && td.Text.TrimEnd().EndsWith("]"))
-                        {
-                            yield return new ChatStreamEvent(ChatStreamEventType.Thinking, td.Text.Trim());
-                        }
-                        else
-                        {
-                            fullResponse.Append(td.Text);
-                            yield return new ChatStreamEvent(ChatStreamEventType.Token, td.Text);
-                        }
-                        break;
-
-                    case Hermes.Agent.LLM.StreamEvent.ThinkingDelta tk:
-                        yield return new ChatStreamEvent(ChatStreamEventType.Thinking, tk.Text);
-                        break;
-
-                    case Hermes.Agent.LLM.StreamEvent.StreamError err:
-                        yield return new ChatStreamEvent(ChatStreamEventType.Error, err.Error.Message);
-                        break;
-                }
+                var projected = ChatStreamProjection.Project(evt);
+                if (projected.AccumulatedText is not null)
+                    fullResponse.Append(projected.AccumulatedText);
+                if (projected.Envelope is { } envelope)
+                    yield return ChatStreamEventMapper.ToChatStreamEvent(envelope);
             }
         }
         finally
@@ -251,12 +232,46 @@ internal sealed class HermesChatService : IDisposable
 }
 
 // ── Structured stream events for UI consumption ──
+//
+// These desktop-side types are a thin alias over the public Hermes.Agent.LLM.ChatStreamEnvelope.
+// The enum is duplicated only so existing call sites like `ChatStreamEventType.Token` keep
+// compiling. Mapping is one-to-one with ChatStreamEventKind.
 
 internal enum ChatStreamEventType
 {
     Token,
     Thinking,
-    Error
+    ToolStart,
+    ToolDelta,
+    ToolComplete,
+    Usage,
+    Error,
 }
 
-internal sealed record ChatStreamEvent(ChatStreamEventType Type, string Text);
+internal sealed record ChatStreamEvent(
+    ChatStreamEventType Type,
+    string Text,
+    string? ToolName = null,
+    string? ToolCallId = null,
+    Hermes.Agent.LLM.UsageStats? Usage = null);
+
+internal static class ChatStreamEventMapper
+{
+    public static ChatStreamEvent ToChatStreamEvent(Hermes.Agent.LLM.ChatStreamEnvelope envelope) =>
+        new(
+            Type: envelope.Kind switch
+            {
+                Hermes.Agent.LLM.ChatStreamEventKind.Token => ChatStreamEventType.Token,
+                Hermes.Agent.LLM.ChatStreamEventKind.Thinking => ChatStreamEventType.Thinking,
+                Hermes.Agent.LLM.ChatStreamEventKind.ToolStart => ChatStreamEventType.ToolStart,
+                Hermes.Agent.LLM.ChatStreamEventKind.ToolDelta => ChatStreamEventType.ToolDelta,
+                Hermes.Agent.LLM.ChatStreamEventKind.ToolComplete => ChatStreamEventType.ToolComplete,
+                Hermes.Agent.LLM.ChatStreamEventKind.Usage => ChatStreamEventType.Usage,
+                Hermes.Agent.LLM.ChatStreamEventKind.Error => ChatStreamEventType.Error,
+                _ => throw new System.ArgumentOutOfRangeException(nameof(envelope), envelope.Kind, "Unknown ChatStreamEventKind."),
+            },
+            Text: envelope.Text,
+            ToolName: envelope.ToolName,
+            ToolCallId: envelope.ToolCallId,
+            Usage: envelope.Usage);
+}

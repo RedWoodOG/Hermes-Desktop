@@ -36,6 +36,12 @@ namespace HermesDesktop;
 public partial class App : Application
 {
     private Window? _window;
+
+    /// <summary>
+    /// The active <see cref="MainWindow"/>, exposed so in-app commands (slash palette,
+    /// notifications) can navigate without round-tripping through <c>App.Current</c> casts.
+    /// </summary>
+    internal MainWindow? MainWindow => _window as MainWindow;
     private static readonly object _dreamerCtsLock = new();
     private static readonly object _dreamerHttpClientsLock = new();
     private static readonly object _autoDreamCtsLock = new();
@@ -403,6 +409,18 @@ public partial class App : Application
             skillsDir,
             sp.GetRequiredService<ILogger<SkillManager>>()));
 
+        // SkillsHub — install/search remote skills, quarantine downloads before activation
+        var skillsQuarantineDir = Path.Combine(projectDir, "skills", ".quarantine");
+        services.AddSingleton(sp => new Hermes.Agent.Skills.SkillsHub(
+            sp.GetRequiredService<SkillManager>(),
+            skillsQuarantineDir,
+            sp.GetRequiredService<ILogger<Hermes.Agent.Skills.SkillsHub>>()));
+
+        // SavedModelStore — user-managed registry of reusable model profiles (Bundle E.7)
+        services.AddSingleton(sp => new Hermes.Agent.LLM.SavedModelStore(
+            projectDir,
+            sp.GetRequiredService<ILogger<Hermes.Agent.LLM.SavedModelStore>>()));
+
         // Permission manager + workspace-scoped permission memory
         var permissionMemoryDir = Path.Combine(projectDir, "permissions");
         var workspacePath = HermesEnvironment.AgentWorkingDirectory;
@@ -581,6 +599,7 @@ public partial class App : Application
         // Chat service (pure C# — no sidecar)
         services.AddSingleton<HermesChatService>();
         services.AddSingleton<RuntimeStatusService>();
+        services.AddSingleton<UpdateService>();
 
         var provider = services.BuildServiceProvider();
         Services = provider;
@@ -1089,13 +1108,7 @@ public partial class App : Application
             var toolRegistry = services.GetRequiredService<IToolRegistry>();
             var logger = services.GetRequiredService<ILogger<App>>();
 
-            var mcpConfigPaths = new List<string>
-            {
-                Path.Combine(projectDir, "mcp.json"),
-                Path.Combine(HermesEnvironment.HermesHomePath, "mcp.json"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Hermes", "mcp.json"),
-                Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".hermes", "mcp.json")
-            };
+            var mcpConfigPaths = McpBootstrap.BuildMcpConfigSearchPaths(projectDir, HermesEnvironment.HermesHomePath);
 
             await McpBootstrap.AttachAsync(mcpManager, agent, toolRegistry, mcpConfigPaths, logger);
         }

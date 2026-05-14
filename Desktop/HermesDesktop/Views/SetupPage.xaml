@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="HermesDesktop.Views.SetupPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Background="Transparent"
+    NavigationCacheMode="Disabled"
+    mc:Ignorable="d">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid Padding="48,36,48,40">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <StackPanel Spacing="6">
+                <TextBlock Text="Setup" Style="{StaticResource PageEyebrowTextStyle}"/>
+                <TextBlock x:Name="SetupTitle" Text="Pick a model provider"
+                           FontSize="28" FontWeight="SemiBold" Foreground="White"/>
+                <TextBlock x:Name="SetupSubtitle"
+                           Text="Hermes works with any OpenAI- or Anthropic-compatible endpoint. Pick a preset, then point us at the URL and (optionally) an API key."
+                           FontSize="13" Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"
+                           MaxWidth="760"/>
+            </StackPanel>
+
+            <Border Grid.Row="1" Style="{StaticResource SurfaceCardStyle}" Margin="0,24,0,0" MaxWidth="760"
+                    HorizontalAlignment="Left">
+                <StackPanel Spacing="14">
+                    <TextBlock Text="Provider preset" FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource AppAccentTextBrush}"/>
+                    <ComboBox x:Name="PresetCombo" HorizontalAlignment="Stretch"
+                              SelectionChanged="PresetCombo_SelectionChanged"
+                              Background="{StaticResource AppInsetBrush}"
+                              BorderBrush="{StaticResource AppStrokeBrush}">
+                        <ComboBoxItem Content="LM Studio (http://localhost:1234/v1)" Tag="lmstudio"/>
+                        <ComboBoxItem Content="Ollama (http://localhost:11434/v1)" Tag="ollama"/>
+                        <ComboBoxItem Content="vLLM (http://localhost:8000/v1)" Tag="vllm"/>
+                        <ComboBoxItem Content="llama.cpp server (http://localhost:8080/v1)" Tag="llamacpp"/>
+                        <ComboBoxItem Content="OpenAI (https://api.openai.com/v1)" Tag="openai"/>
+                        <ComboBoxItem Content="Anthropic (https://api.anthropic.com)" Tag="anthropic"/>
+                        <ComboBoxItem Content="Custom" Tag="custom"/>
+                    </ComboBox>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Base URL" FontSize="13" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        <TextBox x:Name="BaseUrlBox" Background="{StaticResource AppInsetBrush}"
+                                 BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="Model ID" FontSize="13" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        <TextBox x:Name="ModelIdBox" PlaceholderText="e.g. gpt-5.4-mini, claude-haiku-4.5, llama-3.3-70b"
+                                 Background="{StaticResource AppInsetBrush}"
+                                 BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                    </StackPanel>
+
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="API key (optional — leave blank for local servers)"
+                                   FontSize="13" Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        <PasswordBox x:Name="ApiKeyBox"
+                                     Background="{StaticResource AppInsetBrush}"
+                                     BorderBrush="{StaticResource AppStrokeBrush}"/>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="TestConnectionButton" Content="Test connection"
+                                Click="TestConnection_Click"
+                                Background="{StaticResource AppInsetBrush}" Padding="14,6"/>
+                        <TextBlock x:Name="TestStatusText" VerticalAlignment="Center" FontSize="12"
+                                   Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Grid Grid.Row="3" Margin="0,24,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Button Grid.Column="0" Content="Back" Click="Back_Click"
+                        Background="{StaticResource AppInsetBrush}" Padding="22,10"
+                        HorizontalAlignment="Left"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12">
+                    <Button x:Name="SkipSetupButton" Content="Skip" Click="Skip_Click"
+                            Background="{StaticResource AppInsetBrush}" Padding="22,10"/>
+                    <Button x:Name="FinishButton" Content="Save &amp; finish"
+                            Click="Finish_Click"
+                            Background="{StaticResource AppAccentBrush}" Foreground="#16110D"
+                            Padding="22,10" FontWeight="SemiBold"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </ScrollViewer>
+</Page>

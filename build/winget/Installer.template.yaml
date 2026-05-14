@@ -1,0 +1,22 @@
+# Installer manifest — see https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+# DO NOT EDIT GENERATED OUTPUT — edit this template instead.
+#
+# Why InstallerType: zip with NestedInstallerType: portable?
+#   The HermesDesktop.exe entry inside the portable zip is NOT a single-file binary —
+#   it requires sibling DLLs and WinAppSDK runtime files that live next to it in the
+#   publish folder. Plain `portable` would copy only one file. `zip + portable` extracts
+#   the whole archive into the Winget package directory and registers an alias.
+PackageIdentifier: {{PACKAGE_IDENTIFIER}}
+PackageVersion: {{VERSION}}
+InstallerType: zip
+NestedInstallerType: portable
+ReleaseDate: {{RELEASE_DATE}}
+NestedInstallerFiles:
+  - RelativeFilePath: HermesDesktop.exe
+    PortableCommandAlias: {{PORTABLE_COMMAND_ALIAS}}
+Installers:
+  - Architecture: x64
+    InstallerUrl: {{INSTALLER_URL}}
+    InstallerSha256: {{INSTALLER_SHA256}}
+ManifestType: installer
+ManifestVersion: 1.6.0

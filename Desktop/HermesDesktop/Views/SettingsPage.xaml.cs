@@ -6,12 +6,15 @@ using System.Threading;
 using System.Threading.Tasks;
 using Hermes.Agent.Dreamer;
 using Hermes.Agent.LLM;
+using Hermes.Agent.Updates;
 using HermesDesktop.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.Windows.ApplicationModel.Resources;
+using Windows.Storage;
+using Windows.System;
 
 namespace HermesDesktop.Views;
 
@@ -41,6 +44,7 @@ public sealed partial class SettingsPage : Page
         : ResourceLoader.GetString("StatusNotDetected");
 
     private bool _suppressModelComboEvent;
+    private bool _suppressUpdateToggle;
 
     // ═══════════════════════════════════════════
     //  Page Loaded — populate all sections
@@ -62,6 +66,8 @@ public sealed partial class SettingsPage : Page
         LoadPluginSettings();
         LoadDreamerSettings();
         LoadSearchSettings();
+        LoadUpdateSettings();
+        RefreshSavedModelProfiles();
         await RefreshRuntimeStatusAsync();
     }
 
@@ -678,6 +684,145 @@ This file is a living document about the human I work with. It helps me provide 
     private void OpenConfig_Click(object sender, RoutedEventArgs e) => HermesEnvironment.OpenConfig();
     private void OpenLogs_Click(object sender, RoutedEventArgs e) => HermesEnvironment.OpenLogs();
     private void OpenWorkspace_Click(object sender, RoutedEventArgs e) => HermesEnvironment.OpenWorkspace();
+
+    private void LoadUpdateSettings()
+    {
+        _suppressUpdateToggle = true;
+        UpdateCheckOnStartupSwitch.IsOn = UpdateService.GetCheckOnStartupEnabled();
+        _suppressUpdateToggle = false;
+        var svc = App.Services.GetService<UpdateService>();
+        if (svc?.LastCheck is { } r)
+            ApplyUpdateStatus(r);
+        else
+        {
+            UpdateStatusText.Text = "";
+            UpdateDownloadButton.Visibility = Visibility.Collapsed;
+        }
+    }
+
+    private void UpdateCheckOnStartupSwitch_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUpdateToggle)
+            return;
+        if (sender is ToggleSwitch t)
+            UpdateService.SetCheckOnStartupEnabled(t.IsOn);
+    }
+
+    private async void UpdateCheckNow_Click(object sender, RoutedEventArgs e)
+    {
+        UpdateCheckNowButton.IsEnabled = false;
+        try
+        {
+            var svc = App.Services.GetRequiredService<UpdateService>();
+            var r = await svc.CheckForUpdatesAsync();
+            ApplyUpdateStatus(r);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText.Text = string.Format(
+                CultureInfo.CurrentCulture,
+                ResourceLoader.GetString("SettingsUpdatesStatusFailed"),
+                ex.Message);
+        }
+        finally
+        {
+            UpdateCheckNowButton.IsEnabled = true;
+        }
+    }
+
+    private void ApplyUpdateStatus(PortableUpdateCheckResult r)
+    {
+        UpdateDownloadButton.Visibility = Visibility.Collapsed;
+        switch (r.Status)
+        {
+            case PortableUpdateCheckStatus.UpToDate:
+                UpdateStatusText.Text = ResourceLoader.GetString("SettingsUpdatesStatusUpToDate");
+                break;
+            case PortableUpdateCheckStatus.UpdateAvailable:
+                UpdateStatusText.Text = string.Format(
+                    CultureInfo.CurrentCulture,
+                    ResourceLoader.GetString("SettingsUpdatesStatusAvailable"),
+                    r.Offer!.TagName,
+                    r.Offer.Version);
+                if (r.CanDownloadVerified)
+                    UpdateDownloadButton.Visibility = Visibility.Visible;
+                else
+                    UpdateStatusText.Text += ResourceLoader.GetString("SettingsUpdatesMissingSha256Hint");
+                break;
+            case PortableUpdateCheckStatus.Failed:
+                UpdateStatusText.Text = string.Format(
+                    CultureInfo.CurrentCulture,
+                    ResourceLoader.GetString("SettingsUpdatesStatusFailed"),
+                    r.ErrorMessage ?? "unknown");
+                break;
+            case PortableUpdateCheckStatus.Skipped:
+                UpdateStatusText.Text = string.Format(
+                    CultureInfo.CurrentCulture,
+                    ResourceLoader.GetString("SettingsUpdatesStatusSkipped"),
+                    r.ErrorMessage ?? "");
+                break;
+        }
+    }
+
+    private async void UpdateDownloadVerified_Click(object sender, RoutedEventArgs e)
+    {
+        var svc = App.Services.GetRequiredService<UpdateService>();
+        var last = svc.LastCheck;
+        if (last?.Offer is null || !last.CanDownloadVerified)
+            return;
+
+        UpdateDownloadButton.IsEnabled = false;
+        try
+        {
+            var r = await svc.DownloadVerifiedPortableAsync(last.Offer);
+            if (r.Status == PortableVerifiedDownloadStatus.Succeeded && !string.IsNullOrEmpty(r.SavedZipPath))
+            {
+                UpdateStatusText.Text = string.Format(
+                    CultureInfo.CurrentCulture,
+                    ResourceLoader.GetString("SettingsUpdatesDownloadSuccess"),
+                    r.SavedZipPath);
+            }
+            else
+            {
+                UpdateStatusText.Text = string.Format(
+                    CultureInfo.CurrentCulture,
+                    ResourceLoader.GetString("SettingsUpdatesDownloadFailed"),
+                    r.ErrorMessage ?? "unknown");
+            }
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText.Text = string.Format(
+                CultureInfo.CurrentCulture,
+                ResourceLoader.GetString("SettingsUpdatesDownloadFailed"),
+                ex.Message);
+        }
+        finally
+        {
+            UpdateDownloadButton.IsEnabled = true;
+        }
+    }
+
+    private async void UpdateOpenDownloadsFolder_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string dir = Path.Combine(HermesEnvironment.HermesHomePath, "hermes-cs", "downloads");
+            Directory.CreateDirectory(dir);
+            StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(dir);
+            await Launcher.LaunchFolderAsync(folder);
+        }
+        catch (Exception ex)
+        {
+            UpdateStatusText.Text = string.Format(
+                CultureInfo.CurrentCulture,
+                ResourceLoader.GetString("SettingsUpdatesStatusFailed"),
+                ex.Message);
+        }
+    }
 
     // ═══════════════════════════════════════════
     //  Execution Environment

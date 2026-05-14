@@ -13,19 +13,40 @@
     <Grid Background="{StaticResource AppWindowBackgroundBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TitleBar x:Name="AppTitleBar">
+        <TitleBar x:Name="AppTitleBar" Grid.Row="0">
             <TitleBar.IconSource>
                 <ImageIconSource ImageSource="Assets/AppIcon.ico" />
             </TitleBar.IconSource>
         </TitleBar>
 
+        <InfoBar
+            x:Name="UpdateAvailableInfoBar"
+            Grid.Row="1"
+            Margin="12,8,12,0"
+            Closed="OnUpdateBannerClosed"
+            IsClosable="True"
+            IsOpen="False"
+            Severity="Informational"
+            Visibility="Collapsed">
+            <InfoBar.ActionButton>
+                <Button
+                    x:Uid="UpdateBannerOpenReleaseButton"
+                    Click="OnUpdateBannerOpenReleaseClick"
+                    Background="{StaticResource AppAccentGradientBrush}"
+                    BorderBrush="{StaticResource AppOutlineBrush}"
+                    Foreground="#16110D"
+                    Padding="12,6" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+
         <NavigationView
             x:Name="ShellNavigation"
             x:Uid="ShellNavigation"
-            Grid.Row="1"
+            Grid.Row="2"
             AlwaysShowHeader="False"
             Background="{StaticResource AppWindowBackgroundBrush}"
             CompactPaneLength="46"
@@ -102,6 +123,22 @@
                     Tag="integrations">
                     <NavigationViewItem.Icon>
                         <SymbolIcon Symbol="People" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem
+                    x:Name="McpNavItem"
+                    x:Uid="McpNavItem"
+                    Tag="mcp">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE943;" FontFamily="Segoe MDL2 Assets" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem
+                    x:Name="DiagnosticsNavItem"
+                    x:Uid="DiagnosticsNavItem"
+                    Tag="diagnostics">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Help" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
                 <NavigationViewItem

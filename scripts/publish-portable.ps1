@@ -143,6 +143,12 @@ if ($Zip) {
 
     $sizeMb = [math]::Round((Get-Item $zipPath).Length / 1MB, 1)
     Write-Host "Size: ${sizeMb} MB" -ForegroundColor DarkGray
+
+    $shaPath = "$zipPath.sha256"
+    $hash = Get-FileHash -LiteralPath $zipPath -Algorithm SHA256
+    $line = ("{0}  {1}" -f $hash.Hash.ToLowerInvariant(), $zipName)
+    Set-Content -LiteralPath $shaPath -Value $line -Encoding ascii
+    Write-Host "SHA256 manifest: $shaPath" -ForegroundColor Green
     Write-Host ""
 }
 

@@ -1,0 +1,33 @@
+# Default locale manifest — see https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+# DO NOT EDIT GENERATED OUTPUT — edit this template instead.
+PackageIdentifier: {{PACKAGE_IDENTIFIER}}
+PackageVersion: {{VERSION}}
+PackageLocale: en-US
+Publisher: {{PUBLISHER}}
+PublisherUrl: {{PUBLISHER_URL}}
+PublisherSupportUrl: {{PUBLISHER_URL}}/issues
+PackageName: {{PACKAGE_NAME}}
+PackageUrl: {{PUBLISHER_URL}}
+License: {{LICENSE}}
+LicenseUrl: {{LICENSE_URL}}
+ShortDescription: {{SHORT_DESCRIPTION}}
+Description: |-
+  Hermes Desktop is a local-first agent shell for Windows. It runs a Hermes.Core agent
+  in-process inside a WinUI 3 / .NET 10 host, with first-class support for offline
+  providers (Ollama, LM Studio, vLLM, llama.cpp) and managed MCP servers.
+
+  Features include token-streaming chat, structured tool-use surfacing, slash commands,
+  memory and skills management, agent personas, and a diagnostics page that captures
+  the runtime state of the desktop process.
+Moniker: {{MONIKER}}
+Tags:
+  - agent
+  - ai
+  - chat
+  - hermes
+  - llm
+  - local
+  - winui
+ReleaseNotesUrl: {{RELEASE_NOTES_URL}}
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

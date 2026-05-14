@@ -12,15 +12,48 @@ public sealed class McpManager : IAsyncDisposable
     private readonly Dictionary<string, McpServerConnection> _connections = new();
     private readonly Dictionary<string, McpToolWrapper> _tools = new();
     private readonly List<McpServerConfig> _configs = new();
-    
+    private readonly List<McpConfigLoadIssue> _loadIssues = new();
+
     public IReadOnlyDictionary<string, McpServerConnection> Connections => _connections;
     public IReadOnlyDictionary<string, McpToolWrapper> Tools => _tools;
     public int ServerCount => _connections.Count;
     public int ConfiguredServerCount => _configs.Count;
-    
+
+    /// <summary>Servers or entries skipped while loading <c>mcp.json</c> (policy, invalid URL, etc.).</summary>
+    public IReadOnlyList<McpConfigLoadIssue> ConfigLoadIssues => _loadIssues;
+
     public McpManager(ILogger<McpManager> logger)
     {
         _logger = logger;
+    }
+
+    /// <summary>Clears accumulated config before a bootstrap pass loads one or more files.</summary>
+    public void PrepareForBootstrapAttach()
+    {
+        _configs.Clear();
+        _loadIssues.Clear();
+    }
+
+    /// <summary>Runtime view for dashboards (no URLs or secrets).</summary>
+    public IReadOnlyList<McpServerRuntimeStatus> GetRuntimeStatuses()
+    {
+        var list = new List<McpServerRuntimeStatus>(_configs.Count);
+        foreach (var c in _configs)
+        {
+            string transportLabel = c switch
+            {
+                McpStdioConfig => "stdio",
+                McpHttpConfig => "http_sse",
+                McpWebSocketConfig => "websocket",
+                _ => "unknown",
+            };
+
+            bool connected = _connections.TryGetValue(c.Name, out var conn) && conn.IsConnected;
+            int toolCount = _tools.Count(kvp => kvp.Key.StartsWith($"mcp__{c.Name}__", StringComparison.Ordinal));
+            list.Add(new McpServerRuntimeStatus(c.Name, transportLabel, connected, toolCount));
+        }
+
+        return list;
     }
     
     /// <summary>
@@ -54,7 +87,21 @@ public sealed class McpManager : IAsyncDisposable
             }
             else if (serverConfig.Url is not null)
             {
-                mcpConfig = new McpHttpConfig(name, new Uri(serverConfig.Url), serverConfig.Headers);
+                if (!Uri.TryCreate(serverConfig.Url, UriKind.Absolute, out var absUrl))
+                {
+                    _loadIssues.Add(new McpConfigLoadIssue(name, "Invalid MCP URL."));
+                    _logger.LogWarning("MCP server {Name} skipped: invalid URL.", name);
+                    continue;
+                }
+
+                if (!McpRemoteEndpointValidator.TryValidateRemoteUri(absUrl, out var urlError))
+                {
+                    _loadIssues.Add(new McpConfigLoadIssue(name, urlError ?? "URL rejected by policy."));
+                    _logger.LogWarning("MCP server {Name} skipped: {Reason}", name, urlError);
+                    continue;
+                }
+
+                mcpConfig = new McpHttpConfig(name, absUrl, serverConfig.Headers);
             }
             
             if (mcpConfig is not null)
@@ -69,6 +116,20 @@ public sealed class McpManager : IAsyncDisposable
     /// </summary>
     public void AddServer(McpServerConfig config)
     {
+        if (config is McpHttpConfig http &&
+            !McpRemoteEndpointValidator.TryValidateRemoteUri(http.Url, out var httpErr))
+        {
+            _logger.LogWarning("MCP AddServer rejected {Name}: {Reason}", config.Name, httpErr);
+            return;
+        }
+
+        if (config is McpWebSocketConfig ws &&
+            !McpRemoteEndpointValidator.TryValidateRemoteUri(ws.Url, out var wsErr))
+        {
+            _logger.LogWarning("MCP AddServer rejected {Name}: {Reason}", config.Name, wsErr);
+            return;
+        }
+
         _configs.Add(config);
     }
     
@@ -131,7 +192,7 @@ public sealed class McpManager : IAsyncDisposable
         {
             // Remove tools from this server
             var toolsToRemove = _tools
-                .Where(kvp => kvp.Value.Name.StartsWith($"mcp__{name}__"))
+                .Where(kvp => kvp.Key.StartsWith($"mcp__{name}__", StringComparison.Ordinal))
                 .Select(kvp => kvp.Key)
                 .ToList();
             
@@ -154,6 +215,7 @@ public sealed class McpManager : IAsyncDisposable
         
         _connections.Clear();
         _tools.Clear();
+        _configs.Clear();
     }
 }
 

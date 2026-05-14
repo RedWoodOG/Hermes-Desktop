@@ -147,8 +147,137 @@
   <data name="IntegrationsNavItem.Content" xml:space="preserve">
     <value>集成</value>
   </data>
+  <data name="McpNavItem.Content" xml:space="preserve">
+    <value>MCP</value>
+  </data>
+  <data name="DiagnosticsNavItem.Content" xml:space="preserve">
+    <value>诊断</value>
+  </data>
   <data name="SettingsNavItem.Content" xml:space="preserve">
     <value>设置</value>
+  </data>
+  <data name="DiagnosticsPageEyebrow.Text" xml:space="preserve">
+    <value>故障排查</value>
+  </data>
+  <data name="DiagnosticsPageTitle.Text" xml:space="preserve">
+    <value>诊断</value>
+  </data>
+  <data name="DiagnosticsPageIntro.Text" xml:space="preserve">
+    <value>复制诊断会收集应用版本、路径、运行时信息以及 desktop-startup.log 的尾部。与常见 API 密钥形态匹配的内容在写入剪贴板前会被遮盖。</value>
+  </data>
+  <data name="DiagnosticsSummarySectionTitle.Text" xml:space="preserve">
+    <value>摘要</value>
+  </data>
+  <data name="DiagnosticsSummaryVersionLine" xml:space="preserve">
+    <value>版本：{0}</value>
+  </data>
+  <data name="DiagnosticsSummaryOsLine" xml:space="preserve">
+    <value>操作系统：{0}</value>
+  </data>
+  <data name="DiagnosticsSummaryFrameworkLine" xml:space="preserve">
+    <value>.NET：{0}</value>
+  </data>
+  <data name="DiagnosticsSummaryHermesHomeLine" xml:space="preserve">
+    <value>Hermes 主目录：{0}</value>
+  </data>
+  <data name="DiagnosticsSummaryStartupLogLine" xml:space="preserve">
+    <value>桌面启动日志：{0}</value>
+  </data>
+  <data name="DiagnosticsSummaryLogExistsLine" xml:space="preserve">
+    <value>启动日志是否存在：{0}</value>
+  </data>
+  <data name="DiagnosticsSummaryLogSizeLine" xml:space="preserve">
+    <value>启动日志大小（字节）：{0}</value>
+  </data>
+  <data name="DiagnosticsSummaryPrivacyLine" xml:space="preserve">
+    <value>隐私模式（界面中路径已模糊）：{0}</value>
+  </data>
+  <data name="DiagnosticsSummaryYes" xml:space="preserve">
+    <value>是</value>
+  </data>
+  <data name="DiagnosticsSummaryNo" xml:space="preserve">
+    <value>否</value>
+  </data>
+  <data name="DiagnosticsTailSectionTitle.Text" xml:space="preserve">
+    <value>桌面启动日志（尾部）</value>
+  </data>
+  <data name="DiagnosticsTailHint.Text" xml:space="preserve">
+    <value>预览与剪贴板诊断包使用相同的脱敏规则。截断时首行可能不完整。</value>
+  </data>
+  <data name="DiagnosticsCopyButton.Content" xml:space="preserve">
+    <value>复制诊断</value>
+  </data>
+  <data name="DiagnosticsOpenLogFolderButton.Content" xml:space="preserve">
+    <value>打开日志文件夹</value>
+  </data>
+  <data name="DiagnosticsReloadTailButton.Content" xml:space="preserve">
+    <value>刷新预览</value>
+  </data>
+  <data name="DiagnosticsCopySuccessTitle" xml:space="preserve">
+    <value>已复制</value>
+  </data>
+  <data name="DiagnosticsCopySuccessMessage" xml:space="preserve">
+    <value>已脱敏的诊断信息已复制到剪贴板。</value>
+  </data>
+  <data name="DiagnosticsCopyErrorTitle" xml:space="preserve">
+    <value>复制失败</value>
+  </data>
+  <data name="DiagnosticsOpenFolderErrorTitle" xml:space="preserve">
+    <value>无法打开文件夹</value>
+  </data>
+  <data name="DiagnosticsTailRefreshedTitle" xml:space="preserve">
+    <value>已刷新</value>
+  </data>
+  <data name="DiagnosticsTailRefreshedMessage" xml:space="preserve">
+    <value>摘要与日志预览已更新。</value>
+  </data>
+  <data name="McpPageEyebrow.Text" xml:space="preserve">
+    <value>模型上下文协议</value>
+  </data>
+  <data name="McpPageTitle.Text" xml:space="preserve">
+    <value>MCP 指挥中心</value>
+  </data>
+  <data name="McpPageIntro.Text" xml:space="preserve">
+    <value>Hermes 会按下方顺序查找第一个存在的 mcp.json。公网上的 HTTP/SSE 端点必须使用 HTTPS；仅回环地址允许明文 HTTP 与 WS。链路本地与云元数据主机被阻止。编辑 mcp.json 后请重启桌面应用以重新连接。</value>
+  </data>
+  <data name="McpPathsSectionTitle.Text" xml:space="preserve">
+    <value>配置文件搜索路径</value>
+  </data>
+  <data name="McpPathsHint.Text" xml:space="preserve">
+    <value>✓ 表示本机已存在该文件。</value>
+  </data>
+  <data name="McpStatusSectionTitle.Text" xml:space="preserve">
+    <value>服务器与工具</value>
+  </data>
+  <data name="McpStatusHint.Text" xml:space="preserve">
+    <value>状态反映当前进程。刷新会重新读取连接状态，但不会重启子进程传输。</value>
+  </data>
+  <data name="McpRefreshButton.Content" xml:space="preserve">
+    <value>刷新状态</value>
+  </data>
+  <data name="McpStatusConnected" xml:space="preserve">
+    <value>已连接</value>
+  </data>
+  <data name="McpStatusDisconnected" xml:space="preserve">
+    <value>未连接</value>
+  </data>
+  <data name="McpStatusLineFormat" xml:space="preserve">
+    <value>{0} — 传输：{1} — {2} — 已注册工具：{3}</value>
+  </data>
+  <data name="McpIssuesSectionTitle.Text" xml:space="preserve">
+    <value>配置策略与加载说明</value>
+  </data>
+  <data name="McpIssuesHint.Text" xml:space="preserve">
+    <value>以下条目在解析 mcp.json 时被跳过（例如不允许的远程 URL）。</value>
+  </data>
+  <data name="McpIssuesNone" xml:space="preserve">
+    <value>未报告配置问题。</value>
+  </data>
+  <data name="McpIssueLineFormat" xml:space="preserve">
+    <value>{0}：{1}</value>
+  </data>
+  <data name="McpDocsLink.Content" xml:space="preserve">
+    <value>打开 MCP 主机文档（GitHub）</value>
   </data>
   <data name="DashboardHeroEyebrow.Text" xml:space="preserve">
     <value>原生控制室</value>
@@ -540,8 +669,200 @@
   <data name="ChatThinkingShort" xml:space="preserve">
     <value>Hermes 正在思考</value>
   </data>
+  <data name="ChatThinkingToolFormat" xml:space="preserve">
+    <value>Hermes 正在使用 {0}</value>
+  </data>
+  <data name="SlashPaletteTitle" xml:space="preserve">
+    <value>斜杠命令</value>
+  </data>
+  <data name="SlashPaletteEmpty" xml:space="preserve">
+    <value>未找到匹配的命令</value>
+  </data>
+  <data name="SlashCategory.Chat" xml:space="preserve">
+    <value>聊天</value>
+  </data>
+  <data name="SlashCategory.Agent" xml:space="preserve">
+    <value>智能体</value>
+  </data>
+  <data name="SlashCategory.Tools" xml:space="preserve">
+    <value>工具</value>
+  </data>
+  <data name="SlashCategory.Info" xml:space="preserve">
+    <value>信息</value>
+  </data>
+  <data name="SlashCommand.new.Description" xml:space="preserve">
+    <value>开始新的聊天会话</value>
+  </data>
+  <data name="SlashCommand.clear.Description" xml:space="preserve">
+    <value>清空可见的对话历史</value>
+  </data>
+  <data name="SlashCommand.retry.Description" xml:space="preserve">
+    <value>重新发送上一个提示</value>
+  </data>
+  <data name="SlashCommand.btw.Description" xml:space="preserve">
+    <value>不影响上下文的旁支提问</value>
+  </data>
+  <data name="SlashCommand.approve.Description" xml:space="preserve">
+    <value>批准待处理的操作</value>
+  </data>
+  <data name="SlashCommand.deny.Description" xml:space="preserve">
+    <value>拒绝待处理的操作</value>
+  </data>
+  <data name="SlashCommand.reset.Description" xml:space="preserve">
+    <value>重置智能体上下文</value>
+  </data>
+  <data name="SlashCommand.compact.Description" xml:space="preserve">
+    <value>压缩并总结对话内容</value>
+  </data>
+  <data name="SlashCommand.help.Description" xml:space="preserve">
+    <value>显示可用的斜杠命令</value>
+  </data>
+  <data name="SlashCommand.tools.Description" xml:space="preserve">
+    <value>列出活跃的工具</value>
+  </data>
+  <data name="SlashCommand.skills.Description" xml:space="preserve">
+    <value>列出已安装的技能</value>
+  </data>
+  <data name="SlashCommand.model.Description" xml:space="preserve">
+    <value>显示当前提供商与模型</value>
+  </data>
+  <data name="SlashCommand.usage.Description" xml:space="preserve">
+    <value>显示本次会话的令牌用量</value>
+  </data>
+  <data name="SlashCommand.version.Description" xml:space="preserve">
+    <value>显示 Hermes 桌面端版本</value>
+  </data>
+  <data name="SlashCommand.status.Description" xml:space="preserve">
+    <value>显示运行时状态（提供商、模型、模式）</value>
+  </data>
+  <data name="SlashCommand.debug.Description" xml:space="preserve">
+    <value>打开诊断页面</value>
+  </data>
+  <data name="SlashOutputUnknownCommand" xml:space="preserve">
+    <value>未知命令：/{0}。输入 /help 查看完整列表。</value>
+  </data>
+  <data name="SlashOutputHelpHeader" xml:space="preserve">
+    <value>可用斜杠命令</value>
+  </data>
+  <data name="SlashOutputUsageNone" xml:space="preserve">
+    <value>暂无用量数据 — 请先发送消息。</value>
+  </data>
+  <data name="SlashOutputUsageFormat" xml:space="preserve">
+    <value>提示：{0} 词元   完成：{1} 词元   合计：{2} 词元</value>
+  </data>
+  <data name="SlashOutputModelFormat" xml:space="preserve">
+    <value>提供商：{0}   模型：{1}</value>
+  </data>
+  <data name="SlashOutputVersionFormat" xml:space="preserve">
+    <value>Hermes 桌面端 v{0}</value>
+  </data>
+  <data name="SlashOutputToolsFormat" xml:space="preserve">
+    <value>已注册工具（{0}）：{1}</value>
+  </data>
+  <data name="SlashOutputSkillsNone" xml:space="preserve">
+    <value>未安装任何技能。请向 skills 目录添加 .md 文件。</value>
+  </data>
+  <data name="SlashOutputSkillsHeader" xml:space="preserve">
+    <value>已安装的技能</value>
+  </data>
+  <data name="ChatUsageFooterFormat" xml:space="preserve">
+    <value>{0} 输入 · {1} 输出 · {2} 合计</value>
+  </data>
+  <data name="ChatUsageNoData" xml:space="preserve">
+    <value>暂无用量数据</value>
+  </data>
   <data name="ChatThinkingRunningSkill" xml:space="preserve">
     <value>正在运行技能…</value>
+  </data>
+  <data name="SkillsInstallHeader" xml:space="preserve">
+    <value>安装技能</value>
+  </data>
+  <data name="SkillsInstallSubtitle" xml:space="preserve">
+    <value>粘贴 SKILL.md 的原始 URL,或 GitHub 仓库路径 (owner/repo)。</value>
+  </data>
+  <data name="SkillsInstallButton" xml:space="preserve">
+    <value>安装</value>
+  </data>
+  <data name="SkillsInstallBrowse" xml:space="preserve">
+    <value>浏览</value>
+  </data>
+  <data name="SkillsInstallSuccessFormat" xml:space="preserve">
+    <value>已安装 {0}。</value>
+  </data>
+  <data name="SkillsInstallFailureFormat" xml:space="preserve">
+    <value>安装失败:{0}</value>
+  </data>
+  <data name="SkillsInstallNameRequired" xml:space="preserve">
+    <value>请输入技能名称 (小写字母、数字、短横线)。</value>
+  </data>
+  <data name="SkillsInstallUrlRequired" xml:space="preserve">
+    <value>请输入 SKILL.md 原始 URL。</value>
+  </data>
+  <data name="SkillsQuarantineBadgeFormat" xml:space="preserve">
+    <value>{0} 个隔离</value>
+  </data>
+  <data name="SkillsStateEnabled" xml:space="preserve">
+    <value>已启用</value>
+  </data>
+  <data name="SkillsStateDisabled" xml:space="preserve">
+    <value>已禁用</value>
+  </data>
+  <data name="SkillsDeleteButton" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="SkillsDeleteConfirmTitleFormat" xml:space="preserve">
+    <value>删除技能 {0}?</value>
+  </data>
+  <data name="SkillsDeleteConfirmBody" xml:space="preserve">
+    <value>这将从磁盘移除该技能文件。捆绑的技能将在下次启动时恢复。</value>
+  </data>
+  <data name="SkillsDeleteConfirmYes" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="SkillsDeleteConfirmCancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="SkillsBrowseDialogTitle" xml:space="preserve">
+    <value>浏览技能中心</value>
+  </data>
+  <data name="SkillsBrowseDialogBody" xml:space="preserve">
+    <value>输入 GitHub 仓库 (owner/repo) 列出其 SKILL.md 文件。每次安装都会先下载、安全扫描并隔离。</value>
+  </data>
+  <data name="SkillsBrowseDialogClose" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="SkillsBrowseDialogSearch" xml:space="preserve">
+    <value>搜索</value>
+  </data>
+  <data name="SkillsBrowseEmpty" xml:space="preserve">
+    <value>该仓库中未找到技能。</value>
+  </data>
+  <data name="WelcomeEyebrow" xml:space="preserve">
+    <value>欢迎</value>
+  </data>
+  <data name="WelcomeTitle" xml:space="preserve">
+    <value>欢迎使用 Hermes Desktop</value>
+  </data>
+  <data name="WelcomeSubtitle" xml:space="preserve">
+    <value>原生 Windows 智能体,完全在本地运行。两步即可完成设置。</value>
+  </data>
+  <data name="WelcomeGetStarted" xml:space="preserve">
+    <value>开始</value>
+  </data>
+  <data name="WelcomeSkip" xml:space="preserve">
+    <value>跳过设置</value>
+  </data>
+  <data name="SetupTitle" xml:space="preserve">
+    <value>选择模型提供商</value>
+  </data>
+  <data name="SetupSubtitle" xml:space="preserve">
+    <value>Hermes 兼容任何 OpenAI 或 Anthropic 风格的端点。选择预设、填写 URL,如需可填 API 密钥。</value>
+  </data>
+  <data name="SetupFinish" xml:space="preserve">
+    <value>保存并完成</value>
+  </data>
+  <data name="SetupTestConnection" xml:space="preserve">
+    <value>测试连接</value>
   </data>
   <data name="ChatThinkingLineThinking" xml:space="preserve">
     <value>Hermes 正在思考</value>
@@ -1292,6 +1613,57 @@
   </data>
   <data name="SettingsSaveSearchBtn.Content" xml:space="preserve">
     <value>保存搜索配置</value>
+  </data>
+  <data name="SettingsExpUpdatesHeader.Text" xml:space="preserve">
+    <value>更新</value>
+  </data>
+  <data name="SettingsUpdatesIntro.Text" xml:space="preserve">
+    <value>便携版会通过 GitHub Releases 检查是否有更新的 HermesDesktop-portable-x64.zip。带校验的下载需要发布页附带 .sha256 文件。设置环境变量 HERMES_DESKTOP_SKIP_UPDATE_CHECK=1 可禁用联网检查。</value>
+  </data>
+  <data name="SettingsUpdatesCheckOnStartupSwitch.Header" xml:space="preserve">
+    <value>启动应用时检查更新</value>
+  </data>
+  <data name="SettingsUpdatesCheckNowButton.Content" xml:space="preserve">
+    <value>立即检查</value>
+  </data>
+  <data name="SettingsUpdatesDownloadButton.Content" xml:space="preserve">
+    <value>下载已校验的更新包</value>
+  </data>
+  <data name="SettingsUpdatesOpenDownloadsButton.Content" xml:space="preserve">
+    <value>打开下载文件夹</value>
+  </data>
+  <data name="SettingsUpdatesReleasesLink.Content" xml:space="preserve">
+    <value>在 GitHub 查看所有发行版</value>
+  </data>
+  <data name="SettingsUpdatesStatusUpToDate" xml:space="preserve">
+    <value>当前已是最新公开发布版本。</value>
+  </data>
+  <data name="SettingsUpdatesStatusAvailable" xml:space="preserve">
+    <value>有可用更新：{0}（{1}）。</value>
+  </data>
+  <data name="SettingsUpdatesMissingSha256Hint" xml:space="preserve">
+    <value> 此发行版尚无 .sha256 校验文件——请使用「在 GitHub 查看所有发行版」手动下载，直至下一版附带校验和。</value>
+  </data>
+  <data name="SettingsUpdatesStatusFailed" xml:space="preserve">
+    <value>检查更新失败：{0}</value>
+  </data>
+  <data name="SettingsUpdatesStatusSkipped" xml:space="preserve">
+    <value>已跳过：{0}</value>
+  </data>
+  <data name="SettingsUpdatesDownloadSuccess" xml:space="preserve">
+    <value>已校验的 zip 已保存到：{0}</value>
+  </data>
+  <data name="SettingsUpdatesDownloadFailed" xml:space="preserve">
+    <value>下载失败：{0}</value>
+  </data>
+  <data name="UpdateBannerTitle" xml:space="preserve">
+    <value>有可用更新</value>
+  </data>
+  <data name="UpdateBannerMessage" xml:space="preserve">
+    <value>GitHub 上有较新版本（{0}）。打开发行版页面查看说明并下载。</value>
+  </data>
+  <data name="UpdateBannerOpenReleaseButton.Content" xml:space="preserve">
+    <value>打开发行版</value>
   </data>
   <data name="SettingsExpPathsSystemHeader.Text" xml:space="preserve">
     <value>路径与系统</value>

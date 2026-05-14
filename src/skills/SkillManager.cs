@@ -15,13 +15,17 @@ public sealed class SkillManager
     private readonly ILogger<SkillManager> _logger;
     private readonly ConcurrentDictionary<string, Skill> _skills = new();
     
+    private readonly string _togglesPath;
+
     public SkillManager(string skillsDir, ILogger<SkillManager> logger)
     {
         _skillsDir = skillsDir;
         _logger = logger;
-        
+
         Directory.CreateDirectory(skillsDir);
+        _togglesPath = Path.Combine(skillsDir, ".skill-toggles.json");
         LoadSkills();
+        ApplyPersistedToggles();
     }
     
     /// <summary>
@@ -129,11 +133,74 @@ public sealed class SkillManager
     }
     
     /// <summary>
-    /// List all skills.
+    /// List all skills (enabled + disabled). UI uses this; runtime resolution should
+    /// prefer <see cref="ListEnabledSkills"/>.
     /// </summary>
     public List<Skill> ListSkills()
     {
         return _skills.Values.ToList();
+    }
+
+    /// <summary>
+    /// List only skills the user has not explicitly disabled. Use this from agent
+    /// dispatch / slash command fallback paths.
+    /// </summary>
+    public List<Skill> ListEnabledSkills()
+    {
+        return _skills.Values.Where(s => s.IsEnabled).ToList();
+    }
+
+    /// <summary>
+    /// Toggle a skill on/off and persist the new state to
+    /// <c>&lt;skillsDir&gt;/.skill-toggles.json</c>. Returns the updated skill or
+    /// throws <see cref="SkillNotFoundException"/>.
+    /// </summary>
+    public Skill SetEnabled(string name, bool enabled)
+    {
+        if (!_skills.TryGetValue(name, out var skill))
+            throw new SkillNotFoundException(name);
+
+        skill.IsEnabled = enabled;
+        PersistToggles();
+        _logger.LogInformation("Skill toggle: {Name} -> {State}", name, enabled ? "enabled" : "disabled");
+        return skill;
+    }
+
+    private void ApplyPersistedToggles()
+    {
+        try
+        {
+            if (!File.Exists(_togglesPath)) return;
+            var raw = File.ReadAllText(_togglesPath);
+            if (string.IsNullOrWhiteSpace(raw)) return;
+            var map = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, bool>>(raw);
+            if (map is null) return;
+            foreach (var (key, enabled) in map)
+            {
+                if (_skills.TryGetValue(key, out var skill))
+                    skill.IsEnabled = enabled;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load skill toggles from {Path}", _togglesPath);
+        }
+    }
+
+    private void PersistToggles()
+    {
+        try
+        {
+            var map = _skills.Values.ToDictionary(s => s.Name, s => s.IsEnabled);
+            var raw = System.Text.Json.JsonSerializer.Serialize(map, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+            var tmp = _togglesPath + ".tmp";
+            File.WriteAllText(tmp, raw);
+            File.Move(tmp, _togglesPath, overwrite: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to persist skill toggles to {Path}", _togglesPath);
+        }
     }
     
     /// <summary>
@@ -392,6 +459,13 @@ public sealed class Skill
     public required List<string> Tools { get; init; }
     public string? Model { get; init; }
     public required string SystemPrompt { get; init; }
+
+    /// <summary>
+    /// User toggle. Disabled skills are loaded into the registry but excluded from
+    /// <see cref="SkillManager.ListEnabledSkills"/> and skipped by the slash command
+    /// dispatcher's fallback dynamic-skill lookup. Defaults to <c>true</c>.
+    /// </summary>
+    public bool IsEnabled { get; set; } = true;
 }
 
 public sealed class SkillFrontmatter

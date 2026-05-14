@@ -1,0 +1,102 @@
+using System;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Hermes.Agent.Skills;
+using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+
+namespace HermesDesktop.Tests.Skills;
+
+/// <summary>
+/// Bundle E.6 tests for the new <see cref="Skill.IsEnabled"/> toggle and persistence
+/// via <c>.skill-toggles.json</c>, plus the <see cref="SkillManager.ListEnabledSkills"/>
+/// filter used by runtime dispatch paths.
+/// </summary>
+[TestClass]
+public class SkillToggleTests
+{
+    private string _tempDir = "";
+
+    [TestInitialize]
+    public void SetUp()
+    {
+        _tempDir = Path.Combine(Path.GetTempPath(), $"hermes-skill-tests-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(_tempDir);
+        WriteSkill("alpha", "First skill.");
+        WriteSkill("beta", "Second skill.");
+    }
+
+    [TestCleanup]
+    public void TearDown()
+    {
+        if (Directory.Exists(_tempDir))
+            Directory.Delete(_tempDir, recursive: true);
+    }
+
+    private void WriteSkill(string name, string description)
+    {
+        var content =
+            $"---\nname: {name}\ndescription: {description}\ntools: read_file\n---\n# {name}\n\nBody.";
+        File.WriteAllText(Path.Combine(_tempDir, $"{name}.md"), content);
+    }
+
+    private SkillManager NewManager() =>
+        new(_tempDir, NullLogger<SkillManager>.Instance);
+
+    [TestMethod]
+    public void DefaultIsEnabledIsTrue()
+    {
+        var manager = NewManager();
+        Assert.IsTrue(manager.ListSkills().All(s => s.IsEnabled));
+        Assert.AreEqual(2, manager.ListEnabledSkills().Count);
+    }
+
+    [TestMethod]
+    public void SetEnabledFalsePersistsAcrossReload()
+    {
+        var manager = NewManager();
+        manager.SetEnabled("alpha", false);
+
+        Assert.IsFalse(manager.GetSkill("alpha")!.IsEnabled);
+        Assert.AreEqual(1, manager.ListEnabledSkills().Count);
+
+        var reloaded = NewManager();
+        Assert.IsFalse(reloaded.GetSkill("alpha")!.IsEnabled);
+        Assert.IsTrue(reloaded.GetSkill("beta")!.IsEnabled);
+        Assert.AreEqual(1, reloaded.ListEnabledSkills().Count);
+    }
+
+    [TestMethod]
+    public void SetEnabledTrueRestoresVisibility()
+    {
+        var manager = NewManager();
+        manager.SetEnabled("alpha", false);
+        manager.SetEnabled("alpha", true);
+
+        var reloaded = NewManager();
+        Assert.IsTrue(reloaded.GetSkill("alpha")!.IsEnabled);
+        Assert.AreEqual(2, reloaded.ListEnabledSkills().Count);
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(SkillNotFoundException))]
+    public void SetEnabledUnknownSkillThrows()
+    {
+        var manager = NewManager();
+        manager.SetEnabled("ghost", false);
+    }
+
+    [TestMethod]
+    public void TogglesJsonFileIsWrittenNextToSkills()
+    {
+        var manager = NewManager();
+        manager.SetEnabled("beta", false);
+
+        var togglesPath = Path.Combine(_tempDir, ".skill-toggles.json");
+        Assert.IsTrue(File.Exists(togglesPath));
+        var raw = File.ReadAllText(togglesPath);
+        Assert.IsTrue(raw.Contains("\"beta\""));
+        Assert.IsTrue(raw.Contains("false"));
+    }
+}

@@ -284,6 +284,126 @@
                 </Expander.Content>
             </Expander>
 
+            <!-- ═══ B2. Saved Model Profiles (Bundle E.7) ═══ -->
+            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <FontIcon Glyph="&#xE74C;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
+                        <TextBlock x:Name="SavedModelsHeaderText"
+                                   Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"
+                                   Text="Saved Model Profiles"/>
+                    </StackPanel>
+                </Expander.Header>
+                <Expander.Content>
+                    <StackPanel Spacing="12" Padding="4,12,4,4">
+                        <TextBlock x:Name="SavedModelsIntroText"
+                                   FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"
+                                   Text="Maintain a reusable registry of provider + model combinations. Set one active to push it into the model section above without re-typing it."/>
+
+                        <ListView x:Name="SavedModelsList" Background="{StaticResource AppInsetBrush}"
+                                  BorderBrush="{StaticResource AppStrokeBrush}" BorderThickness="1"
+                                  SelectionMode="Single" SelectionChanged="SavedModels_SelectionChanged"
+                                  MaxHeight="280">
+                            <ListView.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Padding="6,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <FontIcon Grid.Column="0" Glyph="{Binding FavoriteGlyph}"
+                                                  FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                                  Foreground="{Binding FavoriteBrush}"
+                                                  VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                        <StackPanel Grid.Column="1">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Foreground="White"/>
+                                            <TextBlock Text="{Binding ProviderModelLine}" FontSize="11"
+                                                       Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                                        </StackPanel>
+                                        <TextBlock Grid.Column="2" Text="{Binding ContextLabel}" FontSize="11"
+                                                   Foreground="{StaticResource AppTextSecondaryBrush}"
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+
+                        <Grid ColumnSpacing="12" RowSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Grid.Column="0" Spacing="4">
+                                <TextBlock Text="Name" Style="{StaticResource LabelTextStyle}"/>
+                                <TextBox x:Name="ProfileNameBox" PlaceholderText="My GPT-5.4"
+                                         Background="{StaticResource AppInsetBrush}"
+                                         BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="0" Grid.Column="1" Spacing="4">
+                                <TextBlock Text="Provider" Style="{StaticResource LabelTextStyle}"/>
+                                <TextBox x:Name="ProfileProviderBox" PlaceholderText="openai | anthropic | custom"
+                                         Background="{StaticResource AppInsetBrush}"
+                                         BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="1" Grid.Column="0" Spacing="4">
+                                <TextBlock Text="Model ID" Style="{StaticResource LabelTextStyle}"/>
+                                <TextBox x:Name="ProfileModelIdBox" PlaceholderText="gpt-5.4"
+                                         Background="{StaticResource AppInsetBrush}"
+                                         BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="1" Grid.Column="1" Spacing="4">
+                                <TextBlock Text="Base URL (optional)" Style="{StaticResource LabelTextStyle}"/>
+                                <TextBox x:Name="ProfileBaseUrlBox" PlaceholderText="https://api.openai.com/v1"
+                                         Background="{StaticResource AppInsetBrush}"
+                                         BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="2" Grid.Column="0" Spacing="4">
+                                <TextBlock Text="API key env var (optional)" Style="{StaticResource LabelTextStyle}"/>
+                                <TextBox x:Name="ProfileApiKeyEnvBox" PlaceholderText="OPENAI_API_KEY"
+                                         Background="{StaticResource AppInsetBrush}"
+                                         BorderBrush="{StaticResource AppStrokeBrush}" Foreground="White"/>
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Spacing="4">
+                                <TextBlock Text="Context length (optional)" Style="{StaticResource LabelTextStyle}"/>
+                                <NumberBox x:Name="ProfileContextBox" Minimum="0" Maximum="10000000"
+                                           Background="{StaticResource AppInsetBrush}"
+                                           BorderBrush="{StaticResource AppStrokeBrush}"/>
+                            </StackPanel>
+
+                            <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="2"
+                                        Orientation="Horizontal" Spacing="8">
+                                <ToggleSwitch x:Name="ProfileFavoriteSwitch" Header="Favorite"
+                                              OffContent="" OnContent=""/>
+                                <Button x:Name="SaveProfileBtn" Content="Save profile"
+                                        Click="SaveProfile_Click"
+                                        Background="{StaticResource AppAccentBrush}" Foreground="#16110D" Padding="14,6"/>
+                                <Button x:Name="NewProfileBtn" Content="New"
+                                        Click="NewProfile_Click"
+                                        Background="{StaticResource AppInsetBrush}" Padding="14,6"/>
+                                <Button x:Name="SetActiveProfileBtn" Content="Set active"
+                                        Click="SetActiveProfile_Click" IsEnabled="False"
+                                        Background="{StaticResource AppInsetBrush}" Padding="14,6"/>
+                                <Button x:Name="DeleteProfileBtn" Content="Delete"
+                                        Click="DeleteProfile_Click" IsEnabled="False"
+                                        Background="#3C1A1A" Foreground="#E07070" Padding="14,6"/>
+                                <TextBlock x:Name="ProfileStatusText" VerticalAlignment="Center"
+                                           Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="12"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Expander.Content>
+            </Expander>
+
             <!-- ═══ C. Agent Behavior ═══ -->
             <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
                 <Expander.Header>
@@ -1005,6 +1125,59 @@
                             <TextBlock x:Name="SearchSaveStatus" VerticalAlignment="Center"
                                        Foreground="{StaticResource AppTextSecondaryBrush}" FontSize="13"/>
                         </StackPanel>
+                    </StackPanel>
+                </Expander.Content>
+            </Expander>
+
+            <!-- ═══ K. Updates (portable / GitHub Releases) ═══ -->
+            <Expander HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <FontIcon Glyph="&#xE896;" FontFamily="Segoe MDL2 Assets" FontSize="18"/>
+                        <TextBlock x:Uid="SettingsExpUpdatesHeader" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Expander.Header>
+                <Expander.Content>
+                    <StackPanel Spacing="12" Padding="4,8,4,4">
+                        <TextBlock x:Uid="SettingsUpdatesIntro" FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"/>
+                        <ToggleSwitch
+                            x:Name="UpdateCheckOnStartupSwitch"
+                            x:Uid="SettingsUpdatesCheckOnStartupSwitch"
+                            Toggled="UpdateCheckOnStartupSwitch_Toggled"/>
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button
+                                x:Name="UpdateCheckNowButton"
+                                x:Uid="SettingsUpdatesCheckNowButton"
+                                Click="UpdateCheckNow_Click"
+                                Background="{StaticResource AppAccentGradientBrush}"
+                                BorderBrush="{StaticResource AppOutlineBrush}"
+                                Foreground="#16110D"
+                                Padding="16,8"/>
+                            <Button
+                                x:Name="UpdateDownloadButton"
+                                x:Uid="SettingsUpdatesDownloadButton"
+                                Click="UpdateDownloadVerified_Click"
+                                Background="{StaticResource AppInsetBrush}"
+                                BorderBrush="{StaticResource AppStrokeBrush}"
+                                Foreground="{StaticResource AppTextPrimaryBrush}"
+                                Padding="16,8"
+                                Visibility="Collapsed"/>
+                            <Button
+                                x:Uid="SettingsUpdatesOpenDownloadsButton"
+                                Click="UpdateOpenDownloadsFolder_Click"
+                                Background="{StaticResource AppInsetBrush}"
+                                BorderBrush="{StaticResource AppStrokeBrush}"
+                                Foreground="{StaticResource AppTextPrimaryBrush}"
+                                Padding="16,8"/>
+                        </StackPanel>
+                        <HyperlinkButton
+                            x:Uid="SettingsUpdatesReleasesLink"
+                            NavigateUri="https://github.com/RedWoodOG/Hermes-Desktop/releases"/>
+                        <TextBlock
+                            x:Name="UpdateStatusText"
+                            FontSize="13"
+                            Foreground="{StaticResource AppTextSecondaryBrush}"
+                            TextWrapping="Wrap"/>
                     </StackPanel>
                 </Expander.Content>
             </Expander>

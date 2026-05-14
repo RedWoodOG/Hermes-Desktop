@@ -144,6 +144,74 @@
 
                 <!-- Input Area — Claude Code style -->
                 <StackPanel Grid.Row="3" Padding="18,8,18,14" Spacing="6">
+
+                    <!-- Slash command palette: collapsed unless the input starts with "/" -->
+                    <Border x:Name="SlashPalette"
+                            Visibility="Collapsed"
+                            Background="{StaticResource AppInsetBrush}"
+                            BorderBrush="{StaticResource AppStrokeBrush}"
+                            BorderThickness="1" CornerRadius="12" Padding="8,6"
+                            MaxHeight="260">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock x:Name="SlashPaletteHeader" x:Uid="SlashPaletteTitle"
+                                       FontSize="11" FontWeight="SemiBold"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}"
+                                       Margin="6,2,6,4" />
+                            <ListView x:Name="SlashPaletteList" Grid.Row="1"
+                                      SelectionMode="Single"
+                                      IsItemClickEnabled="True"
+                                      ItemClick="SlashPaletteList_ItemClick"
+                                      Background="Transparent" BorderThickness="0"
+                                      MaxHeight="200">
+                                <ListView.ItemContainerStyle>
+                                    <Style TargetType="ListViewItem">
+                                        <Setter Property="MinHeight" Value="36" />
+                                        <Setter Property="Padding" Value="8,4" />
+                                    </Style>
+                                </ListView.ItemContainerStyle>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontFamily="Consolas, Cascadia Mono"
+                                                       FontSize="13"
+                                                       Foreground="{StaticResource AppAccentTextBrush}"
+                                                       VerticalAlignment="Center" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Description}"
+                                                       FontSize="12"
+                                                       Foreground="{StaticResource AppTextSecondaryBrush}"
+                                                       Margin="12,0,12,0"
+                                                       VerticalAlignment="Center"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <Border Grid.Column="2"
+                                                    Background="{StaticResource AppStrokeBrush}"
+                                                    CornerRadius="4" Padding="6,2"
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Category}"
+                                                           FontSize="10"
+                                                           Foreground="{StaticResource AppTextSecondaryBrush}" />
+                                            </Border>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                            <TextBlock x:Name="SlashPaletteEmptyLabel" x:Uid="SlashPaletteEmpty"
+                                       Grid.Row="2" Margin="6,4,6,2"
+                                       FontSize="11" Visibility="Collapsed"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}" />
+                        </Grid>
+                    </Border>
+
                     <!-- Input container with rounded border -->
                     <Border Background="{StaticResource AppInsetBrush}"
                             BorderBrush="{StaticResource AppStrokeBrush}"
@@ -175,6 +243,19 @@
                                           Foreground="{StaticResource AppAccentBrush}" />
                             </Button>
                         </Grid>
+                    </Border>
+
+                    <!-- Token usage footer — hidden until first UsageStats arrives -->
+                    <Border x:Name="UsageFooter"
+                            Visibility="Collapsed"
+                            Background="Transparent"
+                            Padding="0,2,0,0">
+                        <TextBlock x:Name="UsageFooterText"
+                                   FontSize="10"
+                                   FontFamily="Consolas, Cascadia Mono"
+                                   Foreground="{StaticResource AppTextSecondaryBrush}"
+                                   Opacity="0.7"
+                                   HorizontalAlignment="Right" />
                     </Border>
 
                     <!-- Model switcher + Permission mode + disclaimer -->

@@ -204,26 +204,50 @@ public sealed class OpenAiClient : IChatClient
             return (object)new { role = m.Role, content = m.Content };
         }).ToArray();
 
+        // stream_options.include_usage=true asks OpenAI-compatible servers to emit a
+        // final chunk containing real token counts. Required for the chat usage footer
+        // and InsightsService.RecordTokens. Most servers (OpenAI, OpenRouter, Groq,
+        // DeepSeek, vLLM, llama.cpp, LM Studio) honor it; Ollama silently ignores it.
         if (tools is not null)
         {
-            return new
+            return stream
+                ? new
+                {
+                    model = _config.Model,
+                    messages = msgs,
+                    tools,
+                    tool_choice = "auto",
+                    temperature = 0.7,
+                    stream = true,
+                    stream_options = new { include_usage = true }
+                }
+                : (object)new
+                {
+                    model = _config.Model,
+                    messages = msgs,
+                    tools,
+                    tool_choice = "auto",
+                    temperature = 0.7,
+                    stream = false
+                };
+        }
+
+        return stream
+            ? new
             {
                 model = _config.Model,
                 messages = msgs,
-                tools,
-                tool_choice = "auto",
                 temperature = 0.7,
-                stream
+                stream = true,
+                stream_options = new { include_usage = true }
+            }
+            : (object)new
+            {
+                model = _config.Model,
+                messages = msgs,
+                temperature = 0.7,
+                stream = false
             };
-        }
-
-        return new
-        {
-            model = _config.Model,
-            messages = msgs,
-            temperature = 0.7,
-            stream
-        };
     }
 
     private async Task<HttpResponseMessage> PostAsync(object payload, CancellationToken ct)
@@ -433,6 +457,7 @@ public sealed class OpenAiClient : IChatClient
         // 2. Separate "reasoning" JSON field (MiniMax-M2.7, etc.)
         var inThinkBlock = false;
         var contentBuffer = new StringBuilder();
+        UsageStats? finalUsage = null;
 
         var payload = BuildPayload(messages, tools: null, stream: true);
         var json = JsonSerializer.Serialize(payload);
@@ -510,6 +535,28 @@ public sealed class OpenAiClient : IChatClient
                 var parsedChunk = chunk!;
                 using (parsedChunk)
                 {
+                    // The trailing usage chunk has `usage: {...}` and (for OpenAI) an
+                    // empty `choices: []`. Capture it before any choices check would skip it.
+                    if (parsedChunk.RootElement.TryGetProperty("usage", out var usageEl) &&
+                        usageEl.ValueKind == JsonValueKind.Object)
+                    {
+                        int input = usageEl.TryGetProperty("prompt_tokens", out var pt) &&
+                                    pt.ValueKind == JsonValueKind.Number
+                            ? pt.GetInt32() : 0;
+                        int output = usageEl.TryGetProperty("completion_tokens", out var ctok) &&
+                                     ctok.ValueKind == JsonValueKind.Number
+                            ? ctok.GetInt32() : 0;
+                        int? cacheRead = null;
+                        if (usageEl.TryGetProperty("prompt_tokens_details", out var ptd) &&
+                            ptd.ValueKind == JsonValueKind.Object &&
+                            ptd.TryGetProperty("cached_tokens", out var ct2) &&
+                            ct2.ValueKind == JsonValueKind.Number)
+                        {
+                            cacheRead = ct2.GetInt32();
+                        }
+                        finalUsage = new UsageStats(input, output, CacheCreationTokens: null, CacheReadTokens: cacheRead);
+                    }
+
                     if (!parsedChunk.RootElement.TryGetProperty("choices", out var choices) ||
                         choices.GetArrayLength() == 0) continue;
 
@@ -618,6 +665,6 @@ public sealed class OpenAiClient : IChatClient
                 : new StreamEvent.TokenDelta(remaining);
         }
 
-        yield return new StreamEvent.MessageComplete("stop", new UsageStats(0, 0));
+        yield return new StreamEvent.MessageComplete("stop", finalUsage ?? new UsageStats(0, 0));
     }
 }

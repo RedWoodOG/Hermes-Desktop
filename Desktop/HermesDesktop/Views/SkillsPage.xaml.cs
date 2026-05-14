@@ -2,19 +2,25 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.Windows.ApplicationModel.Resources;
 using Hermes.Agent.Skills;
 
 namespace HermesDesktop.Views;
 
 public sealed partial class SkillsPage : Page
 {
+    private static readonly ResourceLoader StringResources = new();
+
     private List<SkillDisplayItem> _allSkills = new();
     private string _selectedCategory = "All";
     private bool _initialized;
+    private bool _suppressToggleHandler;
 
     public SkillsPage()
     {
@@ -22,12 +28,14 @@ public sealed partial class SkillsPage : Page
         Loaded += (_, _) => { _initialized = true; Refresh(); };
     }
 
+    private SkillManager Manager => App.Services.GetRequiredService<SkillManager>();
+    private SkillsHub Hub => App.Services.GetRequiredService<SkillsHub>();
+
     private void Refresh()
     {
         try
         {
-            var skillManager = App.Services.GetRequiredService<SkillManager>();
-            var skills = skillManager.ListSkills();
+            var skills = Manager.ListSkills();
 
             _allSkills = skills.Select(s =>
             {
@@ -43,7 +51,8 @@ public sealed partial class SkillsPage : Page
                         0 => "",
                         1 => "1 tool",
                         _ => $"{s.Tools.Count} tools"
-                    }
+                    },
+                    IsEnabled = s.IsEnabled
                 };
                 item.ApplyCategoryColor();
                 return item;
@@ -51,6 +60,7 @@ public sealed partial class SkillsPage : Page
 
             BuildCategoryChips();
             ApplyFilter();
+            UpdateQuarantineBadge();
         }
         catch (Exception ex)
         {
@@ -73,7 +83,6 @@ public sealed partial class SkillsPage : Page
             .Select(g => (Name: g.Key, Count: g.Count()))
             .ToList();
 
-        // "All" chip
         AddChip("All", _allSkills.Count, "All");
 
         foreach (var (name, count) in categories)
@@ -109,7 +118,7 @@ public sealed partial class SkillsPage : Page
         if (sender is Button btn && btn.Tag is string cat)
         {
             _selectedCategory = cat;
-            BuildCategoryChips(); // rebuild to update selection highlight
+            BuildCategoryChips();
             ApplyFilter();
         }
     }
@@ -119,11 +128,9 @@ public sealed partial class SkillsPage : Page
         var query = SearchBox.Text?.Trim() ?? "";
         var filtered = _allSkills.AsEnumerable();
 
-        // Category filter
         if (_selectedCategory != "All")
             filtered = filtered.Where(s => s.Category.Equals(_selectedCategory, StringComparison.OrdinalIgnoreCase));
 
-        // Text search
         if (!string.IsNullOrEmpty(query))
             filtered = filtered.Where(s =>
                 s.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
@@ -131,7 +138,6 @@ public sealed partial class SkillsPage : Page
                 s.Category.Contains(query, StringComparison.OrdinalIgnoreCase) ||
                 s.Tools.Contains(query, StringComparison.OrdinalIgnoreCase));
 
-        // Sort
         var sortTag = (SortSelector.SelectedItem as ComboBoxItem)?.Tag as string ?? "NameAsc";
         var sorted = sortTag switch
         {
@@ -141,7 +147,9 @@ public sealed partial class SkillsPage : Page
         };
 
         var list = sorted.ToList();
+        _suppressToggleHandler = true;
         SkillsList.ItemsSource = list;
+        _suppressToggleHandler = false;
         SkillCountBadge.Text = $"{list.Count} skill{(list.Count == 1 ? "" : "s")}";
         if (ListHeader is not null)
             ListHeader.Text = _selectedCategory == "All" ? "All Skills" : _selectedCategory;
@@ -168,6 +176,279 @@ public sealed partial class SkillsPage : Page
             PreviewCategoryChip.Text = item.Category;
             PreviewToolsChip.Text = string.IsNullOrEmpty(item.Tools) ? "No tools" : $"Tools: {item.Tools}";
             PreviewChips.Visibility = Visibility.Visible;
+            DeleteSkillButton.IsEnabled = true;
+            UpdatePreviewStateChip(item.IsEnabled);
+        }
+        else
+        {
+            DeleteSkillButton.IsEnabled = false;
+        }
+    }
+
+    private void UpdatePreviewStateChip(bool isEnabled)
+    {
+        if (isEnabled)
+        {
+            PreviewStateChipText.Text = StringResources.GetString("SkillsStateEnabled");
+            PreviewStateChip.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x1A, 0x3C, 0x28));
+            PreviewStateChipText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x60, 0xE0, 0x90));
+        }
+        else
+        {
+            PreviewStateChipText.Text = StringResources.GetString("SkillsStateDisabled");
+            PreviewStateChip.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x3C, 0x28, 0x1A));
+            PreviewStateChipText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xE0, 0xA0, 0x60));
+        }
+    }
+
+    private void SkillToggle_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_suppressToggleHandler) return;
+        if (sender is not ToggleSwitch ts || ts.Tag is not string name) return;
+
+        try
+        {
+            var skill = Manager.SetEnabled(name, ts.IsOn);
+            var item = _allSkills.FirstOrDefault(s => s.Name == name);
+            if (item is not null) item.IsEnabled = skill.IsEnabled;
+            if (SkillsList.SelectedItem is SkillDisplayItem selected && selected.Name == name)
+                UpdatePreviewStateChip(skill.IsEnabled);
+        }
+        catch (Exception ex)
+        {
+            ShowStatus(string.Format(StringResources.GetString("SkillsInstallFailureFormat"), ex.Message), isError: true);
+        }
+    }
+
+    private async void InstallSkill_Click(object sender, RoutedEventArgs e)
+    {
+        var name = (InstallNameBox.Text ?? string.Empty).Trim();
+        var url = (InstallUrlBox.Text ?? string.Empty).Trim();
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            ShowStatus(StringResources.GetString("SkillsInstallNameRequired"), isError: true);
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            ShowStatus(StringResources.GetString("SkillsInstallUrlRequired"), isError: true);
+            return;
+        }
+
+        InstallButton.IsEnabled = false;
+        ShowStatus("Installing...", isError: false);
+        try
+        {
+            var result = await Hub.InstallAsync(name, url, CancellationToken.None);
+            if (result.Success)
+            {
+                ShowStatus(string.Format(StringResources.GetString("SkillsInstallSuccessFormat"), result.Skill?.Name ?? name),
+                    isError: false);
+                InstallNameBox.Text = string.Empty;
+                InstallUrlBox.Text = string.Empty;
+                Refresh();
+            }
+            else
+            {
+                ShowStatus(string.Format(StringResources.GetString("SkillsInstallFailureFormat"), result.Error ?? "unknown"),
+                    isError: true);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowStatus(string.Format(StringResources.GetString("SkillsInstallFailureFormat"), ex.Message), isError: true);
+        }
+        finally
+        {
+            InstallButton.IsEnabled = true;
+            UpdateQuarantineBadge();
+        }
+    }
+
+    private async void BrowseHub_Click(object sender, RoutedEventArgs e)
+    {
+        var repoBox = new TextBox
+        {
+            PlaceholderText = "owner/repo",
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        var resultsList = new ListView
+        {
+            Height = 240,
+            Background = (Brush)Application.Current.Resources["AppInsetBrush"]
+        };
+        var emptyText = new TextBlock
+        {
+            Text = StringResources.GetString("SkillsBrowseEmpty"),
+            FontSize = 12,
+            Foreground = (Brush)Application.Current.Resources["AppTextSecondaryBrush"],
+            Visibility = Visibility.Collapsed
+        };
+
+        var content = new StackPanel { Spacing = 8 };
+        content.Children.Add(new TextBlock
+        {
+            Text = StringResources.GetString("SkillsBrowseDialogBody"),
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 12,
+            Foreground = (Brush)Application.Current.Resources["AppTextSecondaryBrush"]
+        });
+        content.Children.Add(repoBox);
+        content.Children.Add(resultsList);
+        content.Children.Add(emptyText);
+
+        var dialog = new ContentDialog
+        {
+            Title = StringResources.GetString("SkillsBrowseDialogTitle"),
+            Content = content,
+            PrimaryButtonText = StringResources.GetString("SkillsBrowseDialogSearch"),
+            CloseButtonText = StringResources.GetString("SkillsBrowseDialogClose"),
+            XamlRoot = XamlRoot
+        };
+
+        async Task RunSearchAsync()
+        {
+            var repo = (repoBox.Text ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(repo)) return;
+            try
+            {
+                var remote = await Hub.SearchGitHubAsync(repo, CancellationToken.None);
+                resultsList.ItemsSource = remote
+                    .Where(r => !r.IsCategory)
+                    .Select(r => new RemoteSkillRow
+                    {
+                        Name = r.Name,
+                        Source = r.Source,
+                        DownloadUrl = r.DownloadUrl ?? string.Empty
+                    })
+                    .ToList();
+                emptyText.Visibility = remote.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            }
+            catch (Exception ex)
+            {
+                emptyText.Text = string.Format(StringResources.GetString("SkillsInstallFailureFormat"), ex.Message);
+                emptyText.Visibility = Visibility.Visible;
+            }
+        }
+
+        dialog.PrimaryButtonClick += async (_, args) =>
+        {
+            var deferral = args.GetDeferral();
+            try
+            {
+                await RunSearchAsync();
+                args.Cancel = true;
+            }
+            finally
+            {
+                deferral.Complete();
+            }
+        };
+
+        resultsList.ItemClick += (_, args) =>
+        {
+            if (args.ClickedItem is RemoteSkillRow row)
+            {
+                InstallNameBox.Text = row.Name;
+                InstallUrlBox.Text = row.DownloadUrl;
+                dialog.Hide();
+            }
+        };
+        resultsList.IsItemClickEnabled = true;
+        resultsList.SelectionMode = ListViewSelectionMode.None;
+        resultsList.ItemTemplate = BuildRemoteSkillRowTemplate();
+
+        await dialog.ShowAsync();
+    }
+
+    private static DataTemplate BuildRemoteSkillRowTemplate()
+    {
+        const string xaml = @"
+<DataTemplate xmlns='http://schemas.microsoft.com/winfx/2006/xaml/presentation'>
+    <StackPanel Margin='8,6'>
+        <TextBlock Text='{Binding Name}' FontWeight='SemiBold' Foreground='White'/>
+        <TextBlock Text='{Binding Source}' FontSize='11' Foreground='#A0A0A0'/>
+    </StackPanel>
+</DataTemplate>";
+        return (DataTemplate)Microsoft.UI.Xaml.Markup.XamlReader.Load(xaml);
+    }
+
+    private async void DeleteSkill_Click(object sender, RoutedEventArgs e)
+    {
+        if (SkillsList.SelectedItem is not SkillDisplayItem selected) return;
+        var name = selected.Name;
+
+        var confirm = new ContentDialog
+        {
+            Title = string.Format(StringResources.GetString("SkillsDeleteConfirmTitleFormat"), name),
+            Content = StringResources.GetString("SkillsDeleteConfirmBody"),
+            PrimaryButtonText = StringResources.GetString("SkillsDeleteConfirmYes"),
+            CloseButtonText = StringResources.GetString("SkillsDeleteConfirmCancel"),
+            DefaultButton = ContentDialogButton.Close,
+            XamlRoot = XamlRoot
+        };
+        var result = await confirm.ShowAsync();
+        if (result != ContentDialogResult.Primary) return;
+
+        try
+        {
+            await Manager.DeleteSkillAsync(name, CancellationToken.None);
+            ShowStatus($"Deleted {name}.", isError: false);
+            ClearPreview();
+            Refresh();
+        }
+        catch (Exception ex)
+        {
+            ShowStatus(string.Format(StringResources.GetString("SkillsInstallFailureFormat"), ex.Message), isError: true);
+        }
+    }
+
+    private void ClearPreview()
+    {
+        PreviewTitle.Text = "Select a skill to preview";
+        PreviewDescription.Text = "Click a skill from the list to see its full system prompt here.";
+        PreviewContent.Text = string.Empty;
+        PreviewChips.Visibility = Visibility.Collapsed;
+        DeleteSkillButton.IsEnabled = false;
+    }
+
+    private void ShowStatus(string message, bool isError)
+    {
+        InstallStatus.Text = message;
+        InstallStatus.Foreground = isError
+            ? new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0xE0, 0x70, 0x70))
+            : new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0x60, 0xE0, 0x90));
+        InstallStatus.Visibility = Visibility.Visible;
+    }
+
+    private void UpdateQuarantineBadge()
+    {
+        try
+        {
+            var quarantineDir = Path.Combine(
+                HermesDesktop.Services.HermesEnvironment.HermesHomePath,
+                "hermes-cs", "skills", ".quarantine");
+            if (!Directory.Exists(quarantineDir))
+            {
+                QuarantineBadge.Visibility = Visibility.Collapsed;
+                return;
+            }
+            var count = Directory.EnumerateFiles(quarantineDir, "*.md").Count();
+            if (count > 0)
+            {
+                QuarantineBadgeText.Text = string.Format(
+                    StringResources.GetString("SkillsQuarantineBadgeFormat"), count);
+                QuarantineBadge.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                QuarantineBadge.Visibility = Visibility.Collapsed;
+            }
+        }
+        catch
+        {
+            QuarantineBadge.Visibility = Visibility.Collapsed;
         }
     }
 
@@ -175,19 +456,16 @@ public sealed partial class SkillsPage : Page
     {
         if (!string.IsNullOrEmpty(skill.FilePath))
         {
-            // Structure: skills/<category>/<skill-name>/SKILL.md
-            // Go up two levels to get the category folder
-            var skillDir = Path.GetDirectoryName(skill.FilePath); // <skill-name> folder
+            var skillDir = Path.GetDirectoryName(skill.FilePath);
             if (skillDir is not null)
             {
-                var categoryDir = Path.GetDirectoryName(skillDir); // <category> folder
+                var categoryDir = Path.GetDirectoryName(skillDir);
                 if (categoryDir is not null)
                 {
                     var category = Path.GetFileName(categoryDir);
                     if (!string.IsNullOrEmpty(category) && !category.Equals("skills", StringComparison.OrdinalIgnoreCase))
                         return category;
                 }
-                // Fallback: if only one level deep, use the immediate folder
                 var folder = Path.GetFileName(skillDir);
                 if (!string.IsNullOrEmpty(folder) && !folder.Equals("skills", StringComparison.OrdinalIgnoreCase))
                     return folder;
@@ -210,6 +488,7 @@ public sealed class SkillDisplayItem
     public string SystemPrompt { get; set; } = "";
     public string Tools { get; set; } = "";
     public string ToolCount { get; set; } = "";
+    public bool IsEnabled { get; set; } = true;
     public SolidColorBrush BadgeBackground { get; set; } = new(Windows.UI.Color.FromArgb(255, 58, 58, 0));
     public SolidColorBrush BadgeForeground { get; set; } = new(Windows.UI.Color.FromArgb(255, 230, 190, 60));
 
@@ -249,4 +528,11 @@ public sealed class SkillDisplayItem
             BadgeForeground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, c.FR, c.FG, c.FB));
         }
     }
+}
+
+internal sealed class RemoteSkillRow
+{
+    public string Name { get; set; } = "";
+    public string Source { get; set; } = "";
+    public string DownloadUrl { get; set; } = "";
 }

@@ -293,6 +293,10 @@ public sealed partial class ChatPage : Page
 
     private async void PromptTextBox_KeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
     {
+        // Slash palette takes priority over normal Enter / Tab / arrow handling
+        // when it's open. TryHandlePaletteKey marks e.Handled = true when it consumes.
+        if (TryHandlePaletteKey(e) && e.Handled) return;
+
         if (e.Key != Windows.System.VirtualKey.Enter) return;
 
         var shift = Microsoft.UI.Input.InputKeyboardSource.GetKeyStateForCurrentThread(Windows.System.VirtualKey.Shift);
@@ -310,6 +314,7 @@ public sealed partial class ChatPage : Page
     private void PromptTextBox_TextChanged(object sender, TextChangedEventArgs e)
     {
         SendButton.IsEnabled = !string.IsNullOrWhiteSpace(PromptTextBox.Text) && !_isBusy;
+        UpdateSlashPalette();
     }
 
     private async Task SendPromptAsync()
@@ -363,7 +368,7 @@ public sealed partial class ChatPage : Page
             var hasContent = false;
             var streamFailed = false;
 
-            // Stream structured events (tokens + thinking)
+            // Stream structured events (tokens, thinking, tool progress, usage, errors)
             await foreach (var evt in _chatService.StreamStructuredAsync(prompt, CancellationToken.None))
             {
                 switch (evt.Type)
@@ -393,6 +398,30 @@ public sealed partial class ChatPage : Page
                             ShowThinking(false);
                         }
                         assistantItem!.AppendToken(evt.Text);
+                        break;
+
+                    case ChatStreamEventType.ToolStart:
+                        // Replace the thinking spinner copy with the active tool name
+                        // until the next token arrives. Falls back to a generic label.
+                        if (!hasContent)
+                        {
+                            var label = string.IsNullOrEmpty(evt.ToolName)
+                                ? ResourceLoader.GetString("ChatThinkingShort")
+                                : string.Format(
+                                    System.Globalization.CultureInfo.CurrentCulture,
+                                    ResourceLoader.GetString("ChatThinkingToolFormat"),
+                                    evt.ToolName);
+                            ShowThinking(true, label);
+                        }
+                        break;
+
+                    case ChatStreamEventType.ToolDelta:
+                    case ChatStreamEventType.ToolComplete:
+                        // Reserved for the Inspector / Replay panels — no chat-row UI today.
+                        break;
+
+                    case ChatStreamEventType.Usage:
+                        OnUsageReceived(evt.Usage);
                         break;
 
                     case ChatStreamEventType.Error:
@@ -452,73 +481,9 @@ public sealed partial class ChatPage : Page
         }
     }
 
-    // ── Slash Commands ──
+    // ── Slash Commands (registry-driven; full handler list lives in ChatPage.SlashPalette.cs) ──
 
-    private async Task HandleSlashCommandAsync(string input)
-    {
-        var parts = input.TrimStart('/').Split(' ', 2);
-        var command = parts[0].ToLowerInvariant();
-        var args = parts.Length > 1 ? parts[1] : "";
-
-        if (command is "help" or "skills")
-        {
-            var skillManager = App.Services.GetRequiredService<SkillManager>();
-            var skills = skillManager.ListSkills();
-            var lines = new System.Text.StringBuilder();
-            lines.AppendLine("Available slash commands:");
-            lines.AppendLine("  /help, /skills  - Show this help");
-            lines.AppendLine("  /new            - Start a new chat");
-            lines.AppendLine();
-            if (skills.Count > 0)
-            {
-                lines.AppendLine("Installed skills:");
-                foreach (var s in skills)
-                    lines.AppendLine($"  /{s.Name}  - {s.Description}");
-            }
-            else
-            {
-                lines.AppendLine("No custom skills installed. Add .md files to your skills directory.");
-            }
-            AppendSystemMessage(lines.ToString());
-            return;
-        }
-
-        if (command == "new")
-        {
-            NewChat_Click(this, new RoutedEventArgs());
-            return;
-        }
-
-        // Try to invoke as a skill
-        try
-        {
-            var invoker = App.Services.GetRequiredService<SkillInvoker>();
-            SetBusy(true);
-            ShowThinking(true, ResourceLoader.GetString("ChatThinkingRunningSkill"));
-
-            var response = await invoker.InvokeAsync(command, args, CancellationToken.None);
-            ShowThinking(false);
-
-            if (!string.IsNullOrWhiteSpace(response))
-                AppendAssistantMessage(response);
-            else
-                AppendSystemMessage("Skill returned an empty response.");
-        }
-        catch (SkillNotFoundException)
-        {
-            AppendSystemMessage($"Unknown command: /{command}. Type /help for available commands.");
-        }
-        catch (Exception ex)
-        {
-            ShowThinking(false);
-            AppendSystemMessage($"Skill error: {ex.Message}");
-        }
-        finally
-        {
-            SetBusy(false);
-            PromptTextBox.Focus(FocusState.Programmatic);
-        }
-    }
+    private Task HandleSlashCommandAsync(string input) => DispatchSlashCommandAsync(input);
 
     // ── Stop Generation ──
 
@@ -551,6 +516,10 @@ public sealed partial class ChatPage : Page
         ChatErrorBanner.IsOpen = true;
     }
 
+    // Implemented in ChatPage.Usage.cs (Bundle E.3) — declared partial so E.1 compiles
+    // without the footer wiring and tests don't pull in the InsightsService dependency.
+    partial void OnUsageReceived(Hermes.Agent.LLM.UsageStats? usage);
+
     private void HideChatError()
     {
         ChatErrorBanner.IsOpen = false;
@@ -567,6 +536,7 @@ public sealed partial class ChatPage : Page
         ReplayPanelView.Clear();
         _sessionRecorder.StopRecording();
         Messages.Clear();
+        ResetUsageFooter();
         UpdateSessionFooterLabel();
         UpdateSessionFooterCopyButton();
         _onboarding = OnboardingState.None;
@@ -753,22 +723,12 @@ public sealed partial class ChatPage : Page
 
     private void ShowOnboarding()
     {
-        // Don't use chat-based onboarding — point to the Agent tab instead
+        // First-run wizard now lives in WelcomePage/SetupPage (Bundle E.8). If we
+        // land here it means the user reached chat without finishing the wizard
+        // (or markers were not yet stripped from disk). Just emit a friendly
+        // welcome and let the persona/setup screens do the rest.
         _onboarding = OnboardingState.None;
-
         AppendWelcomeMessage();
-        AppendAssistantMessage(
-            "Welcome! This is your first time here.\n\n" +
-            "I'm Hermes — your AI agent. Before we start, you can set up my identity " +
-            "and tell me about yourself.\n\n" +
-            "Click the Agent tab in the right panel to:\n" +
-            "  - Browse soul templates (12 different personalities)\n" +
-            "  - Customize my identity, values, and working style\n" +
-            "  - Tell me about you so I can be a better assistant\n" +
-            "  - Create multiple agent configurations\n\n" +
-            "Or just start chatting — I work great with my default soul too.");
-
-        // Mark as configured so onboarding doesn't repeat
         _ = MarkConfiguredAsync();
     }
 
@@ -776,13 +736,17 @@ public sealed partial class ChatPage : Page
     {
         try
         {
+            // Strip the marker plus trailing CR/LF; the template uses CRLF on
+            // Windows checkouts and LF on Linux/macOS git autocrlf=input checkouts.
+            var pattern = new System.Text.RegularExpressions.Regex(@"<!-- UNCONFIGURED -->\r?\n?");
+
             var current = await _soulService.LoadFileAsync(SoulFileType.Soul);
             if (current.Contains("<!-- UNCONFIGURED -->"))
-                await _soulService.SaveFileAsync(SoulFileType.Soul, current.Replace("<!-- UNCONFIGURED -->\n", ""));
+                await _soulService.SaveFileAsync(SoulFileType.Soul, pattern.Replace(current, ""));
 
             var userCurrent = await _soulService.LoadFileAsync(SoulFileType.User);
             if (userCurrent.Contains("<!-- UNCONFIGURED -->"))
-                await _soulService.SaveFileAsync(SoulFileType.User, userCurrent.Replace("<!-- UNCONFIGURED -->\n", ""));
+                await _soulService.SaveFileAsync(SoulFileType.User, pattern.Replace(userCurrent, ""));
         }
         catch (Exception ex)
         {

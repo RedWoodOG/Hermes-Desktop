@@ -82,17 +82,23 @@
                             <DataTemplate>
                                 <Grid Margin="0,4" Padding="8,8">
                                     <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <StackPanel>
+                                    <ToggleSwitch IsOn="{Binding IsEnabled, Mode=TwoWay}"
+                                                  Toggled="SkillToggle_Toggled"
+                                                  Tag="{Binding Name}"
+                                                  MinWidth="0" Width="44" OnContent="" OffContent=""
+                                                  VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <StackPanel Grid.Column="1">
                                         <TextBlock Text="{Binding Name}" FontSize="14" FontWeight="SemiBold"
                                                    Foreground="White"/>
                                         <TextBlock Text="{Binding Description}" FontSize="12" TextWrapping="Wrap"
                                                    Foreground="{StaticResource AppTextSecondaryBrush}"
                                                    MaxLines="2" TextTrimming="CharacterEllipsis"/>
                                     </StackPanel>
-                                    <StackPanel Grid.Column="1" VerticalAlignment="Top" HorizontalAlignment="Right" Spacing="4">
+                                    <StackPanel Grid.Column="2" VerticalAlignment="Top" HorizontalAlignment="Right" Spacing="4">
                                         <Border Background="{Binding BadgeBackground}" CornerRadius="4" Padding="8,2"
                                                 HorizontalAlignment="Right">
                                             <TextBlock Text="{Binding Category}" FontSize="10"
@@ -109,34 +115,91 @@
                 </Grid>
             </Border>
 
-            <!-- Right: Skill preview -->
-            <Border Grid.Column="1" Style="{StaticResource SurfaceCardStyle}">
-                <Grid RowDefinitions="Auto,Auto,Auto,*">
-                    <TextBlock x:Name="PreviewTitle" Text="Select a skill to preview" FontSize="18" FontWeight="SemiBold"
-                               Foreground="White" Margin="0,0,0,4"/>
-                    <TextBlock x:Name="PreviewDescription" Grid.Row="1" FontSize="13" TextWrapping="Wrap"
-                               Foreground="{StaticResource AppTextSecondaryBrush}" Margin="0,0,0,12"
-                               Text="Click a skill from the list to see its full system prompt here."/>
-                    <!-- Metadata chips -->
-                    <StackPanel x:Name="PreviewChips" Grid.Row="2" Orientation="Horizontal" Spacing="8" Margin="0,0,0,16"
-                                Visibility="Collapsed">
-                        <Border Background="#3A3A00" CornerRadius="4" Padding="8,4">
-                            <TextBlock x:Name="PreviewCategoryChip" FontSize="11"
+            <!-- Right: Install + Skill preview -->
+            <Grid Grid.Column="1" RowSpacing="16">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <!-- Install / Hub panel -->
+                <Border Style="{StaticResource SurfaceCardStyle}">
+                    <StackPanel Spacing="10">
+                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <TextBlock x:Name="InstallHeader" Text="Install a skill" FontSize="15" FontWeight="SemiBold"
                                        Foreground="{StaticResource AppAccentTextBrush}"/>
-                        </Border>
-                        <Border Background="{StaticResource AppInsetBrush}" CornerRadius="4" Padding="8,4">
-                            <TextBlock x:Name="PreviewToolsChip" FontSize="11" Foreground="White"/>
-                        </Border>
-                        <Border Background="{StaticResource AppInsetBrush}" CornerRadius="4" Padding="8,4">
-                            <TextBlock Text="Default model" FontSize="11" Foreground="White"/>
-                        </Border>
+                            <Border x:Name="QuarantineBadge" Background="#3C1A1A" CornerRadius="6" Padding="8,2"
+                                    VerticalAlignment="Center" Visibility="Collapsed">
+                                <TextBlock x:Name="QuarantineBadgeText" FontSize="11" Foreground="#E07070"/>
+                            </Border>
+                        </StackPanel>
+                        <TextBlock x:Name="InstallSubtitle"
+                                   Text="Paste a raw URL to a SKILL.md file or a GitHub repo path (owner/repo)."
+                                   FontSize="12" Foreground="{StaticResource AppTextSecondaryBrush}" TextWrapping="Wrap"/>
+                        <Grid ColumnSpacing="8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="InstallNameBox" PlaceholderText="skill-name" MinWidth="160"
+                                     Background="{StaticResource AppInsetBrush}"
+                                     BorderBrush="{StaticResource AppStrokeBrush}"/>
+                            <TextBox Grid.Column="1" x:Name="InstallUrlBox"
+                                     PlaceholderText="https://raw.githubusercontent.com/owner/repo/main/SKILL.md"
+                                     Background="{StaticResource AppInsetBrush}"
+                                     BorderBrush="{StaticResource AppStrokeBrush}"/>
+                            <Button Grid.Column="2" x:Name="InstallButton" Content="Install"
+                                    Click="InstallSkill_Click"
+                                    Background="{StaticResource AppAccentBrush}" Foreground="#16110D"/>
+                            <Button Grid.Column="3" x:Name="BrowseHubButton" Content="Browse"
+                                    Click="BrowseHub_Click"
+                                    Background="{StaticResource AppInsetBrush}"/>
+                        </Grid>
+                        <TextBlock x:Name="InstallStatus" FontSize="12" TextWrapping="Wrap"
+                                   Foreground="{StaticResource AppTextSecondaryBrush}" Visibility="Collapsed"/>
                     </StackPanel>
-                    <ScrollViewer Grid.Row="3">
-                        <TextBlock x:Name="PreviewContent" FontSize="13" FontFamily="Consolas" TextWrapping="Wrap"
-                                   Foreground="{StaticResource AppTextSecondaryBrush}" IsTextSelectionEnabled="True"/>
-                    </ScrollViewer>
-                </Grid>
-            </Border>
+                </Border>
+
+                <!-- Skill preview -->
+                <Border Grid.Row="1" Style="{StaticResource SurfaceCardStyle}">
+                    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock x:Name="PreviewTitle" Text="Select a skill to preview" FontSize="18"
+                                       FontWeight="SemiBold" Foreground="White" Margin="0,0,0,4"/>
+                            <Button Grid.Column="1" x:Name="DeleteSkillButton" Content="Delete"
+                                    Click="DeleteSkill_Click" IsEnabled="False"
+                                    Background="#3C1A1A" Foreground="#E07070"/>
+                        </Grid>
+                        <TextBlock x:Name="PreviewDescription" Grid.Row="1" FontSize="13" TextWrapping="Wrap"
+                                   Foreground="{StaticResource AppTextSecondaryBrush}" Margin="0,0,0,12"
+                                   Text="Click a skill from the list to see its full system prompt here."/>
+                        <!-- Metadata chips -->
+                        <StackPanel x:Name="PreviewChips" Grid.Row="2" Orientation="Horizontal" Spacing="8"
+                                    Margin="0,0,0,16" Visibility="Collapsed">
+                            <Border Background="#3A3A00" CornerRadius="4" Padding="8,4">
+                                <TextBlock x:Name="PreviewCategoryChip" FontSize="11"
+                                           Foreground="{StaticResource AppAccentTextBrush}"/>
+                            </Border>
+                            <Border Background="{StaticResource AppInsetBrush}" CornerRadius="4" Padding="8,4">
+                                <TextBlock x:Name="PreviewToolsChip" FontSize="11" Foreground="White"/>
+                            </Border>
+                            <Border x:Name="PreviewStateChip" Background="#1A3C28" CornerRadius="4" Padding="8,4">
+                                <TextBlock x:Name="PreviewStateChipText" FontSize="11" Foreground="#60E090" Text="Enabled"/>
+                            </Border>
+                        </StackPanel>
+                        <ScrollViewer Grid.Row="3">
+                            <TextBlock x:Name="PreviewContent" FontSize="13" FontFamily="Consolas" TextWrapping="Wrap"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}" IsTextSelectionEnabled="True"/>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
         </Grid>
     </Grid>
 </Page>

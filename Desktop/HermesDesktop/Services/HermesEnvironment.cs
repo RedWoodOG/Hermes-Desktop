@@ -29,6 +29,25 @@ internal static class HermesEnvironment
 
     internal static string HermesLogsPath => Path.Combine(HermesHomePath, "logs");
 
+    /// <summary>Directory for WinUI desktop crash / startup logs (<c>desktop-startup.log</c>).</summary>
+    internal static string DesktopCsLogsDirectory =>
+        Path.Combine(HermesHomePath, "hermes-cs", "logs");
+
+    internal static string DesktopStartupLogPath =>
+        Path.Combine(DesktopCsLogsDirectory, "desktop-startup.log");
+
+    /// <summary>User-facing path for the WinUI desktop log directory (respects privacy mode).</summary>
+    internal static string DisplayDesktopCsLogsDirectory =>
+        PrivacyModeEnabled
+            ? @"Local application data\hermes\hermes-cs\logs"
+            : FormatPathForDisplay(DesktopCsLogsDirectory);
+
+    /// <summary>User-facing path for <see cref="DesktopStartupLogPath"/> (respects privacy mode).</summary>
+    internal static string DisplayDesktopStartupLogPath =>
+        PrivacyModeEnabled
+            ? @"Local application data\hermes\hermes-cs\logs\desktop-startup.log"
+            : FormatPathForDisplay(DesktopStartupLogPath);
+
     internal static string HermesWorkspacePath => Path.Combine(HermesHomePath, "hermes-agent");
 
     internal static string HermesCommandPath => Path.Combine(HermesHomePath, "bin", "hermes.cmd");

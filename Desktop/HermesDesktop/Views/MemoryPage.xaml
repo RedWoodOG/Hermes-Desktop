@@ -83,16 +83,56 @@
                 </Grid>
             </Border>
 
-            <!-- Right: Memory preview -->
+            <!-- Right: Memory preview + edit -->
             <Border Grid.Column="1" Style="{StaticResource SurfaceCardStyle}">
-                <Grid RowDefinitions="Auto,*">
-                    <TextBlock x:Name="MemoryPreviewTitle" Text="Select a memory to preview" FontSize="16" FontWeight="SemiBold"
-                               Foreground="{StaticResource AppAccentTextBrush}" Margin="0,0,0,12"/>
-                    <ScrollViewer Grid.Row="1">
-                        <TextBlock x:Name="MemoryPreviewText" FontSize="13" FontFamily="Consolas" TextWrapping="Wrap"
-                                   Foreground="{StaticResource AppTextSecondaryBrush}" IsTextSelectionEnabled="True"
-                                   Text="Click a memory file from the list to see its content here."/>
-                    </ScrollViewer>
+                <Grid RowDefinitions="Auto,Auto,*,Auto" RowSpacing="8">
+                    <!-- Title row with freshness chip -->
+                    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,4">
+                        <TextBlock x:Name="MemoryPreviewTitle" Text="Select a memory to preview"
+                                   FontSize="16" FontWeight="SemiBold"
+                                   Foreground="{StaticResource AppAccentTextBrush}"
+                                   VerticalAlignment="Center"/>
+                        <Border x:Name="FreshnessChip" Grid.Column="1"
+                                Background="{StaticResource AppInsetBrush}"
+                                BorderBrush="{StaticResource AppStrokeBrush}"
+                                BorderThickness="1" CornerRadius="6"
+                                Padding="8,3" Visibility="Collapsed">
+                            <TextBlock x:Name="FreshnessChipText" FontSize="10"
+                                       Foreground="{StaticResource AppTextSecondaryBrush}"/>
+                        </Border>
+                    </Grid>
+
+                    <TextBlock x:Name="MemoryEditorPath" Grid.Row="1" FontSize="11"
+                               Foreground="{StaticResource AppTextSecondaryBrush}"
+                               Opacity="0.7" TextWrapping="Wrap"/>
+
+                    <TextBox x:Name="MemoryEditor" Grid.Row="2"
+                             AcceptsReturn="True" TextWrapping="Wrap"
+                             FontSize="12" FontFamily="Consolas"
+                             Background="{StaticResource AppInsetBrush}"
+                             BorderBrush="{StaticResource AppStrokeBrush}"
+                             IsEnabled="False"
+                             PlaceholderText="Click a memory file from the list to view or edit its content."/>
+
+                    <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="SaveMemoryButton" Content="Save"
+                                Click="SaveMemory_Click"
+                                FontSize="12" Padding="16,8"
+                                IsEnabled="False"
+                                Background="{StaticResource AppAccentGradientBrush}"
+                                Foreground="#16110D"/>
+                        <Button x:Name="DeleteMemoryButton" Content="Delete"
+                                Click="DeleteMemory_Click"
+                                FontSize="12" Padding="16,8"
+                                IsEnabled="False"
+                                Background="{StaticResource AppInsetBrush}"
+                                Foreground="White"
+                                BorderBrush="{StaticResource AppStrokeBrush}"/>
+                        <TextBlock x:Name="MemorySaveStatus" Text="" FontSize="11"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource AppTextSecondaryBrush}"
+                                   Opacity="0.8"/>
+                    </StackPanel>
                 </Grid>
             </Border>
         </Grid>

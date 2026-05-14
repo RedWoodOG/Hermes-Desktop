@@ -1,0 +1,31 @@
+<!--
+  Repo-wide metadata picked up by every csproj under this tree (MSBuild walks
+  parent directories for Directory.Build.props). This is the single source of
+  truth for publisher/author/copyright fields consumed by:
+    - dotnet assembly attributes (Authors / Company / Copyright)
+    - Winget manifest generation (build/winget/*.template.yaml)
+    - MSIX appxmanifest (Desktop/HermesDesktop.Package/Package.appxmanifest)
+
+  Bumping <HermesProductVersion> is the only edit needed to cut a release —
+  csproj <Version> entries fall back to it via <Version Condition="...">.
+-->
+<Project>
+
+  <PropertyGroup>
+    <Authors>VyreVault Studios</Authors>
+    <Company>VyreVault Studios</Company>
+    <Copyright>Copyright © VyreVault Studios. MIT licensed.</Copyright>
+
+    <!-- Winget identity — IMMUTABLE after first merge to microsoft/winget-pkgs. -->
+    <HermesWingetPackageIdentifier>VyreVaultStudios.HermesDesktop</HermesWingetPackageIdentifier>
+    <HermesWingetPublisher>VyreVault Studios</HermesWingetPublisher>
+    <HermesWingetPublisherUrl>https://github.com/RedWoodOG/Hermes-Desktop</HermesWingetPublisherUrl>
+    <HermesWingetPackageName>Hermes Desktop</HermesWingetPackageName>
+    <HermesWingetPortableCommandAlias>hermes-desktop</HermesWingetPortableCommandAlias>
+    <HermesWingetLicense>MIT</HermesWingetLicense>
+    <HermesWingetLicenseUrl>https://github.com/RedWoodOG/Hermes-Desktop/blob/main/LICENSE</HermesWingetLicenseUrl>
+    <HermesWingetMoniker>hermes</HermesWingetMoniker>
+    <HermesWingetShortDescription>Hermes Desktop — local-first agent shell for Windows (WinUI 3).</HermesWingetShortDescription>
+  </PropertyGroup>
+
+</Project>

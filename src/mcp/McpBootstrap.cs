@@ -30,6 +30,8 @@ public static class McpBootstrap
             return 0;
         }
 
+        manager.PrepareForBootstrapAttach();
+
         foreach (var configPath in existingConfigs)
         {
             logger.LogInformation("Loading MCP config: {Path}", configPath);
@@ -51,4 +53,14 @@ public static class McpBootstrap
 
         return manager.Tools.Count;
     }
+
+    /// <summary>Standard <c>mcp.json</c> search order (matches desktop bootstrap).</summary>
+    public static IReadOnlyList<string> BuildMcpConfigSearchPaths(string hermesProjectCsDir, string hermesHomePath) =>
+        new[]
+        {
+            Path.Combine(hermesProjectCsDir, "mcp.json"),
+            Path.Combine(hermesHomePath, "mcp.json"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Hermes", "mcp.json"),
+            Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".hermes", "mcp.json"),
+        };
 }

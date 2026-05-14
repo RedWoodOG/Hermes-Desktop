@@ -147,8 +147,137 @@
   <data name="IntegrationsNavItem.Content" xml:space="preserve">
     <value>Integrations</value>
   </data>
+  <data name="McpNavItem.Content" xml:space="preserve">
+    <value>MCP</value>
+  </data>
+  <data name="DiagnosticsNavItem.Content" xml:space="preserve">
+    <value>Diagnostics</value>
+  </data>
   <data name="SettingsNavItem.Content" xml:space="preserve">
     <value>Settings</value>
+  </data>
+  <data name="DiagnosticsPageEyebrow.Text" xml:space="preserve">
+    <value>Troubleshooting</value>
+  </data>
+  <data name="DiagnosticsPageTitle.Text" xml:space="preserve">
+    <value>Diagnostics</value>
+  </data>
+  <data name="DiagnosticsPageIntro.Text" xml:space="preserve">
+    <value>Copy diagnostics gathers app version, paths, runtime details, and a tail of desktop-startup.log. Secrets matching common API-key patterns are redacted before anything is placed on the clipboard.</value>
+  </data>
+  <data name="DiagnosticsSummarySectionTitle.Text" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="DiagnosticsSummaryVersionLine" xml:space="preserve">
+    <value>Version: {0}</value>
+  </data>
+  <data name="DiagnosticsSummaryOsLine" xml:space="preserve">
+    <value>OS: {0}</value>
+  </data>
+  <data name="DiagnosticsSummaryFrameworkLine" xml:space="preserve">
+    <value>.NET: {0}</value>
+  </data>
+  <data name="DiagnosticsSummaryHermesHomeLine" xml:space="preserve">
+    <value>Hermes home: {0}</value>
+  </data>
+  <data name="DiagnosticsSummaryStartupLogLine" xml:space="preserve">
+    <value>Desktop startup log: {0}</value>
+  </data>
+  <data name="DiagnosticsSummaryLogExistsLine" xml:space="preserve">
+    <value>Startup log present: {0}</value>
+  </data>
+  <data name="DiagnosticsSummaryLogSizeLine" xml:space="preserve">
+    <value>Startup log size (bytes): {0}</value>
+  </data>
+  <data name="DiagnosticsSummaryPrivacyLine" xml:space="preserve">
+    <value>Privacy mode (obscured paths in the shell): {0}</value>
+  </data>
+  <data name="DiagnosticsSummaryYes" xml:space="preserve">
+    <value>yes</value>
+  </data>
+  <data name="DiagnosticsSummaryNo" xml:space="preserve">
+    <value>no</value>
+  </data>
+  <data name="DiagnosticsTailSectionTitle.Text" xml:space="preserve">
+    <value>Desktop startup log (tail)</value>
+  </data>
+  <data name="DiagnosticsTailHint.Text" xml:space="preserve">
+    <value>Preview uses the same redaction as the clipboard bundle. The first line may be partial when the file is truncated.</value>
+  </data>
+  <data name="DiagnosticsCopyButton.Content" xml:space="preserve">
+    <value>Copy diagnostics</value>
+  </data>
+  <data name="DiagnosticsOpenLogFolderButton.Content" xml:space="preserve">
+    <value>Open log folder</value>
+  </data>
+  <data name="DiagnosticsReloadTailButton.Content" xml:space="preserve">
+    <value>Reload preview</value>
+  </data>
+  <data name="DiagnosticsCopySuccessTitle" xml:space="preserve">
+    <value>Copied</value>
+  </data>
+  <data name="DiagnosticsCopySuccessMessage" xml:space="preserve">
+    <value>Redacted diagnostics are on the clipboard.</value>
+  </data>
+  <data name="DiagnosticsCopyErrorTitle" xml:space="preserve">
+    <value>Copy failed</value>
+  </data>
+  <data name="DiagnosticsOpenFolderErrorTitle" xml:space="preserve">
+    <value>Could not open folder</value>
+  </data>
+  <data name="DiagnosticsTailRefreshedTitle" xml:space="preserve">
+    <value>Refreshed</value>
+  </data>
+  <data name="DiagnosticsTailRefreshedMessage" xml:space="preserve">
+    <value>Summary and log preview were updated.</value>
+  </data>
+  <data name="McpPageEyebrow.Text" xml:space="preserve">
+    <value>Model Context Protocol</value>
+  </data>
+  <data name="McpPageTitle.Text" xml:space="preserve">
+    <value>MCP command center</value>
+  </data>
+  <data name="McpPageIntro.Text" xml:space="preserve">
+    <value>Hermes loads MCP servers from the first existing mcp.json in the search order below. HTTP/SSE endpoints must use HTTPS on the public internet; plain HTTP and WS are allowed only on loopback. Link-local and cloud metadata hosts are blocked. Edit mcp.json, then restart the desktop app to reconnect.</value>
+  </data>
+  <data name="McpPathsSectionTitle.Text" xml:space="preserve">
+    <value>Config search paths</value>
+  </data>
+  <data name="McpPathsHint.Text" xml:space="preserve">
+    <value>✓ means the file exists on this machine.</value>
+  </data>
+  <data name="McpStatusSectionTitle.Text" xml:space="preserve">
+    <value>Servers &amp; tools</value>
+  </data>
+  <data name="McpStatusHint.Text" xml:space="preserve">
+    <value>Status reflects the current process. Refresh re-reads connection state without restarting subprocess transports.</value>
+  </data>
+  <data name="McpRefreshButton.Content" xml:space="preserve">
+    <value>Refresh status</value>
+  </data>
+  <data name="McpStatusConnected" xml:space="preserve">
+    <value>connected</value>
+  </data>
+  <data name="McpStatusDisconnected" xml:space="preserve">
+    <value>disconnected</value>
+  </data>
+  <data name="McpStatusLineFormat" xml:space="preserve">
+    <value>{0} — transport: {1} — {2} — tools registered: {3}</value>
+  </data>
+  <data name="McpIssuesSectionTitle.Text" xml:space="preserve">
+    <value>Config policy &amp; load notes</value>
+  </data>
+  <data name="McpIssuesHint.Text" xml:space="preserve">
+    <value>Entries here were skipped while parsing mcp.json (for example disallowed remote URLs).</value>
+  </data>
+  <data name="McpIssuesNone" xml:space="preserve">
+    <value>No config issues reported.</value>
+  </data>
+  <data name="McpIssueLineFormat" xml:space="preserve">
+    <value>{0}: {1}</value>
+  </data>
+  <data name="McpDocsLink.Content" xml:space="preserve">
+    <value>Open MCP host documentation (GitHub)</value>
   </data>
   <data name="DashboardHeroEyebrow.Text" xml:space="preserve">
     <value>Native control room</value>
@@ -540,8 +669,200 @@
   <data name="ChatThinkingShort" xml:space="preserve">
     <value>Hermes is thinking</value>
   </data>
+  <data name="ChatThinkingToolFormat" xml:space="preserve">
+    <value>Hermes is using {0}</value>
+  </data>
+  <data name="SlashPaletteTitle" xml:space="preserve">
+    <value>Slash commands</value>
+  </data>
+  <data name="SlashPaletteEmpty" xml:space="preserve">
+    <value>No matching commands</value>
+  </data>
+  <data name="SlashCategory.Chat" xml:space="preserve">
+    <value>Chat</value>
+  </data>
+  <data name="SlashCategory.Agent" xml:space="preserve">
+    <value>Agent</value>
+  </data>
+  <data name="SlashCategory.Tools" xml:space="preserve">
+    <value>Tools</value>
+  </data>
+  <data name="SlashCategory.Info" xml:space="preserve">
+    <value>Info</value>
+  </data>
+  <data name="SlashCommand.new.Description" xml:space="preserve">
+    <value>Start a new chat session</value>
+  </data>
+  <data name="SlashCommand.clear.Description" xml:space="preserve">
+    <value>Clear the visible conversation history</value>
+  </data>
+  <data name="SlashCommand.retry.Description" xml:space="preserve">
+    <value>Re-send your last prompt</value>
+  </data>
+  <data name="SlashCommand.btw.Description" xml:space="preserve">
+    <value>Side question that won't affect context</value>
+  </data>
+  <data name="SlashCommand.approve.Description" xml:space="preserve">
+    <value>Approve a pending action</value>
+  </data>
+  <data name="SlashCommand.deny.Description" xml:space="preserve">
+    <value>Deny a pending action</value>
+  </data>
+  <data name="SlashCommand.reset.Description" xml:space="preserve">
+    <value>Reset the agent context</value>
+  </data>
+  <data name="SlashCommand.compact.Description" xml:space="preserve">
+    <value>Compact and summarize the conversation</value>
+  </data>
+  <data name="SlashCommand.help.Description" xml:space="preserve">
+    <value>Show available slash commands</value>
+  </data>
+  <data name="SlashCommand.tools.Description" xml:space="preserve">
+    <value>List active tools</value>
+  </data>
+  <data name="SlashCommand.skills.Description" xml:space="preserve">
+    <value>List installed skills</value>
+  </data>
+  <data name="SlashCommand.model.Description" xml:space="preserve">
+    <value>Show the current provider and model</value>
+  </data>
+  <data name="SlashCommand.usage.Description" xml:space="preserve">
+    <value>Show token usage for this session</value>
+  </data>
+  <data name="SlashCommand.version.Description" xml:space="preserve">
+    <value>Show Hermes Desktop version</value>
+  </data>
+  <data name="SlashCommand.status.Description" xml:space="preserve">
+    <value>Show runtime status (provider, model, mode)</value>
+  </data>
+  <data name="SlashCommand.debug.Description" xml:space="preserve">
+    <value>Open the diagnostics page</value>
+  </data>
+  <data name="SlashOutputUnknownCommand" xml:space="preserve">
+    <value>Unknown command: /{0}. Type /help for the full list.</value>
+  </data>
+  <data name="SlashOutputHelpHeader" xml:space="preserve">
+    <value>Available slash commands</value>
+  </data>
+  <data name="SlashOutputUsageNone" xml:space="preserve">
+    <value>No usage data yet — send a message first.</value>
+  </data>
+  <data name="SlashOutputUsageFormat" xml:space="preserve">
+    <value>Prompt: {0} tok   Completion: {1} tok   Total: {2} tok</value>
+  </data>
+  <data name="SlashOutputModelFormat" xml:space="preserve">
+    <value>Provider: {0}   Model: {1}</value>
+  </data>
+  <data name="SlashOutputVersionFormat" xml:space="preserve">
+    <value>Hermes Desktop v{0}</value>
+  </data>
+  <data name="SlashOutputToolsFormat" xml:space="preserve">
+    <value>Registered tools ({0}): {1}</value>
+  </data>
+  <data name="SlashOutputSkillsNone" xml:space="preserve">
+    <value>No skills installed. Add .md files to your skills directory.</value>
+  </data>
+  <data name="SlashOutputSkillsHeader" xml:space="preserve">
+    <value>Installed skills</value>
+  </data>
+  <data name="ChatUsageFooterFormat" xml:space="preserve">
+    <value>{0} in · {1} out · {2} total</value>
+  </data>
+  <data name="ChatUsageNoData" xml:space="preserve">
+    <value>No usage data yet</value>
+  </data>
   <data name="ChatThinkingRunningSkill" xml:space="preserve">
     <value>Running skill...</value>
+  </data>
+  <data name="SkillsInstallHeader" xml:space="preserve">
+    <value>Install a skill</value>
+  </data>
+  <data name="SkillsInstallSubtitle" xml:space="preserve">
+    <value>Paste a raw URL to a SKILL.md file or a GitHub repo path (owner/repo).</value>
+  </data>
+  <data name="SkillsInstallButton" xml:space="preserve">
+    <value>Install</value>
+  </data>
+  <data name="SkillsInstallBrowse" xml:space="preserve">
+    <value>Browse</value>
+  </data>
+  <data name="SkillsInstallSuccessFormat" xml:space="preserve">
+    <value>Installed {0}.</value>
+  </data>
+  <data name="SkillsInstallFailureFormat" xml:space="preserve">
+    <value>Install failed: {0}</value>
+  </data>
+  <data name="SkillsInstallNameRequired" xml:space="preserve">
+    <value>Enter a skill name (lowercase letters, digits, dashes).</value>
+  </data>
+  <data name="SkillsInstallUrlRequired" xml:space="preserve">
+    <value>Enter a raw SKILL.md URL.</value>
+  </data>
+  <data name="SkillsQuarantineBadgeFormat" xml:space="preserve">
+    <value>{0} quarantined</value>
+  </data>
+  <data name="SkillsStateEnabled" xml:space="preserve">
+    <value>Enabled</value>
+  </data>
+  <data name="SkillsStateDisabled" xml:space="preserve">
+    <value>Disabled</value>
+  </data>
+  <data name="SkillsDeleteButton" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="SkillsDeleteConfirmTitleFormat" xml:space="preserve">
+    <value>Delete skill {0}?</value>
+  </data>
+  <data name="SkillsDeleteConfirmBody" xml:space="preserve">
+    <value>This will remove the skill file from disk. Bundled skills can be restored on next launch.</value>
+  </data>
+  <data name="SkillsDeleteConfirmYes" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="SkillsDeleteConfirmCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="SkillsBrowseDialogTitle" xml:space="preserve">
+    <value>Browse skill hubs</value>
+  </data>
+  <data name="SkillsBrowseDialogBody" xml:space="preserve">
+    <value>Enter a GitHub repo (owner/repo) to list its SKILL.md files. Each install is downloaded, security-scanned, and quarantined until it passes.</value>
+  </data>
+  <data name="SkillsBrowseDialogClose" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="SkillsBrowseDialogSearch" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="SkillsBrowseEmpty" xml:space="preserve">
+    <value>No skills found in that repo.</value>
+  </data>
+  <data name="WelcomeEyebrow" xml:space="preserve">
+    <value>Welcome</value>
+  </data>
+  <data name="WelcomeTitle" xml:space="preserve">
+    <value>Welcome to Hermes Desktop</value>
+  </data>
+  <data name="WelcomeSubtitle" xml:space="preserve">
+    <value>A native Windows agent that runs locally on your machine. Let's get you set up in two short steps.</value>
+  </data>
+  <data name="WelcomeGetStarted" xml:space="preserve">
+    <value>Get started</value>
+  </data>
+  <data name="WelcomeSkip" xml:space="preserve">
+    <value>Skip setup</value>
+  </data>
+  <data name="SetupTitle" xml:space="preserve">
+    <value>Pick a model provider</value>
+  </data>
+  <data name="SetupSubtitle" xml:space="preserve">
+    <value>Hermes works with any OpenAI- or Anthropic-compatible endpoint. Pick a preset, then point us at the URL and (optionally) an API key.</value>
+  </data>
+  <data name="SetupFinish" xml:space="preserve">
+    <value>Save &amp; finish</value>
+  </data>
+  <data name="SetupTestConnection" xml:space="preserve">
+    <value>Test connection</value>
   </data>
   <data name="ChatThinkingLineThinking" xml:space="preserve">
     <value>Hermes is thinking</value>
@@ -1304,6 +1625,57 @@
   </data>
   <data name="SettingsSaveSearchBtn.Content" xml:space="preserve">
     <value>Save Search Config</value>
+  </data>
+  <data name="SettingsExpUpdatesHeader.Text" xml:space="preserve">
+    <value>Updates</value>
+  </data>
+  <data name="SettingsUpdatesIntro.Text" xml:space="preserve">
+    <value>Portable builds check GitHub Releases for a newer HermesDesktop-portable-x64.zip. Verified downloads require a .sha256 sidecar on the release. Set HERMES_DESKTOP_SKIP_UPDATE_CHECK=1 to disable network checks.</value>
+  </data>
+  <data name="SettingsUpdatesCheckOnStartupSwitch.Header" xml:space="preserve">
+    <value>Check for updates when the app starts</value>
+  </data>
+  <data name="SettingsUpdatesCheckNowButton.Content" xml:space="preserve">
+    <value>Check now</value>
+  </data>
+  <data name="SettingsUpdatesDownloadButton.Content" xml:space="preserve">
+    <value>Download verified update</value>
+  </data>
+  <data name="SettingsUpdatesOpenDownloadsButton.Content" xml:space="preserve">
+    <value>Open downloads folder</value>
+  </data>
+  <data name="SettingsUpdatesReleasesLink.Content" xml:space="preserve">
+    <value>All releases on GitHub</value>
+  </data>
+  <data name="SettingsUpdatesStatusUpToDate" xml:space="preserve">
+    <value>You are on the latest public release.</value>
+  </data>
+  <data name="SettingsUpdatesStatusAvailable" xml:space="preserve">
+    <value>Update available: {0} ({1}).</value>
+  </data>
+  <data name="SettingsUpdatesMissingSha256Hint" xml:space="preserve">
+    <value> This release has no .sha256 sidecar yet — use “All releases on GitHub” to download manually until the next release ships checksums.</value>
+  </data>
+  <data name="SettingsUpdatesStatusFailed" xml:space="preserve">
+    <value>Update check failed: {0}</value>
+  </data>
+  <data name="SettingsUpdatesStatusSkipped" xml:space="preserve">
+    <value>Skipped: {0}</value>
+  </data>
+  <data name="SettingsUpdatesDownloadSuccess" xml:space="preserve">
+    <value>Verified zip saved to: {0}</value>
+  </data>
+  <data name="SettingsUpdatesDownloadFailed" xml:space="preserve">
+    <value>Download failed: {0}</value>
+  </data>
+  <data name="UpdateBannerTitle" xml:space="preserve">
+    <value>Update available</value>
+  </data>
+  <data name="UpdateBannerMessage" xml:space="preserve">
+    <value>A newer release ({0}) is on GitHub. Open the release page to review notes and download.</value>
+  </data>
+  <data name="UpdateBannerOpenReleaseButton.Content" xml:space="preserve">
+    <value>Open release</value>
   </data>
   <data name="SettingsExpPathsSystemHeader.Text" xml:space="preserve">
     <value>Paths &amp; System</value>

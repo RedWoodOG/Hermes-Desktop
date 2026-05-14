@@ -114,4 +114,62 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
-          files: Desktop/HermesDesktop/bin/HermesDesktop-portable-x64.zip
+          files: |
+            Desktop/HermesDesktop/bin/HermesDesktop-portable-x64.zip
+            Desktop/HermesDesktop/bin/HermesDesktop-portable-x64.zip.sha256
+
+  # ────────────────────────────────────────────────────────────────────────
+  # Winget manifest generation
+  # ────────────────────────────────────────────────────────────────────────
+  # Produces the three-YAML manifest trio under dist/winget/manifests/v/... and
+  # uploads it as a build artifact. Operators download the artifact and open the
+  # PR against microsoft/winget-pkgs manually — see docs/winget-submission.md.
+  # The manifests are NOT attached to the GitHub Release itself; they are an
+  # operator artifact, not a user download.
+  generate_winget:
+    needs: build-and-release
+    runs-on: windows-latest
+    steps:
+      - name: Checkout tagged commit
+        uses: actions/checkout@v4
+
+      - name: Resolve version from tag
+        shell: pwsh
+        run: |
+          $tag = "${{ github.ref_name }}"
+          $version = $tag.TrimStart('v', 'V')
+          "HERMES_RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "HERMES_RELEASE_TAG=$tag" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Download published portable zip from this release
+        shell: pwsh
+        run: |
+          $zipUrl = "https://github.com/${{ github.repository }}/releases/download/${{ env.HERMES_RELEASE_TAG }}/HermesDesktop-portable-x64.zip"
+          $shaUrl = "$zipUrl.sha256"
+          $zipPath = Join-Path $env:RUNNER_TEMP "HermesDesktop-portable-x64.zip"
+          $shaPath = "$zipPath.sha256"
+          Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath
+          Invoke-WebRequest -Uri $shaUrl -OutFile $shaPath
+          "HERMES_RELEASE_ZIP=$zipPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Generate Winget manifests
+        shell: pwsh
+        run: |
+          $zip = $env:HERMES_RELEASE_ZIP
+          $version = $env:HERMES_RELEASE_VERSION
+          $tag = $env:HERMES_RELEASE_TAG
+          $installerUrl  = "https://github.com/${{ github.repository }}/releases/download/$tag/HermesDesktop-portable-x64.zip"
+          $releaseNotes  = "https://github.com/${{ github.repository }}/releases/tag/$tag"
+
+          .\scripts\Generate-WingetManifests.ps1 `
+            -Version $version `
+            -InstallerUrl $installerUrl `
+            -InstallerPath $zip `
+            -ReleaseNotesUrl $releaseNotes
+
+      - name: Upload Winget manifest artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: winget-manifests-${{ env.HERMES_RELEASE_VERSION }}
+          if-no-files-found: error
+          path: dist/winget/**/*.yaml

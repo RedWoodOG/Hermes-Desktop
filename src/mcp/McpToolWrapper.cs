@@ -3,6 +3,7 @@ namespace Hermes.Agent.Mcp;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Hermes.Agent.Core;
+using Hermes.Agent.Security;
 
 /// <summary>
 /// Wraps an MCP tool as an ITool for integration with the existing tool system.
@@ -40,6 +41,7 @@ public sealed class McpToolWrapper : ITool, IToolSchemaProvider
             
             // Format output
             var output = FormatContent(result.Content);
+            output = SecretScanner.RedactSecrets(output);
             return ToolResult.Ok(output);
         }
         catch (McpException ex)
