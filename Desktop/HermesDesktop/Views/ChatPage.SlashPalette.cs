@@ -292,6 +292,10 @@ public partial class ChatPage
         }
         catch (SkillNotFoundException)
         {
+            // Bugbot: thinking indicator was getting stuck on for unknown
+            // commands because this catch never called ShowThinking(false)
+            // (only the SkillDisabledException + generic catches did).
+            ShowThinking(false);
             AppendSystemMessage(string.Format(
                 CultureInfo.CurrentCulture,
                 SlashResources.GetString("SlashOutputUnknownCommand"),
