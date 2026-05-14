@@ -138,7 +138,7 @@ public sealed partial class MainWindow : Window
             {
                 DispatcherQueue.TryEnqueue(() =>
                 {
-                    if (ShellNavigation.SelectedItem != ChatNavItem)
+                    if (!ReferenceEquals(ShellNavigation.SelectedItem, ChatNavItem))
                         ShellNavigation.SelectedItem = ChatNavItem;
                 });
             }

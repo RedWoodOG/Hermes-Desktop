@@ -118,10 +118,17 @@ internal sealed class UpdateService : IDisposable
             using var process = Process.Start(psi);
             if (process is null) return -1;
 
-            // Drain both streams to prevent pipe-buffer deadlock. We capture the output
-            // to Debug only; winget's progress UI is the user-facing status surface.
-            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken).AsTask();
-            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken).AsTask();
+            // Drain both streams to prevent pipe-buffer deadlock. Reads must run
+            // concurrently with WaitForExitAsync, otherwise a full pipe blocks
+            // winget on a write and WaitForExit never returns (Qodo finding).
+            //
+            // Note: ReadToEndAsync(CancellationToken) on .NET 10 already returns
+            // Task<string>. We deliberately do not call .AsTask() because in this
+            // WinUI project System.Runtime.WindowsRuntime brings in a WinRT
+            // AsTask extension that shadows the Task<T>.AsTask polyfill and
+            // produces CS1929. Plain Task.WhenAll handles the parallel wait.
+            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken);
+            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken);
             var exitTask = process.WaitForExitAsync(cancellationToken);
 
             await Task.WhenAll(stdoutTask, stderrTask, exitTask).ConfigureAwait(false);
