@@ -98,6 +98,12 @@ internal sealed class UpdateService : IDisposable
     /// exit code; non-zero indicates Winget could not perform the upgrade (network, signature,
     /// or unknown package). Use only when <see cref="IsRunningFromWingetInstall"/> is true.
     /// </summary>
+    /// <remarks>
+    /// Qodo Reliability finding: stdout/stderr MUST be drained concurrently with the
+    /// <see cref="Process.WaitForExitAsync(CancellationToken)"/> wait. If we redirect both
+    /// streams but never read them, winget can block on a full pipe buffer and the await
+    /// hangs indefinitely — which would freeze the UI thread that scheduled this Task.
+    /// </remarks>
     internal static async Task<int> RequestWingetUpgradeAsync(CancellationToken cancellationToken = default)
     {
         try
@@ -112,7 +118,21 @@ internal sealed class UpdateService : IDisposable
             using var process = Process.Start(psi);
             if (process is null) return -1;
 
-            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+            // Drain both streams to prevent pipe-buffer deadlock. We capture the output
+            // to Debug only; winget's progress UI is the user-facing status surface.
+            var stdoutTask = process.StandardOutput.ReadToEndAsync(cancellationToken).AsTask();
+            var stderrTask = process.StandardError.ReadToEndAsync(cancellationToken).AsTask();
+            var exitTask = process.WaitForExitAsync(cancellationToken);
+
+            await Task.WhenAll(stdoutTask, stderrTask, exitTask).ConfigureAwait(false);
+
+            var stdout = await stdoutTask.ConfigureAwait(false);
+            var stderr = await stderrTask.ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(stdout))
+                Debug.WriteLine($"UpdateService.RequestWingetUpgradeAsync stdout: {stdout}");
+            if (!string.IsNullOrWhiteSpace(stderr))
+                Debug.WriteLine($"UpdateService.RequestWingetUpgradeAsync stderr: {stderr}");
+
             return process.ExitCode;
         }
         catch (Exception ex)
