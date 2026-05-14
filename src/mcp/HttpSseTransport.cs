@@ -36,7 +36,13 @@ public sealed class HttpSseMcpTransport : IMcpTransport
         _config = config;
         _httpClient = new HttpClient(handler ?? new HttpClientHandler())
         {
-            Timeout = TimeSpan.FromMinutes(2)
+            // 10-minute envelope for long-running MCP tools that respond on the
+            // POST response body (vs. via SSE). Per-call timeouts are still
+            // enforced via the SSE wait CTS below (30s for the round-trip).
+            // Restored from a regression introduced during the MCP host port —
+            // the original value here was always 10 minutes (commit 72bfd60),
+            // and Codex flagged that reducing it to 2 minutes broke heavy tools.
+            Timeout = TimeSpan.FromMinutes(10)
         };
         
         // Set headers
