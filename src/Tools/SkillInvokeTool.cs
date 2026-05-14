@@ -40,6 +40,10 @@ public sealed class SkillInvokeTool : ITool
         {
             return ToolResult.Fail($"Skill not found: {p.SkillName}");
         }
+        catch (SkillDisabledException)
+        {
+            return ToolResult.Fail($"Skill '{p.SkillName}' is disabled by the user.");
+        }
         catch (Exception ex)
         {
             return ToolResult.Fail($"Failed to invoke skill: {ex.Message}", ex);

@@ -206,6 +206,9 @@ public sealed class SkillManager
     /// <summary>
     /// Invoke a skill.
     /// Returns the system prompt to inject.
+    /// Throws <see cref="SkillNotFoundException"/> when the skill is unknown, or
+    /// <see cref="SkillDisabledException"/> when the user has toggled it off so
+    /// slash-command fallbacks and tool dispatch cannot bypass the toggle.
     /// </summary>
     public async Task<string> InvokeSkillAsync(string skillName, string userQuery, CancellationToken ct)
     {
@@ -213,7 +216,13 @@ public sealed class SkillManager
         {
             throw new SkillNotFoundException(skillName);
         }
-        
+
+        if (!skill.IsEnabled)
+        {
+            _logger.LogInformation("Refusing to invoke disabled skill: {Name}", skillName);
+            throw new SkillDisabledException(skillName);
+        }
+
         _logger.LogInformation("Invoking skill: {Name}", skillName);
         
         // Build skill context
@@ -485,7 +494,27 @@ public sealed class SkillNotFoundException : Exception
     public SkillNotFoundException(string skillName) 
         : base($"Skill '{skillName}' not found")
     {
+        SkillName = skillName;
     }
+
+    public string SkillName { get; }
+}
+
+/// <summary>
+/// Thrown when a skill exists but the user has toggled it off. Callers (chat
+/// dispatch, slash command fallback, agent tool) MUST treat this as a refusal
+/// equivalent to the skill not being registered; surfacing it differently lets
+/// the UI tell the user why nothing ran.
+/// </summary>
+public sealed class SkillDisabledException : Exception
+{
+    public SkillDisabledException(string skillName)
+        : base($"Skill '{skillName}' is disabled by the user.")
+    {
+        SkillName = skillName;
+    }
+
+    public string SkillName { get; }
 }
 
 // =============================================

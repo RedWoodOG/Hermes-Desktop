@@ -741,6 +741,9 @@
   <data name="SlashOutputUnknownCommand" xml:space="preserve">
     <value>Unknown command: /{0}. Type /help for the full list.</value>
   </data>
+  <data name="SlashOutputSkillDisabled" xml:space="preserve">
+    <value>Skill '{0}' is disabled. Enable it from the Skills page to run it via slash command.</value>
+  </data>
   <data name="SlashOutputHelpHeader" xml:space="preserve">
     <value>Available slash commands</value>
   </data>

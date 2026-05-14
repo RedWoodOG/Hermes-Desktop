@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Hermes.Agent.Skills;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -98,5 +99,51 @@ public class SkillToggleTests
         var raw = File.ReadAllText(togglesPath);
         Assert.IsTrue(raw.Contains("\"beta\""));
         Assert.IsTrue(raw.Contains("false"));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Regression: Cursor Bugbot / Codex P1 — slash-command fallback bypassed
+    // the user-facing toggle because InvokeSkillAsync didn't check IsEnabled.
+    // ─────────────────────────────────────────────────────────────────────
+
+    [TestMethod]
+    public async Task InvokeSkillAsync_EnabledSkill_ReturnsContext()
+    {
+        var manager = NewManager();
+        var context = await manager.InvokeSkillAsync("alpha", "hello", CancellationToken.None);
+
+        StringAssert.Contains(context, "Active Skill: alpha");
+        StringAssert.Contains(context, "hello");
+    }
+
+    [TestMethod]
+    [ExpectedException(typeof(SkillDisabledException))]
+    public async Task InvokeSkillAsync_DisabledSkill_ThrowsSkillDisabled()
+    {
+        var manager = NewManager();
+        manager.SetEnabled("alpha", false);
+
+        await manager.InvokeSkillAsync("alpha", "hello", CancellationToken.None);
+    }
+
+    [TestMethod]
+    public async Task InvokeSkillAsync_ReenabledSkill_WorksAgain()
+    {
+        var manager = NewManager();
+        manager.SetEnabled("alpha", false);
+        manager.SetEnabled("alpha", true);
+
+        var context = await manager.InvokeSkillAsync("alpha", "ping", CancellationToken.None);
+
+        StringAssert.Contains(context, "Active Skill: alpha");
+    }
+
+    [TestMethod]
+    public void SkillDisabledException_ExposesSkillName()
+    {
+        var ex = new SkillDisabledException("alpha");
+
+        Assert.AreEqual("alpha", ex.SkillName);
+        StringAssert.Contains(ex.Message, "alpha");
     }
 }

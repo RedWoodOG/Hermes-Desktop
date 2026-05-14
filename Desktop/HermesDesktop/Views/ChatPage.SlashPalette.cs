@@ -297,6 +297,14 @@ public partial class ChatPage
                 SlashResources.GetString("SlashOutputUnknownCommand"),
                 commandName));
         }
+        catch (SkillDisabledException ex)
+        {
+            ShowThinking(false);
+            AppendSystemMessage(string.Format(
+                CultureInfo.CurrentCulture,
+                SlashResources.GetString("SlashOutputSkillDisabled"),
+                ex.SkillName));
+        }
         catch (Exception ex)
         {
             ShowThinking(false);

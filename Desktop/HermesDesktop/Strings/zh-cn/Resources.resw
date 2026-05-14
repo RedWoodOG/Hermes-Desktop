@@ -741,6 +741,9 @@
   <data name="SlashOutputUnknownCommand" xml:space="preserve">
     <value>未知命令：/{0}。输入 /help 查看完整列表。</value>
   </data>
+  <data name="SlashOutputSkillDisabled" xml:space="preserve">
+    <value>技能 "{0}" 已禁用。请在"技能"页面启用后再通过斜杠命令运行。</value>
+  </data>
   <data name="SlashOutputHelpHeader" xml:space="preserve">
     <value>可用斜杠命令</value>
   </data>
