@@ -16,21 +16,21 @@ namespace HermesDesktop.Tests.Services;
 public class ChatRuntimeEventShapeTests
 {
     [TestMethod]
-    public void TokenDelta_CarriesText()
+    public void TokenDelta_WhenConstructed_CarriesText()
     {
         var evt = new ChatRuntimeEvent.TokenDelta("hello");
         Assert.AreEqual("hello", evt.Text);
     }
 
     [TestMethod]
-    public void ThinkingDelta_CarriesText()
+    public void ThinkingDelta_WhenConstructed_CarriesText()
     {
         var evt = new ChatRuntimeEvent.ThinkingDelta("reasoning…");
         Assert.AreEqual("reasoning…", evt.Text);
     }
 
     [TestMethod]
-    public void ToolUseStart_CarriesIdAndName()
+    public void ToolUseStart_WhenConstructed_CarriesIdAndName()
     {
         var evt = new ChatRuntimeEvent.ToolUseStart("call_42", "bash");
         Assert.AreEqual("call_42", evt.Id);
@@ -38,7 +38,7 @@ public class ChatRuntimeEventShapeTests
     }
 
     [TestMethod]
-    public void ToolUseDelta_CarriesIdAndPartialJson()
+    public void ToolUseDelta_WhenConstructed_CarriesIdAndPartialJson()
     {
         var evt = new ChatRuntimeEvent.ToolUseDelta("call_42", "{\"cmd\":\"ls\"");
         Assert.AreEqual("call_42", evt.Id);
@@ -46,7 +46,7 @@ public class ChatRuntimeEventShapeTests
     }
 
     [TestMethod]
-    public void ToolUseComplete_ExposesParsedArguments()
+    public void ToolUseComplete_WhenConstructed_ExposesParsedArguments()
     {
         var args = JsonDocument.Parse("{\"cmd\":\"ls -la\"}").RootElement;
         var evt = new ChatRuntimeEvent.ToolUseComplete("call_42", "bash", args);
@@ -57,7 +57,7 @@ public class ChatRuntimeEventShapeTests
     }
 
     [TestMethod]
-    public void Usage_CarriesStatsAndStopReason()
+    public void Usage_WithStopReason_CarriesStatsAndStopReason()
     {
         var stats = new UsageStats(InputTokens: 120, OutputTokens: 480);
         var evt = new ChatRuntimeEvent.Usage(stats, StopReason: "end_turn");
@@ -76,7 +76,7 @@ public class ChatRuntimeEventShapeTests
     }
 
     [TestMethod]
-    public void Error_CarriesDetail()
+    public void Error_WhenConstructed_CarriesDetail()
     {
         var detail = new ChatRuntimeError("boom", Code: "rate_limit", Retryable: true);
         var evt = new ChatRuntimeEvent.Error(detail);
@@ -87,7 +87,7 @@ public class ChatRuntimeEventShapeTests
     }
 
     [TestMethod]
-    public void Completed_CarriesSessionId()
+    public void Completed_WhenConstructed_CarriesSessionId()
     {
         var evt = new ChatRuntimeEvent.Completed("sess_abc");
         Assert.AreEqual("sess_abc", evt.SessionId);

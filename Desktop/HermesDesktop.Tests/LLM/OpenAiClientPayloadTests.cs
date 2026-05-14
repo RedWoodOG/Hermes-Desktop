@@ -50,7 +50,7 @@ public class OpenAiClientPayloadTests
     }
 
     [TestMethod]
-    public void Streaming_NoTools_IncludesStreamOptionsIncludeUsage()
+    public void BuildPayload_StreamingNoTools_IncludesStreamOptionsIncludeUsage()
     {
         var payload = InvokeBuildPayload(stream: true);
         var root = SerializeAndParse(payload);
@@ -66,7 +66,7 @@ public class OpenAiClientPayloadTests
     }
 
     [TestMethod]
-    public void Streaming_WithTools_IncludesStreamOptionsIncludeUsage()
+    public void BuildPayload_StreamingWithTools_IncludesStreamOptionsIncludeUsage()
     {
         var tools = new object[]
         {
@@ -94,7 +94,7 @@ public class OpenAiClientPayloadTests
     }
 
     [TestMethod]
-    public void NonStreaming_DoesNotIncludeStreamOptions()
+    public void BuildPayload_NonStreaming_OmitsStreamOptions()
     {
         var payload = InvokeBuildPayload(stream: false);
         var root = SerializeAndParse(payload);
@@ -108,7 +108,7 @@ public class OpenAiClientPayloadTests
     }
 
     [TestMethod]
-    public void NonStreaming_WithTools_DoesNotIncludeStreamOptions()
+    public void BuildPayload_NonStreamingWithTools_OmitsStreamOptions()
     {
         var tools = new object[]
         {

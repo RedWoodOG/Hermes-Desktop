@@ -33,7 +33,7 @@ public class FirstRunFlowTests
     }
 
     [TestMethod]
-    public async Task FreshHomeIsFirstRun()
+    public async Task IsFirstRun_FreshHome_ReturnsTrue()
     {
         // SoulService eagerly writes default templates with the UNCONFIGURED
         // marker. A clean home should always start in first-run state.
@@ -42,7 +42,7 @@ public class FirstRunFlowTests
     }
 
     [TestMethod]
-    public async Task StrippingUnconfiguredMarkerExitsFirstRun()
+    public async Task IsFirstRun_AfterMarkerStripped_ReturnsFalse()
     {
         var soul = await _service.LoadFileAsync(SoulFileType.Soul);
         StringAssert.Contains(soul, "<!-- UNCONFIGURED -->");
@@ -58,7 +58,7 @@ public class FirstRunFlowTests
     }
 
     [TestMethod]
-    public async Task UserMarkerAloneDoesNotKeepFirstRunActive()
+    public async Task IsFirstRun_UserMarkerOnly_ReturnsFalse()
     {
         // IsFirstRun only inspects SOUL.md. Even if USER.md still has the marker
         // (e.g. user skipped that question), the wizard owns the SOUL.md edit.
@@ -79,7 +79,7 @@ public class FirstRunFlowTests
     // ─────────────────────────────────────────────────────────────────────
 
     [TestMethod]
-    public async Task MarkConfiguredAsync_StripsBothMarkers_AndExitsFirstRun()
+    public async Task MarkConfiguredAsync_BothMarkersPresent_StripsAndExitsFirstRun()
     {
         await _service.LoadFileAsync(SoulFileType.Soul);
         await _service.LoadFileAsync(SoulFileType.User);
@@ -112,7 +112,7 @@ public class FirstRunFlowTests
     }
 
     [TestMethod]
-    public async Task MarkConfiguredAsync_DiskStateVisibleOnReturn()
+    public async Task MarkConfiguredAsync_OnReturn_DiskStateVisible()
     {
         // The Bugbot finding was: fire-and-forget meant IsFirstRun() could still
         // observe the marker after the wizard returned. Pin down the inverse:

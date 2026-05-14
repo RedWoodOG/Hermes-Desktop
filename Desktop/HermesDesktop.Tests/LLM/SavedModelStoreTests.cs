@@ -35,14 +35,14 @@ public class SavedModelStoreTests
         new(_tempDir, NullLogger<SavedModelStore>.Instance);
 
     [TestMethod]
-    public void EmptyStoreListReturnsEmpty()
+    public void List_EmptyStore_ReturnsEmpty()
     {
         var store = NewStore();
         Assert.AreEqual(0, store.List().Count);
     }
 
     [TestMethod]
-    public async Task UpsertPersistsAndRoundTrips()
+    public async Task Upsert_RoundTripsAcrossReload_PreservesProfile()
     {
         var store = NewStore();
         var profile = SavedModelProfile.Create("My GPT", "openai", "gpt-5.4", contextLength: 128_000);
@@ -59,7 +59,7 @@ public class SavedModelStoreTests
     }
 
     [TestMethod]
-    public async Task FavoritesAreListedFirst()
+    public async Task List_WithFavorites_OrdersFavoritesFirst()
     {
         var store = NewStore();
         var a = SavedModelProfile.Create("Apple", "openai", "gpt-5.4", isFavorite: false);
@@ -77,7 +77,7 @@ public class SavedModelStoreTests
     }
 
     [TestMethod]
-    public async Task UpsertWithSameIdReplacesEntry()
+    public async Task Upsert_SameId_ReplacesExistingEntry()
     {
         var store = NewStore();
         var p = SavedModelProfile.Create("Original", "openai", "gpt-5.4");
@@ -92,7 +92,7 @@ public class SavedModelStoreTests
     }
 
     [TestMethod]
-    public async Task DeleteRemovesAndPersists()
+    public async Task Delete_ExistingProfile_RemovesAndPersists()
     {
         var store = NewStore();
         var p = SavedModelProfile.Create("Doomed", "openai", "gpt-5.4");
@@ -106,7 +106,7 @@ public class SavedModelStoreTests
     }
 
     [TestMethod]
-    public async Task DeleteUnknownIdIsNoOp()
+    public async Task Delete_UnknownId_ReturnsFalse()
     {
         var store = NewStore();
         Assert.IsFalse(await store.DeleteAsync(Guid.NewGuid().ToString("N")));
@@ -114,7 +114,7 @@ public class SavedModelStoreTests
 
     [TestMethod]
     [ExpectedException(typeof(ArgumentException))]
-    public async Task UpsertRequiresName()
+    public async Task Upsert_EmptyName_ThrowsArgument()
     {
         var store = NewStore();
         var bad = SavedModelProfile.Create("", "openai", "gpt-5.4");
@@ -123,7 +123,7 @@ public class SavedModelStoreTests
 
     [TestMethod]
     [ExpectedException(typeof(ArgumentException))]
-    public async Task UpsertRequiresProvider()
+    public async Task Upsert_EmptyProvider_ThrowsArgument()
     {
         var store = NewStore();
         var bad = SavedModelProfile.Create("X", "", "gpt-5.4");
@@ -132,7 +132,7 @@ public class SavedModelStoreTests
 
     [TestMethod]
     [ExpectedException(typeof(ArgumentException))]
-    public async Task UpsertRequiresModelId()
+    public async Task Upsert_EmptyModelId_ThrowsArgument()
     {
         var store = NewStore();
         var bad = SavedModelProfile.Create("X", "openai", "");
@@ -140,7 +140,7 @@ public class SavedModelStoreTests
     }
 
     [TestMethod]
-    public async Task PersistedFileIsValidJson()
+    public async Task Upsert_OnDisk_WritesValidJsonFile()
     {
         var store = NewStore();
         var p = SavedModelProfile.Create("Pretty", "anthropic", "claude-haiku-4.5", isFavorite: true);

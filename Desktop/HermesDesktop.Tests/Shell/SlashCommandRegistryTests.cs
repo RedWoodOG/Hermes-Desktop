@@ -11,7 +11,7 @@ namespace HermesDesktop.Tests.Shell;
 public class SlashCommandRegistryTests
 {
     [TestMethod]
-    public void All_ContainsExpectedCommands()
+    public void All_AfterStaticInit_ContainsExpectedCommands()
     {
         var names = SlashCommandRegistry.All.Select(c => c.Name).ToHashSet();
 
@@ -82,7 +82,7 @@ public class SlashCommandRegistryTests
     }
 
     [TestMethod]
-    public void FindByPrefix_CaseInsensitive()
+    public void FindByPrefix_UpperCaseInput_MatchesCaseInsensitive()
     {
         var results = SlashCommandRegistry.FindByPrefix("/NEW");
         Assert.AreEqual(1, results.Count);
@@ -147,7 +147,7 @@ public class SlashCommandRegistryTests
     }
 
     [TestMethod]
-    public void TryParse_LeadingWhitespaceTolerated()
+    public void TryParse_LeadingWhitespace_StillMatchesCommand()
     {
         var result = SlashCommandRegistry.TryParse("   /help");
 
@@ -158,22 +158,40 @@ public class SlashCommandRegistryTests
     // ── DescriptionResourceKey ──
 
     [TestMethod]
-    public void DescriptionResourceKey_FollowsExpectedFormat()
+    public void DescriptionResourceKey_ForKnownCommand_FollowsExpectedFormat()
     {
         var cmd = SlashCommandRegistry.Find("/help")!;
         Assert.AreEqual("SlashCommand.help.Description", cmd.DescriptionResourceKey);
     }
 
     [TestMethod]
-    public void CategoryGrouping_AllFourCategoriesPresent()
+    public void All_RegisteredCategories_ContainChatAgentAndInfo()
     {
         var categories = SlashCommandRegistry.All
             .Select(c => c.Category)
             .Distinct()
             .ToHashSet();
 
-        Assert.IsTrue(categories.Contains(SlashCommandCategory.Chat));
-        Assert.IsTrue(categories.Contains(SlashCommandCategory.Agent));
-        Assert.IsTrue(categories.Contains(SlashCommandCategory.Info));
+        Assert.IsTrue(categories.Contains(SlashCommandCategory.Chat),
+            "Chat-category commands (/new, /clear, /retry) must be registered.");
+        Assert.IsTrue(categories.Contains(SlashCommandCategory.Agent),
+            "Agent-forwarded commands (/btw, /approve, ...) must be registered.");
+        Assert.IsTrue(categories.Contains(SlashCommandCategory.Info),
+            "Info-category commands (/help, /status, ...) must be registered.");
+    }
+
+    [TestMethod]
+    public void All_RegisteredCategories_ToolsCategoryReservedButUnused()
+    {
+        var categories = SlashCommandRegistry.All
+            .Select(c => c.Category)
+            .Distinct()
+            .ToHashSet();
+
+        // The Tools enum value is reserved for future tool-invocation shortcuts (/web, /shell, …)
+        // but is intentionally not used by any built-in command today. If a Tools-category
+        // command is added, update both this test and All_RegisteredCategories_ContainChatAgentAndInfo.
+        Assert.IsFalse(categories.Contains(SlashCommandCategory.Tools),
+            "No built-in command currently uses the Tools category; remove this guard when one is added.");
     }
 }

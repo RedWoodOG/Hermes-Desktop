@@ -38,7 +38,7 @@ public class MemoryManagerCrudTests
     }
 
     [TestMethod]
-    public void Constructor_CreatesMemoryDir()
+    public void Constructor_OnInit_CreatesMemoryDir()
     {
         Assert.IsTrue(Directory.Exists(_tempDir), "MemoryManager should create its memory dir on construction.");
         Assert.AreEqual(_tempDir, _manager.MemoryDir);
@@ -69,7 +69,7 @@ public class MemoryManagerCrudTests
     }
 
     [TestMethod]
-    public async Task DeleteMemoryAsync_RemovesFile()
+    public async Task DeleteMemoryAsync_ExistingFile_RemovesFile()
     {
         await _manager.SaveMemoryAsync("kill-me.md", "Body", "user", CancellationToken.None);
         var path = Path.Combine(_tempDir, "kill-me.md");
@@ -87,7 +87,7 @@ public class MemoryManagerCrudTests
     }
 
     [TestMethod]
-    public async Task LoadAllMemoriesAsync_ReturnsSavedEntries()
+    public async Task LoadAllMemoriesAsync_AfterSaves_ReturnsSavedEntries()
     {
         await _manager.SaveMemoryAsync("a.md", "First", "user", CancellationToken.None);
         await _manager.SaveMemoryAsync("b.md", "Second", "feedback", CancellationToken.None);
@@ -100,7 +100,7 @@ public class MemoryManagerCrudTests
     }
 
     [TestMethod]
-    public async Task LoadAllMemoriesAsync_SkipsFilesWithoutFrontmatter()
+    public async Task LoadAllMemoriesAsync_MixedFiles_SkipsFilesWithoutFrontmatter()
     {
         await File.WriteAllTextAsync(
             Path.Combine(_tempDir, "no-frontmatter.md"),

@@ -17,7 +17,7 @@ public class ChatStreamProjectionTests
     // ── TokenDelta ──
 
     [TestMethod]
-    public void TokenDelta_Plain_ProjectsToToken_AndAccumulates()
+    public void Project_PlainTokenDelta_AccumulatesAndYieldsToken()
     {
         var result = ChatStreamProjection.Project(new StreamEvent.TokenDelta("Hello"));
 
@@ -30,7 +30,7 @@ public class ChatStreamProjectionTests
     }
 
     [TestMethod]
-    public void TokenDelta_LegacyCallingToolMarker_ProjectsToThinking_NoAccumulation()
+    public void Project_LegacyCallingToolMarkerInTokenDelta_YieldsThinkingWithoutAccumulation()
     {
         var result = ChatStreamProjection.Project(new StreamEvent.TokenDelta("\n[Calling tool: bash]\n"));
 
@@ -41,7 +41,7 @@ public class ChatStreamProjectionTests
     }
 
     [TestMethod]
-    public void TokenDelta_BracketedTextThatIsNotCallingTool_ProjectsToToken()
+    public void Project_BracketedNonToolTokenDelta_YieldsToken()
     {
         var result = ChatStreamProjection.Project(new StreamEvent.TokenDelta("[Note: this is normal output]"));
 
@@ -52,7 +52,7 @@ public class ChatStreamProjectionTests
     // ── ThinkingDelta ──
 
     [TestMethod]
-    public void ThinkingDelta_ProjectsToThinking_NoAccumulation()
+    public void Project_ThinkingDelta_YieldsThinkingWithoutAccumulation()
     {
         var result = ChatStreamProjection.Project(new StreamEvent.ThinkingDelta("Let me think..."));
 
@@ -65,7 +65,7 @@ public class ChatStreamProjectionTests
     // ── ToolUseStart ──
 
     [TestMethod]
-    public void ToolUseStart_ProjectsToToolStart_WithName_AndId()
+    public void Project_ToolUseStart_YieldsToolStartWithIdAndName()
     {
         var result = ChatStreamProjection.Project(new StreamEvent.ToolUseStart("call_123", "bash"));
 
@@ -80,7 +80,7 @@ public class ChatStreamProjectionTests
     // ── ToolUseDelta ──
 
     [TestMethod]
-    public void ToolUseDelta_ProjectsToToolDelta_WithPartialJson()
+    public void Project_ToolUseDelta_YieldsToolDeltaWithPartialJson()
     {
         var result = ChatStreamProjection.Project(new StreamEvent.ToolUseDelta("call_123", "{\"cmd\":\"l"));
 
@@ -95,7 +95,7 @@ public class ChatStreamProjectionTests
     // ── ToolUseComplete ──
 
     [TestMethod]
-    public void ToolUseComplete_ProjectsToToolComplete_WithRawJsonText()
+    public void Project_ToolUseComplete_YieldsToolCompleteWithRawJson()
     {
         using var doc = JsonDocument.Parse("{\"cmd\":\"ls\"}");
         var result = ChatStreamProjection.Project(
@@ -112,7 +112,7 @@ public class ChatStreamProjectionTests
     // ── MessageComplete ──
 
     [TestMethod]
-    public void MessageComplete_WithUsage_ProjectsToUsage()
+    public void Project_MessageCompleteWithUsage_YieldsUsage()
     {
         var usage = new UsageStats(InputTokens: 120, OutputTokens: 45, CacheReadTokens: 30);
         var result = ChatStreamProjection.Project(new StreamEvent.MessageComplete("stop", usage));
@@ -125,7 +125,7 @@ public class ChatStreamProjectionTests
     }
 
     [TestMethod]
-    public void MessageComplete_WithoutUsage_ProjectsToNothing()
+    public void Project_MessageCompleteWithoutUsage_YieldsNothing()
     {
         var result = ChatStreamProjection.Project(new StreamEvent.MessageComplete("stop", null));
 
@@ -136,7 +136,7 @@ public class ChatStreamProjectionTests
     // ── StreamError ──
 
     [TestMethod]
-    public void StreamError_ProjectsToError_WithExceptionMessage()
+    public void Project_StreamError_YieldsErrorWithExceptionMessage()
     {
         var ex = new System.InvalidOperationException("Connection lost");
         var result = ChatStreamProjection.Project(
@@ -151,7 +151,7 @@ public class ChatStreamProjectionTests
     // ── Coverage sanity: every enum value is reachable from some StreamEvent ──
 
     [TestMethod]
-    public void Project_CoversEverySupportedKind()
+    public void Project_AcrossAllStreamEvents_CoversEverySupportedKind()
     {
         using var doc = JsonDocument.Parse("{}");
         var samples = new StreamEvent[]

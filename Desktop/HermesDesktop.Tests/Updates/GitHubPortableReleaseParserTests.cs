@@ -26,7 +26,7 @@ public sealed class GitHubPortableReleaseParserTests
 """;
 
     [TestMethod]
-    public void TryParseLatestReleaseJson_FindsZipAndSha256()
+    public void TryParseLatestReleaseJson_ZipPlusSha256Asset_FindsBothAssets()
     {
         var offer = GitHubPortableReleaseParser.TryParseLatestReleaseJson(SampleReleaseJson);
         Assert.IsNotNull(offer);
@@ -57,14 +57,14 @@ public sealed class GitHubPortableReleaseParserTests
     }
 
     [TestMethod]
-    public void TryParseVersionFromTag_StripsVAndPrerelease()
+    public void TryParseVersionFromTag_LeadingVAndPrerelease_StripsBoth()
     {
         Assert.IsTrue(GitHubPortableReleaseParser.TryParseVersionFromTag("v2.5.4-beta.1", out var v));
         Assert.AreEqual(new Version(2, 5, 4), v);
     }
 
     [TestMethod]
-    public void TryParseSha256SumFile_AcceptsShasumLine()
+    public void TryParseSha256SumFile_ShasumLine_AcceptsAndReturnsBytes()
     {
         const string hex = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
         Assert.IsTrue(GitHubPortableReleaseParser.TryParseSha256SumFile($"{hex}  HermesDesktop-portable-x64.zip", out var mem));
@@ -72,14 +72,14 @@ public sealed class GitHubPortableReleaseParserTests
     }
 
     [TestMethod]
-    public void TryParseSha256SumFile_RejectsInvalidHex()
+    public void TryParseSha256SumFile_InvalidHex_Rejects()
     {
         const string bad = "gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg";
         Assert.IsFalse(GitHubPortableReleaseParser.TryParseSha256SumFile(bad, out _));
     }
 
     [TestMethod]
-    public void FixedTimeEquals_RejectsDifferentDigests()
+    public void FixedTimeEquals_DifferentDigests_ReturnsFalse()
     {
         var a = new byte[32];
         var b = new byte[32];
@@ -88,7 +88,7 @@ public sealed class GitHubPortableReleaseParserTests
     }
 
     [TestMethod]
-    public void LatestReleaseApiUri_OnlyEscapesOwnerRepo()
+    public void LatestReleaseApiUri_OwnerRepoWithSpaces_EscapesOwnerAndRepoOnly()
     {
         var u = GitHubPortableReleaseParser.LatestReleaseApiUri("O wner", "Re po");
         Assert.IsTrue(u.Host.Equals("api.github.com", StringComparison.OrdinalIgnoreCase));
@@ -97,7 +97,7 @@ public sealed class GitHubPortableReleaseParserTests
     }
 
     [TestMethod]
-    public void TryParseDesktopAssemblyVersion_ReadsExecutingAssembly()
+    public void TryParseDesktopAssemblyVersion_ExecutingAssembly_ReadsAssemblyVersion()
     {
         Assert.IsTrue(
             GitHubPortableReleaseParser.TryParseDesktopAssemblyVersion(Assembly.GetExecutingAssembly(), out var v));

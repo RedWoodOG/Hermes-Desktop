@@ -46,7 +46,7 @@ public class SkillToggleTests
         new(_tempDir, NullLogger<SkillManager>.Instance);
 
     [TestMethod]
-    public void DefaultIsEnabledIsTrue()
+    public void IsEnabled_FreshSkill_DefaultsToTrue()
     {
         var manager = NewManager();
         Assert.IsTrue(manager.ListSkills().All(s => s.IsEnabled));
@@ -54,7 +54,7 @@ public class SkillToggleTests
     }
 
     [TestMethod]
-    public void SetEnabledFalsePersistsAcrossReload()
+    public void SetEnabled_False_PersistsAcrossReload()
     {
         var manager = NewManager();
         manager.SetEnabled("alpha", false);
@@ -69,7 +69,7 @@ public class SkillToggleTests
     }
 
     [TestMethod]
-    public void SetEnabledTrueRestoresVisibility()
+    public void SetEnabled_TrueAfterFalse_RestoresVisibility()
     {
         var manager = NewManager();
         manager.SetEnabled("alpha", false);
@@ -82,14 +82,14 @@ public class SkillToggleTests
 
     [TestMethod]
     [ExpectedException(typeof(SkillNotFoundException))]
-    public void SetEnabledUnknownSkillThrows()
+    public void SetEnabled_UnknownSkill_ThrowsSkillNotFound()
     {
         var manager = NewManager();
         manager.SetEnabled("ghost", false);
     }
 
     [TestMethod]
-    public void TogglesJsonFileIsWrittenNextToSkills()
+    public void SetEnabled_AfterToggle_WritesJsonFileNextToSkills()
     {
         var manager = NewManager();
         manager.SetEnabled("beta", false);
@@ -139,7 +139,7 @@ public class SkillToggleTests
     }
 
     [TestMethod]
-    public void SkillDisabledException_ExposesSkillName()
+    public void SkillDisabledException_OnConstruction_ExposesSkillName()
     {
         var ex = new SkillDisabledException("alpha");
 

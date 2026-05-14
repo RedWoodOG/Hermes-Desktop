@@ -42,7 +42,7 @@ public class WingetManifestGeneratorTests
     // ── Render ──
 
     [TestMethod]
-    public void Render_ReplacesAllKnownTokens()
+    public void Render_KnownTokens_ReplacesAllPlaceholders()
     {
         const string tpl =
             "PackageIdentifier: {{PACKAGE_IDENTIFIER}}\n" +
@@ -86,14 +86,14 @@ public class WingetManifestGeneratorTests
     // ── GetRelativeManifestPath ──
 
     [TestMethod]
-    public void GetRelativeManifestPath_ReturnsCanonicalLayout()
+    public void GetRelativeManifestPath_KnownIdentifier_ReturnsCanonicalLayout()
     {
         var path = WingetManifestGenerator.GetRelativeManifestPath("VyreVaultStudios.HermesDesktop", "2.5.4");
         Assert.AreEqual("manifests/v/VyreVaultStudios/HermesDesktop/2.5.4", path);
     }
 
     [TestMethod]
-    public void GetRelativeManifestPath_SinglePublisherCharShardsByLetter()
+    public void GetRelativeManifestPath_SinglePublisherChar_ShardsByLetter()
     {
         var path = WingetManifestGenerator.GetRelativeManifestPath("AcmeCorp.Tool", "1.0.0");
         Assert.AreEqual("manifests/a/AcmeCorp/Tool/1.0.0", path);
@@ -127,7 +127,7 @@ public class WingetManifestGeneratorTests
     // ── GenerateAll (end-to-end against real templates) ──
 
     [TestMethod]
-    public void GenerateAll_WritesThreeFilesInExpectedLayout()
+    public void GenerateAll_WithAllTemplates_WritesThreeFilesInExpectedLayout()
     {
         var installerTpl =
             "PackageIdentifier: {{PACKAGE_IDENTIFIER}}\n" +
@@ -211,7 +211,7 @@ public class WingetManifestGeneratorTests
     }
 
     [TestMethod]
-    public void RequiredKeys_AreNonEmpty()
+    public void RequiredKeys_EveryEntry_IsNonEmpty()
     {
         Assert.IsTrue(WingetManifestGenerator.RequiredKeys.Count > 0);
         foreach (var key in WingetManifestGenerator.RequiredKeys)
