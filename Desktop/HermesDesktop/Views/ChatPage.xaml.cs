@@ -370,10 +370,9 @@ public sealed partial class ChatPage : Page
             var hasContent = false;
             var streamFailed = false;
 
-            // Stream typed runtime events (tokens + thinking + tool status + errors).
-            // TODO(E.1/E.3 follow-up): ChatRuntimeEvent does not yet carry Tool* / Usage variants
-            // from Hermes.Agent.LLM.StreamEvent — wire those through HermesChatService when
-            // the usage footer is reactivated.
+            // Stream typed runtime events: tokens + thinking + structured tool envelopes
+            // + per-turn usage + errors. ChatRuntimeEvent.Usage feeds the Bundle E.3
+            // usage footer + /usage slash command via OnUsageReceived (ChatPage.Usage.cs).
             await foreach (var evt in _chatService.StreamRuntimeAsync(prompt, CancellationToken.None))
             {
                 switch (evt)
@@ -388,6 +387,36 @@ public sealed partial class ChatPage : Page
                         if (assistantItem is not null)
                             assistantItem.AppendThinking(toolStatus.Text);
                         thinkingBuffer.Append(toolStatus.Text);
+                        break;
+
+                    case ChatRuntimeEvent.ToolUseStart toolStart:
+                    {
+                        // Structured tool-start signal. Render the same single-line marker
+                        // that the legacy "[Calling tool: X]" TokenDelta used so the UI
+                        // looks identical regardless of provider, but route it through the
+                        // thinking pane so it doesn't pollute the assistant message body.
+                        var line = $"\n[Calling tool: {toolStart.Name}]";
+                        if (assistantItem is not null)
+                            assistantItem.AppendThinking(line);
+                        thinkingBuffer.Append(line);
+                        break;
+                    }
+
+                    case ChatRuntimeEvent.ToolUseDelta:
+                        // Partial JSON fragments are not currently surfaced in the UI; the
+                        // ToolUseComplete branch shows the fully-assembled arguments. Kept
+                        // as a no-op to make the switch exhaustive and to give a hook for
+                        // future inline tool-call previews.
+                        break;
+
+                    case ChatRuntimeEvent.ToolUseComplete:
+                        // Structured tool-complete envelope — the chat persistence layer
+                        // and timeline already record tool calls via Agent; nothing extra
+                        // to render in the chat pane today.
+                        break;
+
+                    case ChatRuntimeEvent.Usage usage:
+                        OnUsageReceived(usage.Stats);
                         break;
 
                     case ChatRuntimeEvent.TokenDelta token:

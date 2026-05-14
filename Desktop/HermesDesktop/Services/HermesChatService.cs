@@ -173,6 +173,22 @@ internal sealed class HermesChatService : IDisposable
                         yield return new ChatRuntimeEvent.ThinkingDelta(tk.Text);
                         break;
 
+                    case Hermes.Agent.LLM.StreamEvent.ToolUseStart ts:
+                        yield return new ChatRuntimeEvent.ToolUseStart(ts.Id, ts.Name);
+                        break;
+
+                    case Hermes.Agent.LLM.StreamEvent.ToolUseDelta tdj:
+                        yield return new ChatRuntimeEvent.ToolUseDelta(tdj.Id, tdj.PartialJson);
+                        break;
+
+                    case Hermes.Agent.LLM.StreamEvent.ToolUseComplete tc:
+                        yield return new ChatRuntimeEvent.ToolUseComplete(tc.Id, tc.Name, tc.Arguments);
+                        break;
+
+                    case Hermes.Agent.LLM.StreamEvent.MessageComplete mc when mc.Usage is not null:
+                        yield return new ChatRuntimeEvent.Usage(mc.Usage, mc.StopReason);
+                        break;
+
                     case Hermes.Agent.LLM.StreamEvent.StreamError err:
                         turnStatus = TurnStatus.Failed;
                         turnError = err.Error.Message;
@@ -234,6 +250,26 @@ internal sealed class HermesChatService : IDisposable
                     break;
                 case ChatRuntimeEvent.ToolStatus toolStatus:
                     yield return new ChatStreamEvent(ChatStreamEventType.Thinking, toolStatus.Text);
+                    break;
+                case ChatRuntimeEvent.ToolUseStart toolStart:
+                    yield return new ChatStreamEvent(
+                        ChatStreamEventType.ToolStart, string.Empty,
+                        ToolName: toolStart.Name, ToolCallId: toolStart.Id);
+                    break;
+                case ChatRuntimeEvent.ToolUseDelta toolDelta:
+                    yield return new ChatStreamEvent(
+                        ChatStreamEventType.ToolDelta, toolDelta.PartialJson,
+                        ToolCallId: toolDelta.Id);
+                    break;
+                case ChatRuntimeEvent.ToolUseComplete toolComplete:
+                    yield return new ChatStreamEvent(
+                        ChatStreamEventType.ToolComplete, toolComplete.Arguments.GetRawText(),
+                        ToolName: toolComplete.Name, ToolCallId: toolComplete.Id);
+                    break;
+                case ChatRuntimeEvent.Usage usage:
+                    yield return new ChatStreamEvent(
+                        ChatStreamEventType.Usage, usage.StopReason ?? string.Empty,
+                        Usage: usage.Stats);
                     break;
                 case ChatRuntimeEvent.Error error:
                     yield return new ChatStreamEvent(ChatStreamEventType.Error, error.Detail.Message);
