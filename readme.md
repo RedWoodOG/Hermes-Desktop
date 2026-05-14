@@ -6,7 +6,7 @@
 
 A **Windows-native AI agent** that lives on your desktop. Chat with it, give it tools, let it learn who you are. Built with WinUI 3 and .NET 10.
 
-**v2.5.4** &mdash; [Download](https://github.com/RedWoodOG/Hermes-Desktop/releases/latest) | [Changelog](#changelog) | [Discussion](https://github.com/RedWoodOG/Hermes-Desktop/discussions/10)
+**v2.5.8** &mdash; [Download](https://github.com/RedWoodOG/Hermes-Desktop/releases/latest) | [Changelog](#changelog) | [Discussion](https://github.com/RedWoodOG/Hermes-Desktop/discussions/10)
 
 ---
 
@@ -225,6 +225,10 @@ Hermes.CS/
 
 | Version | Date | Highlights |
 |---------|------|------------|
+| **v2.5.8** | 2026-05-14 | **Bundle E port from Electron:** streaming Tool/Usage event primitives, slash command palette (10 local + 5 agent-bound, en/zh), token-usage chat footer wired to `InsightsService`, Winget submission flow (`Directory.Build.props` identity + template manifests + `Generate-WingetManifests.ps1` + CI `generate_winget` job + winget-install self-detection in `UpdateService`), MemoryPage CRUD bound to `MemoryManager`, Skills toggle persistence + `SkillsHub` install UI + quarantine surface, `SavedModelProfile`/`SavedModelStore` registry with set-active in Settings, WelcomePage/SetupPage first-run wizard routed via `SoulService.IsFirstRun`. **Pre-E branch wrap:** MCP host page + remote endpoint validator, Diagnostics page + report builder, in-app portable update banner with SHA-256 verification, `publish-portable.ps1` emits `.sha256` manifests. MIT attribution to `fathah/hermes-desktop` for ported concepts. Assembly / MSIX manifest **2.5.8.0**. |
+| **v2.5.7** | 2026-05-09 | **Buddy companion redesign:** refreshed buddy panel composition and visual identity. Assembly / MSIX manifest **2.5.7.0**. |
+| **v2.5.6** | 2026-05-09 | **Reference-inspired runtime improvements** and **MCP config loader** fix (accept camelCase `mcp.json` keys via case-insensitive deserialization). Assembly / MSIX manifest **2.5.6.0**. |
+| **v2.5.5** | 2026-05-08 | **Windows UI Automation tool:** native FlaUI-backed inspect/click/type tool for non-browser Windows apps. **Stream fault retry:** mid-SSE `HttpRequestException` recovers via fault-aware stream factory. **Chat fixes:** placeholder hints Enter-to-send, permission resource crash, vLLM system-message ordering, `CheckpointTool` recursion. CI release dispatch added. Assembly / MSIX manifest **2.5.5.0**. |
 | **v2.5.4** | 2026-04-28 | **Soul system repair:** runtime soul label now reflects `SOUL.md`, reset uses the shipped `Default` soul, project `AGENTS.md` rules enter prompt context, saved agents retain provider/model, and AutoDream starts soul learning. Assembly / MSIX manifest **2.5.4.0**. |
 | **v2.5.3** | 2026-04-28 | **Brand refresh:** app package icons, splash/tile assets, README logo, and Dashboard version display updated for the new Hermes mark. Assembly / MSIX manifest **2.5.3.0**. |
 | **v2.5.2** | 2026-04-28 | **Windows Sandbox:** native Windows Sandbox backend using generated `.wsb` configs, Desktop execution backend picker option, Bash tool honors configured backend, clear setup message when Windows Sandbox is unavailable. Assembly / MSIX manifest **2.5.2.0**. |
@@ -261,6 +265,8 @@ Hermes.CS/
 ## Acknowledgments
 
 Built on the [NousResearch Hermes Agent](https://github.com/NousResearch/hermes-agent) architecture. This project exists to show appreciation for the NousResearch team &mdash; please support them and use the product they created.
+
+Several Tier-1 and Tier-2 surfaces (streaming chat primitives, slash command palette, token-usage footer, Winget release flow, MemoryPage editor, skills install/toggle UI, saved-model registry, Welcome/Setup wizard) were inspired by the MIT-licensed Electron/React Hermes Desktop at <https://github.com/fathah/hermes-desktop>. We ported concepts and UX, not source. Full attribution lives in [`docs/credits.md`](docs/credits.md).
 
 ## License
 
