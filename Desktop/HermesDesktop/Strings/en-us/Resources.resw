@@ -744,6 +744,9 @@
   <data name="SlashOutputSkillDisabled" xml:space="preserve">
     <value>Skill '{0}' is disabled. Enable it from the Skills page to run it via slash command.</value>
   </data>
+  <data name="SlashOutputEmptySlash" xml:space="preserve">
+    <value>Type a slash command name after /. For example, /help.</value>
+  </data>
   <data name="SlashOutputHelpHeader" xml:space="preserve">
     <value>Available slash commands</value>
   </data>

@@ -182,7 +182,14 @@ public partial class ChatPage
         var invocation = SlashCommandRegistry.TryParse(input);
         if (invocation is null)
         {
-            AppendSystemMessage(SlashResources.GetString("SlashOutputUnknownCommand").Replace("{0}", ""));
+            // Bare or malformed slash (e.g. the user submitted just "/"). The
+            // SlashOutputUnknownCommand resource expects a command name, so
+            // route the user to the help affordance instead of formatting a
+            // sentence with a dangling bare slash. Bugbot finding: the old
+            // path used .Replace("{0}", "") and produced
+            // "Unknown command: /. Type /help for the full list." which is
+            // technically true but reads like a parser error.
+            AppendSystemMessage(SlashResources.GetString("SlashOutputEmptySlash"));
             return;
         }
 
@@ -382,15 +389,20 @@ public partial class ChatPage
 
     private string BuildUsageText()
     {
-        if (_lastUsageStats is null)
+        // Bugbot finding: `/usage` was reading the LAST-turn snapshot
+        // (_lastUsageStats), so after multiple turns the slash command
+        // disagreed with the on-screen footer (which already aggregates).
+        // Source of truth for both surfaces is the per-session running
+        // totals maintained by OnUsageReceived in ChatPage.Usage.cs.
+        if (_lastUsageStats is null && _sessionInputTokens == 0 && _sessionOutputTokens == 0)
             return SlashResources.GetString("SlashOutputUsageNone");
 
-        var total = _lastUsageStats.InputTokens + _lastUsageStats.OutputTokens;
+        var total = _sessionInputTokens + _sessionOutputTokens;
         return string.Format(
             CultureInfo.CurrentCulture,
             SlashResources.GetString("SlashOutputUsageFormat"),
-            _lastUsageStats.InputTokens,
-            _lastUsageStats.OutputTokens,
+            _sessionInputTokens,
+            _sessionOutputTokens,
             total);
     }
 

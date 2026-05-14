@@ -744,6 +744,9 @@
   <data name="SlashOutputSkillDisabled" xml:space="preserve">
     <value>技能 "{0}" 已禁用。请在"技能"页面启用后再通过斜杠命令运行。</value>
   </data>
+  <data name="SlashOutputEmptySlash" xml:space="preserve">
+    <value>请在 / 后输入斜杠命令名称，例如 /help。</value>
+  </data>
   <data name="SlashOutputHelpHeader" xml:space="preserve">
     <value>可用斜杠命令</value>
   </data>
