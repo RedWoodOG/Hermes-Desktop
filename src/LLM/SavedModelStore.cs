@@ -71,7 +71,15 @@ public sealed class SavedModelStore
     public SavedModelProfile? Get(string id) =>
         _profiles.TryGetValue(id, out var p) ? p : null;
 
-    /// <summary>Insert or update a profile. Returns the persisted instance.</summary>
+    /// <summary>
+    /// Insert or update a profile. Returns the persisted instance.
+    /// <para>
+    /// If <c>SaveAsync</c> throws (disk full, permission denied, locked file…), the
+    /// in-memory state is rolled back so memory and disk do not diverge — the caller
+    /// observes a single failed operation rather than a partially-applied mutation
+    /// (CodeRabbit, 2026-05-14).
+    /// </para>
+    /// </summary>
     public async Task<SavedModelProfile> UpsertAsync(SavedModelProfile profile, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(profile.Id))
@@ -83,17 +91,43 @@ public sealed class SavedModelStore
         if (string.IsNullOrWhiteSpace(profile.ModelId))
             throw new ArgumentException("SavedModelProfile.ModelId is required", nameof(profile));
 
+        bool hadPrevious = _profiles.TryGetValue(profile.Id, out var previous);
         _profiles[profile.Id] = profile;
-        await SaveAsync(ct).ConfigureAwait(false);
-        return profile;
+        try
+        {
+            await SaveAsync(ct).ConfigureAwait(false);
+            return profile;
+        }
+        catch
+        {
+            if (hadPrevious && previous is not null)
+                _profiles[profile.Id] = previous;
+            else
+                _profiles.TryRemove(profile.Id, out _);
+            throw;
+        }
     }
 
-    /// <summary>Delete by id. No-op if missing. Returns whether anything was removed.</summary>
+    /// <summary>
+    /// Delete by id. No-op if missing. Returns whether anything was removed.
+    /// <para>
+    /// If <c>SaveAsync</c> throws after the in-memory removal, the entry is restored
+    /// so memory and disk stay consistent (CodeRabbit, 2026-05-14).
+    /// </para>
+    /// </summary>
     public async Task<bool> DeleteAsync(string id, CancellationToken ct = default)
     {
-        var removed = _profiles.TryRemove(id, out _);
-        if (removed) await SaveAsync(ct).ConfigureAwait(false);
-        return removed;
+        if (!_profiles.TryRemove(id, out var removed)) return false;
+        try
+        {
+            await SaveAsync(ct).ConfigureAwait(false);
+            return true;
+        }
+        catch
+        {
+            _profiles[id] = removed!;
+            throw;
+        }
     }
 
     private async Task SaveAsync(CancellationToken ct)

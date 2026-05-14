@@ -147,9 +147,17 @@ public sealed partial class SkillsPage : Page
         };
 
         var list = sorted.ToList();
+        // try/finally so a throwing ItemsSource setter cannot leave the page in a state
+        // where user toggles are silently ignored forever (CodeRabbit, 2026-05-14).
         _suppressToggleHandler = true;
-        SkillsList.ItemsSource = list;
-        _suppressToggleHandler = false;
+        try
+        {
+            SkillsList.ItemsSource = list;
+        }
+        finally
+        {
+            _suppressToggleHandler = false;
+        }
         SkillCountBadge.Text = $"{list.Count} skill{(list.Count == 1 ? "" : "s")}";
         if (ListHeader is not null)
             ListHeader.Text = _selectedCategory == "All" ? "All Skills" : _selectedCategory;
@@ -206,9 +214,14 @@ public sealed partial class SkillsPage : Page
         if (_suppressToggleHandler) return;
         if (sender is not ToggleSwitch ts || ts.Tag is not string name) return;
 
+        // Remember the prior position so a SetEnabled failure can restore the switch
+        // and keep UI consistent with the on-disk skill state (CodeRabbit, 2026-05-14).
+        bool requestedState = ts.IsOn;
+        bool priorState = !requestedState;
+
         try
         {
-            var skill = Manager.SetEnabled(name, ts.IsOn);
+            var skill = Manager.SetEnabled(name, requestedState);
             var item = _allSkills.FirstOrDefault(s => s.Name == name);
             if (item is not null) item.IsEnabled = skill.IsEnabled;
             if (SkillsList.SelectedItem is SkillDisplayItem selected && selected.Name == name)
@@ -216,6 +229,18 @@ public sealed partial class SkillsPage : Page
         }
         catch (Exception ex)
         {
+            // Persistence failed — revert the switch to the prior position so the UI
+            // does not drift from the underlying skill state. Suppress the revert's
+            // own Toggled event so it doesn't recurse.
+            _suppressToggleHandler = true;
+            try
+            {
+                ts.IsOn = priorState;
+            }
+            finally
+            {
+                _suppressToggleHandler = false;
+            }
             ShowStatus(string.Format(StringResources.GetString("SkillsInstallFailureFormat"), ex.Message), isError: true);
         }
     }

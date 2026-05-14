@@ -142,6 +142,15 @@ internal sealed class UpdateService : IDisposable
 
             return process.ExitCode;
         }
+        catch (OperationCanceledException)
+        {
+            // Preserve cancellation semantics — callers (CancellationToken) need to
+            // distinguish "user/system cancelled the upgrade" from "winget failed for
+            // unknown reasons" (-2). Rethrowing makes cancellation observable rather
+            // than silently turning into a generic non-zero exit code (CodeRabbit,
+            // 2026-05-14).
+            throw;
+        }
         catch (Exception ex)
         {
             Debug.WriteLine($"UpdateService.RequestWingetUpgradeAsync: {ex.Message}");

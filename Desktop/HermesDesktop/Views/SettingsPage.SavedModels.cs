@@ -90,6 +90,16 @@ public sealed partial class SettingsPage
             SetProfileStatus("Model ID is required.", isError: true);
             return;
         }
+        if (baseUrl is not null && !IsValidEndpointUrl(baseUrl))
+        {
+            // Reject malformed or non-http(s) base URLs at save time so they cannot
+            // poison runtime config when this profile is later activated.
+            // (CodeRabbit, 2026-05-14.)
+            SetProfileStatus(
+                "Base URL must be an absolute http:// or https:// URL.",
+                isError: true);
+            return;
+        }
 
         var profile = _editingProfileId is null
             ? SavedModelProfile.Create(name, provider, modelId, baseUrl, apiKeyEnv, context, favorite)
@@ -215,6 +225,18 @@ public sealed partial class SettingsPage
 
     private static string? NullIfEmpty(string? s) =>
         string.IsNullOrWhiteSpace(s) ? null : s;
+
+    /// <summary>
+    /// Returns true if <paramref name="url"/> parses as an absolute URI and uses
+    /// http or https. Anything else (relative paths, file://, javascript:,
+    /// arbitrary schemes, malformed input) is rejected so it cannot reach the
+    /// runtime config and produce opaque connection failures later.
+    /// </summary>
+    private static bool IsValidEndpointUrl(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var parsed)) return false;
+        return parsed.Scheme == Uri.UriSchemeHttps || parsed.Scheme == Uri.UriSchemeHttp;
+    }
 }
 
 /// <summary>Display projection for the <see cref="ListView"/> bound to saved profiles.</summary>
