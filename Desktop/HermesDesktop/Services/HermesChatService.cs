@@ -515,24 +515,3 @@ internal sealed record ChatStreamEvent(
     string? ToolName = null,
     string? ToolCallId = null,
     Hermes.Agent.LLM.UsageStats? Usage = null);
-
-internal static class ChatStreamEventMapper
-{
-    public static ChatStreamEvent ToChatStreamEvent(Hermes.Agent.LLM.ChatStreamEnvelope envelope) =>
-        new(
-            Type: envelope.Kind switch
-            {
-                Hermes.Agent.LLM.ChatStreamEventKind.Token => ChatStreamEventType.Token,
-                Hermes.Agent.LLM.ChatStreamEventKind.Thinking => ChatStreamEventType.Thinking,
-                Hermes.Agent.LLM.ChatStreamEventKind.ToolStart => ChatStreamEventType.ToolStart,
-                Hermes.Agent.LLM.ChatStreamEventKind.ToolDelta => ChatStreamEventType.ToolDelta,
-                Hermes.Agent.LLM.ChatStreamEventKind.ToolComplete => ChatStreamEventType.ToolComplete,
-                Hermes.Agent.LLM.ChatStreamEventKind.Usage => ChatStreamEventType.Usage,
-                Hermes.Agent.LLM.ChatStreamEventKind.Error => ChatStreamEventType.Error,
-                _ => throw new System.ArgumentOutOfRangeException(nameof(envelope), envelope.Kind, "Unknown ChatStreamEventKind."),
-            },
-            Text: envelope.Text,
-            ToolName: envelope.ToolName,
-            ToolCallId: envelope.ToolCallId,
-            Usage: envelope.Usage);
-}
