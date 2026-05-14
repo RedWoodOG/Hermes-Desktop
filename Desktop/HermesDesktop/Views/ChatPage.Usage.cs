@@ -3,7 +3,6 @@ using Hermes.Agent.Analytics;
 using Hermes.Agent.LLM;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
-using Microsoft.Windows.ApplicationModel.Resources;
 
 namespace HermesDesktop.Views;
 
@@ -17,7 +16,8 @@ namespace HermesDesktop.Views;
 /// </summary>
 public partial class ChatPage
 {
-    private static readonly ResourceLoader UsageResources = new();
+    // The static ResourceLoader is declared once in ChatPage.xaml.cs and shared across all
+    // partial files of this class (Bugbot 2026-05-14: no redundant per-file loaders).
 
     // Per-session running totals — reset by ChatService.ResetConversation via NewChat_Click.
     private long _sessionInputTokens;
@@ -49,7 +49,7 @@ public partial class ChatPage
 
         UsageFooterText.Text = string.Format(
             CultureInfo.CurrentCulture,
-            UsageResources.GetString("ChatUsageFooterFormat"),
+            ResourceLoader.GetString("ChatUsageFooterFormat"),
             _sessionInputTokens,
             _sessionOutputTokens,
             total);

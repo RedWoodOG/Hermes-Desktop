@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Linq;
@@ -32,7 +32,8 @@ namespace HermesDesktop.Views;
 /// </summary>
 public partial class ChatPage
 {
-    private static readonly ResourceLoader SlashResources = new();
+    // The static ResourceLoader is declared once in ChatPage.xaml.cs and shared across all
+    // partial files of this class (Bugbot 2026-05-14: no redundant per-file loaders).
 
     public ObservableCollection<SlashCommandRow> SlashCommandSuggestions { get; } = new();
 
@@ -189,7 +190,7 @@ public partial class ChatPage
             // path used .Replace("{0}", "") and produced
             // "Unknown command: /. Type /help for the full list." which is
             // technically true but reads like a parser error.
-            AppendSystemMessage(SlashResources.GetString("SlashOutputEmptySlash"));
+            AppendSystemMessage(ResourceLoader.GetString("SlashOutputEmptySlash"));
             return;
         }
 
@@ -220,7 +221,7 @@ public partial class ChatPage
 
             case "/clear":
                 Messages.Clear();
-                AppendSystemMessage(SlashResources.GetString("SlashOutputHelpHeader"));
+                AppendSystemMessage(ResourceLoader.GetString("SlashOutputHelpHeader"));
                 return;
 
             case "/retry":
@@ -266,7 +267,7 @@ public partial class ChatPage
             default:
                 AppendSystemMessage(string.Format(
                     CultureInfo.CurrentCulture,
-                    SlashResources.GetString("SlashOutputUnknownCommand"),
+                    ResourceLoader.GetString("SlashOutputUnknownCommand"),
                     command.Name.TrimStart('/')));
                 return;
         }
@@ -305,7 +306,7 @@ public partial class ChatPage
             ShowThinking(false);
             AppendSystemMessage(string.Format(
                 CultureInfo.CurrentCulture,
-                SlashResources.GetString("SlashOutputUnknownCommand"),
+                ResourceLoader.GetString("SlashOutputUnknownCommand"),
                 commandName));
         }
         catch (SkillDisabledException ex)
@@ -313,7 +314,7 @@ public partial class ChatPage
             ShowThinking(false);
             AppendSystemMessage(string.Format(
                 CultureInfo.CurrentCulture,
-                SlashResources.GetString("SlashOutputSkillDisabled"),
+                ResourceLoader.GetString("SlashOutputSkillDisabled"),
                 ex.SkillName));
         }
         catch (Exception ex)
@@ -333,7 +334,7 @@ public partial class ChatPage
     private string BuildHelpText()
     {
         var sb = new StringBuilder();
-        sb.AppendLine(SlashResources.GetString("SlashOutputHelpHeader"));
+        sb.AppendLine(ResourceLoader.GetString("SlashOutputHelpHeader"));
         sb.AppendLine();
 
         var groups = SlashCommandRegistry.All
@@ -342,10 +343,10 @@ public partial class ChatPage
 
         foreach (var group in groups)
         {
-            sb.AppendLine($"— {SlashResources.GetString($"SlashCategory.{group.Key}")}");
+            sb.AppendLine($"— {ResourceLoader.GetString($"SlashCategory.{group.Key}")}");
             foreach (var c in group)
             {
-                var desc = SlashResources.GetString(c.DescriptionResourceKey);
+                var desc = ResourceLoader.GetString(c.DescriptionResourceKey);
                 sb.AppendLine($"  {c.Name,-10}  {desc}");
             }
             sb.AppendLine();
@@ -360,7 +361,7 @@ public partial class ChatPage
         var formatted = names.Count == 0 ? "(none)" : string.Join(", ", names);
         return string.Format(
             CultureInfo.CurrentCulture,
-            SlashResources.GetString("SlashOutputToolsFormat"),
+            ResourceLoader.GetString("SlashOutputToolsFormat"),
             names.Count, formatted);
     }
 
@@ -369,10 +370,10 @@ public partial class ChatPage
         var skillManager = App.Services.GetRequiredService<SkillManager>();
         var skills = skillManager.ListSkills();
         if (skills.Count == 0)
-            return SlashResources.GetString("SlashOutputSkillsNone");
+            return ResourceLoader.GetString("SlashOutputSkillsNone");
 
         var sb = new StringBuilder();
-        sb.AppendLine(SlashResources.GetString("SlashOutputSkillsHeader"));
+        sb.AppendLine(ResourceLoader.GetString("SlashOutputSkillsHeader"));
         foreach (var s in skills)
             sb.AppendLine($"  /{s.Name}  - {s.Description}");
         return sb.ToString().TrimEnd();
@@ -383,7 +384,7 @@ public partial class ChatPage
         var snap = _runtimeStatusService.GetConfiguredSnapshot();
         return string.Format(
             CultureInfo.CurrentCulture,
-            SlashResources.GetString("SlashOutputModelFormat"),
+            ResourceLoader.GetString("SlashOutputModelFormat"),
             snap.DisplayProvider, snap.DisplayModel);
     }
 
@@ -395,12 +396,12 @@ public partial class ChatPage
         // Source of truth for both surfaces is the per-session running
         // totals maintained by OnUsageReceived in ChatPage.Usage.cs.
         if (_lastUsageStats is null && _sessionInputTokens == 0 && _sessionOutputTokens == 0)
-            return SlashResources.GetString("SlashOutputUsageNone");
+            return ResourceLoader.GetString("SlashOutputUsageNone");
 
         var total = _sessionInputTokens + _sessionOutputTokens;
         return string.Format(
             CultureInfo.CurrentCulture,
-            SlashResources.GetString("SlashOutputUsageFormat"),
+            ResourceLoader.GetString("SlashOutputUsageFormat"),
             _sessionInputTokens,
             _sessionOutputTokens,
             total);
@@ -411,7 +412,7 @@ public partial class ChatPage
         var version = Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "dev";
         return string.Format(
             CultureInfo.CurrentCulture,
-            SlashResources.GetString("SlashOutputVersionFormat"),
+            ResourceLoader.GetString("SlashOutputVersionFormat"),
             version);
     }
 

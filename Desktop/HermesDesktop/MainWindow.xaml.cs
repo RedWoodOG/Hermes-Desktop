@@ -99,11 +99,17 @@ public sealed partial class MainWindow : Window
     /// Called by Welcome/Setup pages when the user finishes or skips the wizard.
     /// Strips the <c>&lt;!-- UNCONFIGURED --&gt;</c> markers from SOUL.md/USER.md
     /// so <see cref="Hermes.Agent.Soul.SoulService.IsFirstRun"/> returns false on
-    /// next launch, then navigates to Chat. The disk write MUST complete before
-    /// navigation — otherwise ChatPage.OnNavigatedTo re-reads stale files, sees
-    /// the marker, and re-routes back to onboarding (Cursor Bugbot finding).
-    /// Best-effort: write failures are logged but never block navigation, since
-    /// blocking onboarding behind a broken disk would be worse than re-prompting.
+    /// next launch.
+    /// <para>
+    /// Contract: callers MUST <c>await</c> this method before navigating away
+    /// from the wizard (otherwise <see cref="HermesDesktop.Views.ChatPage"/>
+    /// can re-read a still-marked file and bounce the user back into onboarding,
+    /// the original Cursor Bugbot race). Navigation itself is the caller's
+    /// responsibility — each caller explicitly invokes <c>NavigateToTag("chat")</c>
+    /// so that the failure mode of "marker write failed" still surfaces a usable
+    /// Chat page rather than silently leaving the user on the wizard.
+    /// </para>
+    /// <para>Best-effort: write failures are logged but never thrown.</para>
     /// </summary>
     internal async Task MarkFirstRunCompleteAsync()
     {
@@ -120,28 +126,13 @@ public sealed partial class MainWindow : Window
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"MainWindow.MarkFirstRunComplete strip failed: {ex}");
+                    System.Diagnostics.Debug.WriteLine($"MainWindow.MarkFirstRunCompleteAsync strip failed: {ex}");
                 }
             }
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Debug.WriteLine($"MainWindow.MarkFirstRunComplete failed: {ex}");
-        }
-        finally
-        {
-            // Navigation is the caller's responsibility — callers also explicitly
-            // call NavigateToTag("chat"). We keep this fallback enqueue so the
-            // shell still lands on Chat even if the caller forgets, but the
-            // contract is: callers MUST await this method before navigating.
-            if (DispatcherQueue is not null)
-            {
-                DispatcherQueue.TryEnqueue(() =>
-                {
-                    if (!ReferenceEquals(ShellNavigation.SelectedItem, ChatNavItem))
-                        ShellNavigation.SelectedItem = ChatNavItem;
-                });
-            }
+            System.Diagnostics.Debug.WriteLine($"MainWindow.MarkFirstRunCompleteAsync failed: {ex}");
         }
     }
 
