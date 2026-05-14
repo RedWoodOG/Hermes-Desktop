@@ -747,6 +747,9 @@
   <data name="SlashOutputEmptySlash" xml:space="preserve">
     <value>请在 / 后输入斜杠命令名称，例如 /help。</value>
   </data>
+  <data name="SlashOutputClearConfirmed" xml:space="preserve">
+    <value>会话已清空。输入 /help 查看可用命令。</value>
+  </data>
   <data name="SlashOutputHelpHeader" xml:space="preserve">
     <value>可用斜杠命令</value>
   </data>

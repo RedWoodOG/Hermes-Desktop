@@ -221,7 +221,7 @@ public partial class ChatPage
 
             case "/clear":
                 Messages.Clear();
-                AppendSystemMessage(ResourceLoader.GetString("SlashOutputHelpHeader"));
+                AppendSystemMessage(ResourceLoader.GetString("SlashOutputClearConfirmed"));
                 return;
 
             case "/retry":
