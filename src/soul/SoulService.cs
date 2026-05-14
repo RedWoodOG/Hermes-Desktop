@@ -292,6 +292,41 @@ public sealed class SoulService
         return content.Contains("<!-- UNCONFIGURED -->");
     }
 
+    /// <summary>
+    /// Strips the <c>&lt;!-- UNCONFIGURED --&gt;</c> markers from SOUL.md and
+    /// USER.md so <see cref="IsFirstRun"/> returns false on subsequent launches.
+    /// Idempotent — safe to call repeatedly. Returns true if any file was
+    /// modified, false if both were already clean.
+    /// </summary>
+    /// <remarks>
+    /// MUST be awaited before navigating away from the onboarding wizard.
+    /// Otherwise the next page reads stale on-disk state and re-triggers
+    /// onboarding (Cursor Bugbot finding on Bundle E.8).
+    /// </remarks>
+    public async Task<bool> MarkConfiguredAsync()
+    {
+        // Accept LF or CRLF — git autocrlf differs between Windows + Linux test
+        // hosts, so the strip must tolerate both.
+        var pattern = new System.Text.RegularExpressions.Regex(@"<!-- UNCONFIGURED -->\r?\n?");
+        var changed = false;
+
+        var soul = await LoadFileAsync(SoulFileType.Soul);
+        if (soul.Contains("<!-- UNCONFIGURED -->"))
+        {
+            await SaveFileAsync(SoulFileType.Soul, pattern.Replace(soul, ""));
+            changed = true;
+        }
+
+        var user = await LoadFileAsync(SoulFileType.User);
+        if (user.Contains("<!-- UNCONFIGURED -->"))
+        {
+            await SaveFileAsync(SoulFileType.User, pattern.Replace(user, ""));
+            changed = true;
+        }
+
+        return changed;
+    }
+
     private const string DefaultSoulTemplate = @"<!-- UNCONFIGURED -->
 # Hermes Agent Identity
 

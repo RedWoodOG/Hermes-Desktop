@@ -70,4 +70,60 @@ public class FirstRunFlowTests
 
         Assert.IsFalse(_service.IsFirstRun());
     }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // Regression: Cursor Bugbot — MainWindow used fire-and-forget Task.Run
+    // for the marker strip, so navigation completed before disk writes.
+    // The fix moves the logic into SoulService.MarkConfiguredAsync, which
+    // these tests pin down as the source of truth.
+    // ─────────────────────────────────────────────────────────────────────
+
+    [TestMethod]
+    public async Task MarkConfiguredAsync_StripsBothMarkers_AndExitsFirstRun()
+    {
+        await _service.LoadFileAsync(SoulFileType.Soul);
+        await _service.LoadFileAsync(SoulFileType.User);
+        Assert.IsTrue(_service.IsFirstRun(), "Precondition: fresh home is first-run.");
+
+        var changed = await _service.MarkConfiguredAsync();
+
+        Assert.IsTrue(changed, "MarkConfiguredAsync should report it modified at least one file.");
+        Assert.IsFalse(_service.IsFirstRun(),
+            "After awaiting MarkConfiguredAsync, IsFirstRun must return false synchronously.");
+
+        var soulAfter = await _service.LoadFileAsync(SoulFileType.Soul);
+        var userAfter = await _service.LoadFileAsync(SoulFileType.User);
+        Assert.IsFalse(soulAfter.Contains("<!-- UNCONFIGURED -->"));
+        Assert.IsFalse(userAfter.Contains("<!-- UNCONFIGURED -->"));
+    }
+
+    [TestMethod]
+    public async Task MarkConfiguredAsync_OnClean_IsNoOp()
+    {
+        await _service.LoadFileAsync(SoulFileType.Soul);
+        await _service.LoadFileAsync(SoulFileType.User);
+        await _service.MarkConfiguredAsync();
+
+        var secondCallChanged = await _service.MarkConfiguredAsync();
+
+        Assert.IsFalse(secondCallChanged,
+            "Second call must be a no-op so repeated wizard taps are idempotent.");
+        Assert.IsFalse(_service.IsFirstRun());
+    }
+
+    [TestMethod]
+    public async Task MarkConfiguredAsync_DiskStateVisibleOnReturn()
+    {
+        // The Bugbot finding was: fire-and-forget meant IsFirstRun() could still
+        // observe the marker after the wizard returned. Pin down the inverse:
+        // the moment MarkConfiguredAsync's Task completes, the disk MUST agree.
+        await _service.LoadFileAsync(SoulFileType.Soul);
+        await _service.MarkConfiguredAsync();
+
+        // Brand-new SoulService instance pointed at the same dir — simulates the
+        // next app launch reading the file from scratch.
+        var freshService = new SoulService(_tempDir, NullLogger<SoulService>.Instance);
+        Assert.IsFalse(freshService.IsFirstRun(),
+            "A new SoulService over the same home must observe the cleared marker after MarkConfiguredAsync returns.");
+    }
 }

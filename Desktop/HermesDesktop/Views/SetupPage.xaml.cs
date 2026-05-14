@@ -123,7 +123,9 @@ public sealed partial class SetupPage : Page
 
             if (App.Current is App app && app.MainWindow is { } window)
             {
-                window.MarkFirstRunComplete();
+                // Await the marker-strip BEFORE navigating so ChatPage's IsFirstRun()
+                // re-read sees the cleared state and does not loop back to onboarding.
+                await window.MarkFirstRunCompleteAsync();
                 window.NavigateToTag("chat");
             }
         }
@@ -137,11 +139,11 @@ public sealed partial class SetupPage : Page
         }
     }
 
-    private void Skip_Click(object sender, RoutedEventArgs e)
+    private async void Skip_Click(object sender, RoutedEventArgs e)
     {
         if (App.Current is App app && app.MainWindow is { } window)
         {
-            window.MarkFirstRunComplete();
+            await window.MarkFirstRunCompleteAsync();
             window.NavigateToTag("chat");
         }
     }

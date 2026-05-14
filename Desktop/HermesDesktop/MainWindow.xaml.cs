@@ -99,50 +99,49 @@ public sealed partial class MainWindow : Window
     /// Called by Welcome/Setup pages when the user finishes or skips the wizard.
     /// Strips the <c>&lt;!-- UNCONFIGURED --&gt;</c> markers from SOUL.md/USER.md
     /// so <see cref="Hermes.Agent.Soul.SoulService.IsFirstRun"/> returns false on
-    /// next launch. Best-effort: failures here are logged but never block navigation.
+    /// next launch, then navigates to Chat. The disk write MUST complete before
+    /// navigation — otherwise ChatPage.OnNavigatedTo re-reads stale files, sees
+    /// the marker, and re-routes back to onboarding (Cursor Bugbot finding).
+    /// Best-effort: write failures are logged but never block navigation, since
+    /// blocking onboarding behind a broken disk would be worse than re-prompting.
     /// </summary>
-    internal void MarkFirstRunComplete()
+    internal async Task MarkFirstRunCompleteAsync()
     {
         try
         {
             var soulService = App.Services.GetService(typeof(Hermes.Agent.Soul.SoulService))
                 as Hermes.Agent.Soul.SoulService;
-            if (soulService is null) return;
 
-            _ = Task.Run(async () =>
+            if (soulService is not null)
             {
                 try
                 {
-                    // Strip the marker plus any trailing CR/LF so first-run detection
-                    // (substring scan) flips to false on the next launch regardless of
-                    // the template's git autocrlf state.
-                    var pattern = new System.Text.RegularExpressions.Regex(
-                        @"<!-- UNCONFIGURED -->\r?\n?");
-
-                    var soul = await soulService.LoadFileAsync(Hermes.Agent.Soul.SoulFileType.Soul);
-                    if (soul.Contains("<!-- UNCONFIGURED -->"))
-                        await soulService.SaveFileAsync(Hermes.Agent.Soul.SoulFileType.Soul,
-                            pattern.Replace(soul, ""));
-
-                    var user = await soulService.LoadFileAsync(Hermes.Agent.Soul.SoulFileType.User);
-                    if (user.Contains("<!-- UNCONFIGURED -->"))
-                        await soulService.SaveFileAsync(Hermes.Agent.Soul.SoulFileType.User,
-                            pattern.Replace(user, ""));
+                    await soulService.MarkConfiguredAsync();
                 }
                 catch (Exception ex)
                 {
-                    System.Diagnostics.Debug.WriteLine($"MainWindow.MarkFirstRunComplete inner failed: {ex}");
+                    System.Diagnostics.Debug.WriteLine($"MainWindow.MarkFirstRunComplete strip failed: {ex}");
                 }
-            });
-
-            DispatcherQueue.TryEnqueue(() =>
-            {
-                ShellNavigation.SelectedItem = ChatNavItem;
-            });
+            }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"MainWindow.MarkFirstRunComplete failed: {ex}");
+        }
+        finally
+        {
+            // Navigation is the caller's responsibility — callers also explicitly
+            // call NavigateToTag("chat"). We keep this fallback enqueue so the
+            // shell still lands on Chat even if the caller forgets, but the
+            // contract is: callers MUST await this method before navigating.
+            if (DispatcherQueue is not null)
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (ShellNavigation.SelectedItem != ChatNavItem)
+                        ShellNavigation.SelectedItem = ChatNavItem;
+                });
+            }
         }
     }
 
