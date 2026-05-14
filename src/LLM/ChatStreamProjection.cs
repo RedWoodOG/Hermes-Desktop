@@ -122,7 +122,12 @@ public static class ChatStreamProjection
             => new ChatStreamProjectionResult(
                 new ChatStreamEnvelope(
                     ChatStreamEventKind.Usage,
-                    mc.StopReason,
+                    // Defensive coalesce: although StreamEvent.MessageComplete.StopReason is
+                    // declared non-nullable, some providers (notably custom OpenAI-compat
+                    // endpoints) ship a literal null over the wire. Match the convention used
+                    // by HermesChatService.StreamStructuredAsync and never let a null reach
+                    // ChatStreamEnvelope.Text, which is typed non-nullable.
+                    mc.StopReason ?? string.Empty,
                     Usage: mc.Usage),
                 AccumulatedText: null),
 
