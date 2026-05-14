@@ -13,6 +13,7 @@ public sealed class McpManager : IAsyncDisposable
     private readonly Dictionary<string, McpToolWrapper> _tools = new();
     private readonly List<McpServerConfig> _configs = new();
     private readonly List<McpConfigLoadIssue> _loadIssues = new();
+    private string[] _bootstrapConfigSearchPaths = Array.Empty<string>();
 
     private static readonly JsonSerializerOptions McpConfigJsonOptions = new()
     {
@@ -27,6 +28,14 @@ public sealed class McpManager : IAsyncDisposable
     /// <summary>Servers or entries skipped while loading <c>mcp.json</c> (policy, invalid URL, etc.).</summary>
     public IReadOnlyList<McpConfigLoadIssue> ConfigLoadIssues => _loadIssues;
 
+    /// <summary>
+    /// The <c>mcp.json</c> search paths the last <see cref="McpBootstrap.AttachAsync"/> call
+    /// was asked to inspect, in their original order. Empty until bootstrap runs. Dashboards
+    /// must prefer this snapshot over rebuilding the list locally so they cannot drift from
+    /// what App.xaml.cs actually used at startup.
+    /// </summary>
+    public IReadOnlyList<string> BootstrapConfigSearchPaths => _bootstrapConfigSearchPaths;
+
     public McpManager(ILogger<McpManager> logger)
     {
         _logger = logger;
@@ -37,6 +46,20 @@ public sealed class McpManager : IAsyncDisposable
     {
         _configs.Clear();
         _loadIssues.Clear();
+    }
+
+    /// <summary>
+    /// Records the exact ordered list of <c>mcp.json</c> search paths a bootstrap caller will
+    /// inspect. Whitespace-only entries are dropped; remaining entries are trimmed but left
+    /// otherwise verbatim (resolution to absolute paths is the caller's responsibility).
+    /// </summary>
+    internal void RecordBootstrapConfigSearchPaths(IEnumerable<string> paths)
+    {
+        ArgumentNullException.ThrowIfNull(paths);
+        _bootstrapConfigSearchPaths = paths
+            .Where(static p => !string.IsNullOrWhiteSpace(p))
+            .Select(static p => p.Trim())
+            .ToArray();
     }
 
     /// <summary>Runtime view for dashboards (no URLs or secrets).</summary>

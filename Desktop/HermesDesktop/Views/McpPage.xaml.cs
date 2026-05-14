@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using Hermes.Agent.Mcp;
@@ -29,8 +30,18 @@ public sealed partial class McpPage : Page
     private void BuildConfigPaths()
     {
         ConfigPathsPanel.Children.Clear();
-        string projectDir = Path.Combine(HermesEnvironment.HermesHomePath, "hermes-cs");
-        foreach (string path in McpBootstrap.BuildMcpConfigSearchPaths(projectDir, HermesEnvironment.HermesHomePath))
+
+        // Prefer the exact ordered list that App bootstrap recorded so this dashboard never
+        // claims to inspect a different set of paths than the agent actually inspected. Fall
+        // back to a fresh computation only if bootstrap never ran (e.g. tests, errors).
+        var mgr = App.Services.GetRequiredService<McpManager>();
+        IReadOnlyList<string> paths = mgr.BootstrapConfigSearchPaths.Count > 0
+            ? mgr.BootstrapConfigSearchPaths
+            : McpBootstrap.BuildMcpConfigSearchPaths(
+                Path.Combine(HermesEnvironment.HermesHomePath, "hermes-cs"),
+                HermesEnvironment.HermesHomePath);
+
+        foreach (string path in paths)
         {
             bool exists = File.Exists(path);
             var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };

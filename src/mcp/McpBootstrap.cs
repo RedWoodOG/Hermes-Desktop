@@ -17,7 +17,16 @@ public static class McpBootstrap
         ILogger logger,
         CancellationToken ct = default)
     {
-        var existingConfigs = configPaths
+        ArgumentNullException.ThrowIfNull(manager);
+        ArgumentNullException.ThrowIfNull(configPaths);
+
+        // Snapshot the (raw, ordered) search path list onto the manager so the desktop's
+        // McpPage dashboard can show *exactly* what bootstrap inspected — never a list it
+        // rebuilt with a potentially-different projectDir.
+        var configPathList = configPaths as IReadOnlyList<string> ?? configPaths.ToList();
+        manager.RecordBootstrapConfigSearchPaths(configPathList);
+
+        var existingConfigs = configPathList
             .Where(path => !string.IsNullOrWhiteSpace(path))
             .Select(Path.GetFullPath)
             .Distinct(StringComparer.OrdinalIgnoreCase)
