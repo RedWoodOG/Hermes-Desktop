@@ -106,7 +106,7 @@ internal sealed class RedactedThinkingStreamSplitter
                             text.EndsWith("<think", StringComparison.Ordinal));
 
     private static bool HasPartialCloseTagSuffix(string text) =>
-        text.EndsWith("<", StringComparison.Ordinal) ||
+        text.EndsWith('<') ||
         text.EndsWith("</", StringComparison.Ordinal) ||
         text.EndsWith("</t", StringComparison.Ordinal) ||
         text.EndsWith("</th", StringComparison.Ordinal) ||
